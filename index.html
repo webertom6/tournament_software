@@ -30,7 +30,7 @@
                     <form id="form-add-team">
                         <label for="team-name">Team name</label>
                         <div class="inline-form">
-                            <input id="team-name" name="team-name" type="text" maxlength="60" required>
+                            <input id="team-name" name="team-name" type="text" maxlength="60" placeholder="Example: Red Tigers" autocomplete="organization" required>
                             <button type="submit">Add team</button>
                         </div>
                     </form>
@@ -42,7 +42,7 @@
                     <form id="form-add-terrain">
                         <label for="terrain-name">Terrain name</label>
                         <div class="inline-form">
-                            <input id="terrain-name" name="terrain-name" type="text" maxlength="60" required>
+                            <input id="terrain-name" name="terrain-name" type="text" maxlength="60" placeholder="Example: Terrain A" autocomplete="off" required>
                             <button type="submit">Add terrain</button>
                         </div>
                     </form>
@@ -55,19 +55,19 @@
                 <form id="form-config" class="grid-4">
                     <label>
                         POINT_VICTORY_PHASE1
-                        <input id="cfg-win" type="number" step="1" min="0" required>
+                        <input id="cfg-win" type="number" step="1" min="0" placeholder="e.g. 3" required>
                     </label>
                     <label>
                         POINT_DRAW_PHASE1
-                        <input id="cfg-draw" type="number" step="1" min="0" required>
+                        <input id="cfg-draw" type="number" step="1" min="0" placeholder="e.g. 1" required>
                     </label>
                     <label>
                         POINT_LOSS_PHASE1
-                        <input id="cfg-loss" type="number" step="1" min="0" required>
+                        <input id="cfg-loss" type="number" step="1" min="0" placeholder="e.g. 0" required>
                     </label>
                     <label>
                         Qualified teams for knockout
-                        <input id="cfg-qualified" type="number" step="1" min="2" required>
+                        <input id="cfg-qualified" type="number" step="1" min="2" placeholder="e.g. 4" required>
                     </label>
                     <label>
                         Seeding policy

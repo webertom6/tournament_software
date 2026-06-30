@@ -18,7 +18,7 @@
         target.innerHTML = '<div class="list-rows">' + state.teams.map((team) => {
             return '' +
                 '<div class="list-row">' +
-                '<input type="text" data-role="team-name" data-team-id="' + esc(team.id) + '" value="' + esc(team.name) + '">' +
+                '<input type="text" data-role="team-name" data-team-id="' + esc(team.id) + '" value="' + esc(team.name) + '" placeholder="Team name">' +
                 '<button type="button" data-action="team-rename" data-team-id="' + esc(team.id) + '">Save</button>' +
                 '<button type="button" data-action="team-remove" data-team-id="' + esc(team.id) + '" class="danger">Delete</button>' +
                 '</div>';
@@ -35,7 +35,7 @@
         target.innerHTML = '<div class="list-rows">' + state.terrains.map((terrain) => {
             return '' +
                 '<div class="list-row">' +
-                '<input type="text" data-role="terrain-name" data-terrain-id="' + esc(terrain.id) + '" value="' + esc(terrain.name) + '">' +
+                '<input type="text" data-role="terrain-name" data-terrain-id="' + esc(terrain.id) + '" value="' + esc(terrain.name) + '" placeholder="Terrain name">' +
                 '<button type="button" data-action="terrain-rename" data-terrain-id="' + esc(terrain.id) + '">Save</button>' +
                 '<button type="button" data-action="terrain-remove" data-terrain-id="' + esc(terrain.id) + '" class="danger">Delete</button>' +
                 '</div>';
@@ -89,8 +89,8 @@
                         '</div>' +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
                         '<div class="match-row">' +
-                        '<input type="number" min="0" step="1" data-role="phase1-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '">' +
-                        '<input type="number" min="0" step="1" data-role="phase1-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '">' +
+                        '<input type="number" min="0" step="1" data-role="phase1-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
+                        '<input type="number" min="0" step="1" data-role="phase1-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
                         '<button type="button" data-action="phase1-save" data-match-id="' + esc(match.id) + '">Save score</button>' +
                         '<button type="button" data-action="phase1-reopen" data-match-id="' + esc(match.id) + '">Reopen</button>' +
                         '</div>' +
@@ -164,8 +164,8 @@
                         '<span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span>' +
                         '</div>' +
                         '<div class="match-row">' +
-                        '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '">' +
-                        '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '">' +
+                        '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
+                        '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
                         '<button type="button" data-action="ko-save" data-match-id="' + esc(match.id) + '">Save score</button>' +
                         '<button type="button" data-action="ko-reopen" data-match-id="' + esc(match.id) + '">Reopen</button>' +
                         '</div>' +
@@ -187,8 +187,8 @@
                 '<span class="status-pill ' + esc(tp.status) + '">' + esc(tp.status) + '</span>' +
                 '</div>' +
                 '<div class="match-row">' +
-                '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.homeGoals) ? tp.homeGoals : "") + '">' +
-                '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.awayGoals) ? tp.awayGoals : "") + '">' +
+                '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.homeGoals) ? tp.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
+                '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.awayGoals) ? tp.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
                 '<button type="button" data-action="ko-save" data-match-id="' + esc(tp.id) + '">Save score</button>' +
                 '<button type="button" data-action="ko-reopen" data-match-id="' + esc(tp.id) + '">Reopen</button>' +
                 '</div>' +

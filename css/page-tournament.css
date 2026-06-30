@@ -46,7 +46,7 @@
 
 .inline-form {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.4rem;
 }
 
@@ -64,7 +64,7 @@
 
 .list-row {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 0.45rem;
     align-items: center;
 }
@@ -93,6 +93,7 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 0.8rem;
+    min-width: 0;
 }
 
 .match-card {
@@ -107,13 +108,36 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.45rem;
+    gap: 0.5rem;
+}
+
+.match-head span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .match-row {
-    display: grid;
-    grid-template-columns: 1fr 4rem 4rem auto auto;
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.4rem;
     align-items: center;
+    min-width: 0;
+}
+
+.match-row input {
+    flex: 1 1 110px;
+    min-width: 0;
+    width: auto;
+}
+
+.match-row button {
+    flex: 1 1 140px;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+#phase1-standings {
+    overflow-x: auto;
 }
 
 .champion-box {
@@ -143,11 +167,26 @@
 }
 
 @media (max-width: 740px) {
-    .match-row {
-        grid-template-columns: 1fr 3.5rem 3.5rem;
+    .inline-form {
+        grid-template-columns: 1fr;
     }
 
+    .list-row {
+        grid-template-columns: 1fr;
+    }
+
+    .list-row button {
+        width: 100%;
+    }
+
+    .match-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .match-row input,
     .match-row button {
-        grid-column: span 3;
+        width: 100%;
+        flex: 1 1 auto;
     }
 }
