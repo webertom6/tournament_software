@@ -13,6 +13,7 @@
                 POINT_VICTORY_PHASE1: 3,
                 POINT_DRAW_PHASE1: 1,
                 POINT_LOSS_PHASE1: 0,
+                phase1MatchesPerTeam: 3,
                 qualifiedCount: 4,
                 seedingPolicy: "ranking",
                 thirdPlaceMatch: false
@@ -45,6 +46,7 @@
                 POINT_VICTORY_PHASE1: Number.isFinite(raw.config && raw.config.POINT_VICTORY_PHASE1) ? raw.config.POINT_VICTORY_PHASE1 : fallback.config.POINT_VICTORY_PHASE1,
                 POINT_DRAW_PHASE1: Number.isFinite(raw.config && raw.config.POINT_DRAW_PHASE1) ? raw.config.POINT_DRAW_PHASE1 : fallback.config.POINT_DRAW_PHASE1,
                 POINT_LOSS_PHASE1: Number.isFinite(raw.config && raw.config.POINT_LOSS_PHASE1) ? raw.config.POINT_LOSS_PHASE1 : fallback.config.POINT_LOSS_PHASE1,
+                phase1MatchesPerTeam: Number.isFinite(raw.config && raw.config.phase1MatchesPerTeam) ? raw.config.phase1MatchesPerTeam : fallback.config.phase1MatchesPerTeam,
                 qualifiedCount: Number.isFinite(raw.config && raw.config.qualifiedCount) ? raw.config.qualifiedCount : fallback.config.qualifiedCount,
                 seedingPolicy: raw.config && (raw.config.seedingPolicy === "random" ? "random" : "ranking"),
                 thirdPlaceMatch: Boolean(raw.config && raw.config.thirdPlaceMatch)

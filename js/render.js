@@ -69,7 +69,9 @@
         }
 
         const completed = state.phase1.matches.filter((match) => match.status === "completed").length;
-        summary.innerHTML = '<p><strong>' + completed + '</strong> / <strong>' + state.phase1.matches.length + '</strong> matches completed</p>';
+        summary.innerHTML =
+            '<p><strong>' + completed + '</strong> / <strong>' + state.phase1.matches.length + '</strong> matches completed</p>' +
+            '<p class="muted">Configured phase 1 matches per team: <strong>' + state.config.phase1MatchesPerTeam + "</strong></p>";
 
         const rounds = groupPhase1ByRound(state.phase1.matches);
         target.innerHTML = '<div class="round-grid">' + rounds.map((entry) => {
@@ -224,6 +226,7 @@
         document.getElementById("cfg-win").value = state.config.POINT_VICTORY_PHASE1;
         document.getElementById("cfg-draw").value = state.config.POINT_DRAW_PHASE1;
         document.getElementById("cfg-loss").value = state.config.POINT_LOSS_PHASE1;
+        document.getElementById("cfg-phase1-matches").value = state.config.phase1MatchesPerTeam;
         document.getElementById("cfg-qualified").value = state.config.qualifiedCount;
         document.getElementById("cfg-seeding").value = state.config.seedingPolicy;
         document.getElementById("cfg-third-place").checked = Boolean(state.config.thirdPlaceMatch);
@@ -269,6 +272,7 @@
                     POINT_VICTORY_PHASE1: document.getElementById("cfg-win").value,
                     POINT_DRAW_PHASE1: document.getElementById("cfg-draw").value,
                     POINT_LOSS_PHASE1: document.getElementById("cfg-loss").value,
+                    phase1MatchesPerTeam: document.getElementById("cfg-phase1-matches").value,
                     qualifiedCount: document.getElementById("cfg-qualified").value,
                     seedingPolicy: document.getElementById("cfg-seeding").value,
                     thirdPlaceMatch: document.getElementById("cfg-third-place").checked

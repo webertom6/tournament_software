@@ -66,6 +66,10 @@
                         <input id="cfg-loss" type="number" step="1" min="0" placeholder="e.g. 0" required>
                     </label>
                     <label>
+                        Phase 1 matches per team
+                        <input id="cfg-phase1-matches" type="number" step="1" min="1" placeholder="e.g. 5" required>
+                    </label>
+                    <label>
                         Qualified teams for knockout
                         <input id="cfg-qualified" type="number" step="1" min="2" placeholder="e.g. 4" required>
                     </label>
@@ -87,7 +91,7 @@
             </div>
 
             <div class="button-row">
-                <button id="btn-generate-phase1" type="button">Generate phase 1 round-robin</button>
+                <button id="btn-generate-phase1" type="button">Generate phase 1 schedule</button>
                 <button id="btn-start-knockout" type="button">Generate phase 2 knockout</button>
             </div>
         </section>

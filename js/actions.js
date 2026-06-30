@@ -115,6 +115,7 @@
                 POINT_VICTORY_PHASE1: Number(rawConfig.POINT_VICTORY_PHASE1),
                 POINT_DRAW_PHASE1: Number(rawConfig.POINT_DRAW_PHASE1),
                 POINT_LOSS_PHASE1: Number(rawConfig.POINT_LOSS_PHASE1),
+                phase1MatchesPerTeam: Number(rawConfig.phase1MatchesPerTeam),
                 qualifiedCount: Number(rawConfig.qualifiedCount),
                 seedingPolicy: rawConfig.seedingPolicy === "random" ? "random" : "ranking",
                 thirdPlaceMatch: Boolean(rawConfig.thirdPlaceMatch)
@@ -128,6 +129,9 @@
             }
             if (!Number.isFinite(parsed.POINT_LOSS_PHASE1) || parsed.POINT_LOSS_PHASE1 < 0) {
                 throw new Error("POINT_LOSS_PHASE1 must be >= 0");
+            }
+            if (!Number.isFinite(parsed.phase1MatchesPerTeam) || parsed.phase1MatchesPerTeam < 1 || Math.floor(parsed.phase1MatchesPerTeam) !== parsed.phase1MatchesPerTeam) {
+                throw new Error("Phase 1 matches per team must be an integer >= 1");
             }
             if (!Number.isFinite(parsed.qualifiedCount) || parsed.qualifiedCount < 2) {
                 throw new Error("Qualified count must be >= 2");
@@ -150,13 +154,18 @@
             }
             const teamIds = state.teams.map((team) => team.id);
             const terrainIds = state.terrains.map((terrain) => terrain.id);
-            state.phase1.matches = window.TournamentScheduler.buildPhase1Matches(teamIds, terrainIds, window.TournamentState.uid);
+            state.phase1.matches = window.TournamentScheduler.buildPhase1Matches(
+                teamIds,
+                terrainIds,
+                window.TournamentState.uid,
+                state.config.phase1MatchesPerTeam
+            );
             state.phase1.generated = true;
             state.knockout.generated = false;
             state.knockout.rounds = [];
             state.knockout.thirdPlace = null;
             state.knockout.championTeamId = null;
-        }, "Generated phase 1 round-robin schedule");
+        }, "Generated phase 1 schedule with configured matches per team");
     }
 
     function findPhase1Match(state, matchId) {
