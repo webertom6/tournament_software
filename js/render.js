@@ -298,6 +298,18 @@
             }
         });
 
+        document.getElementById("btn-reset-phases").addEventListener("click", () => {
+            const ok = confirm("Reset phase 1 and knockout data while keeping teams and terrains?");
+            if (!ok) {
+                return;
+            }
+            try {
+                window.TournamentActions.resetPhases();
+            } catch (error) {
+                handleError(error);
+            }
+        });
+
         document.getElementById("btn-export-state").addEventListener("click", () => {
             window.TournamentActions.exportStateToDownload();
         });

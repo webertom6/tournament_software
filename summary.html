@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Summary</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/page-summary.css">
+</head>
+<body>
+    <header class="summary-header">
+        <div class="summary-header__row">
+            <h1>Teams Summary</h1>
+            <a class="summary-link" href="./index.html">Admin page</a>
+        </div>
+        <p>Read-only schedule view for teams</p>
+        <p id="summary-last-update" class="muted"></p>
+    </header>
+
+    <main class="summary-main">
+        <section class="summary-card" aria-labelledby="phase1-title">
+            <h2 id="phase1-title">Phase 1 - upcoming matches</h2>
+            <div id="summary-phase1"></div>
+        </section>
+
+        <section class="summary-card" aria-labelledby="knockout-title">
+            <h2 id="knockout-title">Knockout - upcoming matches</h2>
+            <div id="summary-knockout"></div>
+        </section>
+    </main>
+
+    <script src="./js/summary.js"></script>
+</body>
+</html>

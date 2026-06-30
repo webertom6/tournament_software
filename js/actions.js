@@ -11,6 +11,13 @@
         return state.terrains.find((terrain) => terrain.id === id);
     }
 
+    function clearKnockoutState(state) {
+        state.knockout.generated = false;
+        state.knockout.rounds = [];
+        state.knockout.thirdPlace = null;
+        state.knockout.championTeamId = null;
+    }
+
     function assertCanEditSetup(state) {
         if (state.phase1.generated) {
             throw new Error("Cannot edit teams or terrains after phase 1 is generated. Reset state to restart.");
@@ -139,10 +146,7 @@
 
             state.config = parsed;
             if (state.knockout.generated) {
-                state.knockout.generated = false;
-                state.knockout.rounds = [];
-                state.knockout.thirdPlace = null;
-                state.knockout.championTeamId = null;
+                clearKnockoutState(state);
             }
         }, "Updated tournament config");
     }
@@ -161,10 +165,7 @@
                 state.config.phase1MatchesPerTeam
             );
             state.phase1.generated = true;
-            state.knockout.generated = false;
-            state.knockout.rounds = [];
-            state.knockout.thirdPlace = null;
-            state.knockout.championTeamId = null;
+            clearKnockoutState(state);
         }, "Generated phase 1 schedule with configured matches per team");
     }
 
@@ -194,10 +195,7 @@
             match.status = "completed";
 
             if (state.knockout.generated) {
-                state.knockout.generated = false;
-                state.knockout.rounds = [];
-                state.knockout.thirdPlace = null;
-                state.knockout.championTeamId = null;
+                clearKnockoutState(state);
             }
         }, "Updated phase 1 score and recomputed standings");
     }
@@ -213,12 +211,17 @@
             match.status = "scheduled";
 
             if (state.knockout.generated) {
-                state.knockout.generated = false;
-                state.knockout.rounds = [];
-                state.knockout.thirdPlace = null;
-                state.knockout.championTeamId = null;
+                clearKnockoutState(state);
             }
         }, "Reopened phase 1 match and reset knockout");
+    }
+
+    function resetPhases() {
+        window.TournamentState.update((state) => {
+            state.phase1.generated = false;
+            state.phase1.matches = [];
+            clearKnockoutState(state);
+        }, "Reset phase 1 and knockout while preserving teams and terrains");
     }
 
     function startKnockout() {
@@ -323,6 +326,7 @@
         generatePhase1: generatePhase1,
         applyPhase1Score: applyPhase1Score,
         reopenPhase1Match: reopenPhase1Match,
+        resetPhases: resetPhases,
         startKnockout: startKnockout,
         applyKnockoutScore: applyKnockoutScore,
         reopenKnockoutMatch: reopenKnockoutMatch,
