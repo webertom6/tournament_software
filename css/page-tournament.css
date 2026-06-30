@@ -1,0 +1,153 @@
+.app-header {
+    width: min(1200px, calc(100% - 2rem));
+    margin: 1rem auto 0;
+}
+
+.app-main {
+    width: min(1200px, calc(100% - 2rem));
+    margin: 1rem auto 2rem;
+    display: grid;
+    gap: 1rem;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.panel {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.grid-4 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.8rem;
+    align-items: end;
+}
+
+.inline-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.4rem;
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.list-rows {
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+}
+
+.list-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.45rem;
+    align-items: center;
+}
+
+.list-row input[type="text"] {
+    min-width: 130px;
+}
+
+.checkbox-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkbox-line input[type="checkbox"] {
+    width: auto;
+}
+
+.round-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.8rem;
+}
+
+.round-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem;
+}
+
+.match-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.65rem;
+    margin-bottom: 0.6rem;
+}
+
+.match-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.45rem;
+}
+
+.match-row {
+    display: grid;
+    grid-template-columns: 1fr 4rem 4rem auto auto;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.champion-box {
+    border: 1px solid #b9e8cb;
+    background: #f0fff4;
+    border-radius: 10px;
+    padding: 0.8rem;
+    margin-top: 0.7rem;
+}
+
+.audit-items {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.audit-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+    background: #fff;
+}
+
+.audit-item time {
+    color: var(--muted);
+    font-size: 0.83rem;
+    display: block;
+}
+
+@media (max-width: 740px) {
+    .match-row {
+        grid-template-columns: 1fr 3.5rem 3.5rem;
+    }
+
+    .match-row button {
+        grid-column: span 3;
+    }
+}

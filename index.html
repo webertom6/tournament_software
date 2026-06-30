@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Software</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/page-tournament.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>Tournament Software</h1>
+        <p>Client-side manager for team registration, phase 1, and knockout finals</p>
+    </header>
+
+    <main class="app-main" id="app-root">
+        <section class="card" aria-labelledby="setup-title">
+            <div class="card-head">
+                <h2 id="setup-title">Setup</h2>
+                <div class="button-row">
+                    <button id="btn-export-state" type="button">Export state</button>
+                    <button id="btn-import-state" type="button">Import state</button>
+                    <button id="btn-reset-state" type="button" class="danger">Reset all</button>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="panel">
+                    <h3>Teams</h3>
+                    <form id="form-add-team">
+                        <label for="team-name">Team name</label>
+                        <div class="inline-form">
+                            <input id="team-name" name="team-name" type="text" maxlength="60" required>
+                            <button type="submit">Add team</button>
+                        </div>
+                    </form>
+                    <div id="teams-list"></div>
+                </div>
+
+                <div class="panel">
+                    <h3>Terrains</h3>
+                    <form id="form-add-terrain">
+                        <label for="terrain-name">Terrain name</label>
+                        <div class="inline-form">
+                            <input id="terrain-name" name="terrain-name" type="text" maxlength="60" required>
+                            <button type="submit">Add terrain</button>
+                        </div>
+                    </form>
+                    <div id="terrains-list"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Rules and qualification</h3>
+                <form id="form-config" class="grid-4">
+                    <label>
+                        POINT_VICTORY_PHASE1
+                        <input id="cfg-win" type="number" step="1" min="0" required>
+                    </label>
+                    <label>
+                        POINT_DRAW_PHASE1
+                        <input id="cfg-draw" type="number" step="1" min="0" required>
+                    </label>
+                    <label>
+                        POINT_LOSS_PHASE1
+                        <input id="cfg-loss" type="number" step="1" min="0" required>
+                    </label>
+                    <label>
+                        Qualified teams for knockout
+                        <input id="cfg-qualified" type="number" step="1" min="2" required>
+                    </label>
+                    <label>
+                        Seeding policy
+                        <select id="cfg-seeding">
+                            <option value="ranking">Ranking order</option>
+                            <option value="random">Randomized</option>
+                        </select>
+                    </label>
+                    <label class="checkbox-line">
+                        <input id="cfg-third-place" type="checkbox">
+                        Enable third place match
+                    </label>
+                    <div class="button-row">
+                        <button type="submit">Save config</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="button-row">
+                <button id="btn-generate-phase1" type="button">Generate phase 1 round-robin</button>
+                <button id="btn-start-knockout" type="button">Generate phase 2 knockout</button>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="phase1-title">
+            <h2 id="phase1-title">Phase 1 matches</h2>
+            <div id="phase1-summary"></div>
+            <div id="phase1-matches"></div>
+        </section>
+
+        <section class="card" aria-labelledby="standings-title">
+            <h2 id="standings-title">Standings</h2>
+            <div id="phase1-standings"></div>
+        </section>
+
+        <section class="card" aria-labelledby="knockout-title">
+            <h2 id="knockout-title">Phase 2 knockout</h2>
+            <div id="knockout-summary"></div>
+            <div id="knockout-rounds"></div>
+            <div id="third-place-block"></div>
+            <div id="champion-block"></div>
+        </section>
+
+        <section class="card" aria-labelledby="audit-title">
+            <h2 id="audit-title">Audit and correction history</h2>
+            <div id="audit-log"></div>
+        </section>
+    </main>
+
+    <input id="import-state-input" type="file" accept="application/json" hidden>
+
+    <script src="./js/state.js"></script>
+    <script src="./js/rules.js"></script>
+    <script src="./js/scheduler.js"></script>
+    <script src="./js/bracket.js"></script>
+    <script src="./js/actions.js"></script>
+    <script src="./js/render.js"></script>
+    <script src="./js/main.js"></script>
+</body>
+</html>

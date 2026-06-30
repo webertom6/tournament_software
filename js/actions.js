@@ -1,0 +1,324 @@
+(function () {
+    function normalizeName(name) {
+        return String(name || "").trim().replace(/\s+/g, " ");
+    }
+
+    function findTeam(state, id) {
+        return state.teams.find((team) => team.id === id);
+    }
+
+    function findTerrain(state, id) {
+        return state.terrains.find((terrain) => terrain.id === id);
+    }
+
+    function assertCanEditSetup(state) {
+        if (state.phase1.generated) {
+            throw new Error("Cannot edit teams or terrains after phase 1 is generated. Reset state to restart.");
+        }
+    }
+
+    function addTeam(name) {
+        const normalized = normalizeName(name);
+        if (!normalized) {
+            throw new Error("Team name is required");
+        }
+
+        window.TournamentState.update((state) => {
+            assertCanEditSetup(state);
+            const exists = state.teams.some((team) => team.name.toLowerCase() === normalized.toLowerCase());
+            if (exists) {
+                throw new Error("Team name already exists");
+            }
+            state.teams.push({
+                id: window.TournamentState.uid("team"),
+                name: normalized
+            });
+        }, 'Added team "' + normalized + '"');
+    }
+
+    function renameTeam(teamId, newName) {
+        const normalized = normalizeName(newName);
+        if (!normalized) {
+            throw new Error("Team name is required");
+        }
+
+        window.TournamentState.update((state) => {
+            assertCanEditSetup(state);
+            const team = findTeam(state, teamId);
+            if (!team) {
+                throw new Error("Team not found");
+            }
+            team.name = normalized;
+        }, 'Renamed team to "' + normalized + '"');
+    }
+
+    function removeTeam(teamId) {
+        window.TournamentState.update((state) => {
+            assertCanEditSetup(state);
+            const before = state.teams.length;
+            state.teams = state.teams.filter((team) => team.id !== teamId);
+            if (state.teams.length === before) {
+                throw new Error("Team not found");
+            }
+        }, "Removed one team");
+    }
+
+    function addTerrain(name) {
+        const normalized = normalizeName(name);
+        if (!normalized) {
+            throw new Error("Terrain name is required");
+        }
+
+        window.TournamentState.update((state) => {
+            assertCanEditSetup(state);
+            const exists = state.terrains.some((terrain) => terrain.name.toLowerCase() === normalized.toLowerCase());
+            if (exists) {
+                throw new Error("Terrain name already exists");
+            }
+            state.terrains.push({
+                id: window.TournamentState.uid("terrain"),
+                name: normalized
+            });
+        }, 'Added terrain "' + normalized + '"');
+    }
+
+    function renameTerrain(terrainId, newName) {
+        const normalized = normalizeName(newName);
+        if (!normalized) {
+            throw new Error("Terrain name is required");
+        }
+
+        window.TournamentState.update((state) => {
+            assertCanEditSetup(state);
+            const terrain = findTerrain(state, terrainId);
+            if (!terrain) {
+                throw new Error("Terrain not found");
+            }
+            terrain.name = normalized;
+        }, 'Renamed terrain to "' + normalized + '"');
+    }
+
+    function removeTerrain(terrainId) {
+        window.TournamentState.update((state) => {
+            assertCanEditSetup(state);
+            const before = state.terrains.length;
+            state.terrains = state.terrains.filter((terrain) => terrain.id !== terrainId);
+            if (state.terrains.length === before) {
+                throw new Error("Terrain not found");
+            }
+        }, "Removed one terrain");
+    }
+
+    function updateConfig(rawConfig) {
+        window.TournamentState.update((state) => {
+            const parsed = {
+                POINT_VICTORY_PHASE1: Number(rawConfig.POINT_VICTORY_PHASE1),
+                POINT_DRAW_PHASE1: Number(rawConfig.POINT_DRAW_PHASE1),
+                POINT_LOSS_PHASE1: Number(rawConfig.POINT_LOSS_PHASE1),
+                qualifiedCount: Number(rawConfig.qualifiedCount),
+                seedingPolicy: rawConfig.seedingPolicy === "random" ? "random" : "ranking",
+                thirdPlaceMatch: Boolean(rawConfig.thirdPlaceMatch)
+            };
+
+            if (!Number.isFinite(parsed.POINT_VICTORY_PHASE1) || parsed.POINT_VICTORY_PHASE1 < 0) {
+                throw new Error("POINT_VICTORY_PHASE1 must be >= 0");
+            }
+            if (!Number.isFinite(parsed.POINT_DRAW_PHASE1) || parsed.POINT_DRAW_PHASE1 < 0) {
+                throw new Error("POINT_DRAW_PHASE1 must be >= 0");
+            }
+            if (!Number.isFinite(parsed.POINT_LOSS_PHASE1) || parsed.POINT_LOSS_PHASE1 < 0) {
+                throw new Error("POINT_LOSS_PHASE1 must be >= 0");
+            }
+            if (!Number.isFinite(parsed.qualifiedCount) || parsed.qualifiedCount < 2) {
+                throw new Error("Qualified count must be >= 2");
+            }
+
+            state.config = parsed;
+            if (state.knockout.generated) {
+                state.knockout.generated = false;
+                state.knockout.rounds = [];
+                state.knockout.thirdPlace = null;
+                state.knockout.championTeamId = null;
+            }
+        }, "Updated tournament config");
+    }
+
+    function generatePhase1() {
+        window.TournamentState.update((state) => {
+            if (state.teams.length < 2) {
+                throw new Error("Need at least 2 teams");
+            }
+            const teamIds = state.teams.map((team) => team.id);
+            const terrainIds = state.terrains.map((terrain) => terrain.id);
+            state.phase1.matches = window.TournamentScheduler.buildPhase1Matches(teamIds, terrainIds, window.TournamentState.uid);
+            state.phase1.generated = true;
+            state.knockout.generated = false;
+            state.knockout.rounds = [];
+            state.knockout.thirdPlace = null;
+            state.knockout.championTeamId = null;
+        }, "Generated phase 1 round-robin schedule");
+    }
+
+    function findPhase1Match(state, matchId) {
+        return state.phase1.matches.find((match) => match.id === matchId);
+    }
+
+    function parseGoal(value, fieldName) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed) || parsed < 0 || Math.floor(parsed) !== parsed) {
+            throw new Error(fieldName + " must be an integer >= 0");
+        }
+        return parsed;
+    }
+
+    function applyPhase1Score(matchId, homeGoalsRaw, awayGoalsRaw) {
+        const homeGoals = parseGoal(homeGoalsRaw, "Home goals");
+        const awayGoals = parseGoal(awayGoalsRaw, "Away goals");
+
+        window.TournamentState.update((state) => {
+            const match = findPhase1Match(state, matchId);
+            if (!match) {
+                throw new Error("Phase 1 match not found");
+            }
+            match.homeGoals = homeGoals;
+            match.awayGoals = awayGoals;
+            match.status = "completed";
+
+            if (state.knockout.generated) {
+                state.knockout.generated = false;
+                state.knockout.rounds = [];
+                state.knockout.thirdPlace = null;
+                state.knockout.championTeamId = null;
+            }
+        }, "Updated phase 1 score and recomputed standings");
+    }
+
+    function reopenPhase1Match(matchId) {
+        window.TournamentState.update((state) => {
+            const match = findPhase1Match(state, matchId);
+            if (!match) {
+                throw new Error("Phase 1 match not found");
+            }
+            match.homeGoals = null;
+            match.awayGoals = null;
+            match.status = "scheduled";
+
+            if (state.knockout.generated) {
+                state.knockout.generated = false;
+                state.knockout.rounds = [];
+                state.knockout.thirdPlace = null;
+                state.knockout.championTeamId = null;
+            }
+        }, "Reopened phase 1 match and reset knockout");
+    }
+
+    function startKnockout() {
+        window.TournamentState.update((state) => {
+            if (!state.phase1.generated) {
+                throw new Error("Generate phase 1 first");
+            }
+            const standings = window.TournamentRules.buildStandings(state);
+            if (standings.length < 2) {
+                throw new Error("Need standings for at least 2 teams");
+            }
+            const qualifiedCount = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
+            const qualified = standings.slice(0, qualifiedCount).map((row) => row.teamId);
+            const knockout = window.TournamentBracket.generateKnockoutStructure(qualified, state.config, window.TournamentState.uid);
+            state.knockout.generated = true;
+            state.knockout.rounds = knockout.rounds;
+            state.knockout.thirdPlace = knockout.thirdPlace;
+            state.knockout.championTeamId = knockout.championTeamId;
+            window.TournamentBracket.recomputeKnockout(state);
+        }, "Generated knockout phase from phase 1 standings");
+    }
+
+    function findKnockoutMatch(state, matchId) {
+        for (const round of state.knockout.rounds) {
+            const found = round.matches.find((match) => match.id === matchId);
+            if (found) {
+                return found;
+            }
+        }
+        if (state.knockout.thirdPlace && state.knockout.thirdPlace.id === matchId) {
+            return state.knockout.thirdPlace;
+        }
+        return null;
+    }
+
+    function applyKnockoutScore(matchId, homeGoalsRaw, awayGoalsRaw) {
+        const homeGoals = parseGoal(homeGoalsRaw, "Home goals");
+        const awayGoals = parseGoal(awayGoalsRaw, "Away goals");
+        if (homeGoals === awayGoals) {
+            throw new Error("Knockout matches cannot end in a draw");
+        }
+
+        window.TournamentState.update((state) => {
+            if (!state.knockout.generated) {
+                throw new Error("Knockout not generated");
+            }
+            const match = findKnockoutMatch(state, matchId);
+            if (!match) {
+                throw new Error("Knockout match not found");
+            }
+            if (!match.homeTeamId || !match.awayTeamId) {
+                throw new Error("Match participants are not both defined");
+            }
+            match.homeGoals = homeGoals;
+            match.awayGoals = awayGoals;
+            match.status = "completed";
+            window.TournamentBracket.recomputeKnockout(state);
+            window.TournamentBracket.clearDownstreamFromMatch(state, match.id);
+        }, "Updated knockout score");
+    }
+
+    function reopenKnockoutMatch(matchId) {
+        window.TournamentState.update((state) => {
+            const match = findKnockoutMatch(state, matchId);
+            if (!match) {
+                throw new Error("Knockout match not found");
+            }
+            match.homeGoals = null;
+            match.awayGoals = null;
+            match.status = "scheduled";
+            window.TournamentBracket.clearDownstreamFromMatch(state, match.id);
+        }, "Reopened knockout match and cleared dependent rounds");
+    }
+
+    function exportStateToDownload() {
+        const json = window.TournamentState.exportState();
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "tournament-state.json";
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importStateFromText(jsonText) {
+        window.TournamentState.importState(jsonText);
+    }
+
+    function resetAll() {
+        window.TournamentState.resetAll();
+    }
+
+    window.TournamentActions = {
+        addTeam: addTeam,
+        renameTeam: renameTeam,
+        removeTeam: removeTeam,
+        addTerrain: addTerrain,
+        renameTerrain: renameTerrain,
+        removeTerrain: removeTerrain,
+        updateConfig: updateConfig,
+        generatePhase1: generatePhase1,
+        applyPhase1Score: applyPhase1Score,
+        reopenPhase1Match: reopenPhase1Match,
+        startKnockout: startKnockout,
+        applyKnockoutScore: applyKnockoutScore,
+        reopenKnockoutMatch: reopenKnockoutMatch,
+        exportStateToDownload: exportStateToDownload,
+        importStateFromText: importStateFromText,
+        resetAll: resetAll
+    };
+})();
