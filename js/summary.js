@@ -33,6 +33,15 @@
         return terrain ? terrain.name : "No terrain";
     }
 
+    function renderMatchScoreLine(match) {
+        if (match.status !== "completed") {
+            return '<p class="muted">Status: upcoming</p>';
+        }
+        const home = Number.isFinite(match.homeGoals) ? match.homeGoals : 0;
+        const away = Number.isFinite(match.awayGoals) ? match.awayGoals : 0;
+        return '<p><strong>Score: ' + home + " - " + away + '</strong></p>';
+    }
+
     function renderPhase1(state) {
         const target = document.getElementById("summary-phase1");
         if (!state || !state.phase1 || !state.phase1.generated) {
@@ -40,14 +49,14 @@
             return;
         }
 
-        const upcoming = (state.phase1.matches || []).filter((match) => match.status !== "completed");
-        if (!upcoming.length) {
-            target.innerHTML = '<p class="summary-empty">No upcoming phase 1 matches</p>';
+        const allMatches = state.phase1.matches || [];
+        if (!allMatches.length) {
+            target.innerHTML = '<p class="summary-empty">No phase 1 matches</p>';
             return;
         }
 
         const byRound = new Map();
-        upcoming.forEach((match) => {
+        allMatches.forEach((match) => {
             const key = String(match.roundIndex);
             if (!byRound.has(key)) {
                 byRound.set(key, []);
@@ -68,6 +77,7 @@
                     return '' +
                         '<article class="summary-match">' +
                         '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
+                        renderMatchScoreLine(match) +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
                         '</article>';
                 }).join("") +
@@ -84,20 +94,19 @@
 
         const roundBlocks = [];
         (state.knockout.rounds || []).forEach((round) => {
-            const upcoming = (round.matches || []).filter((match) => {
-                return match.status !== "completed" && match.homeTeamId && match.awayTeamId;
+            const matches = (round.matches || []).filter((match) => {
+                return match.homeTeamId && match.awayTeamId;
             });
-            if (!upcoming.length) {
+            if (!matches.length) {
                 return;
             }
             roundBlocks.push({
                 name: round.name || ("Round " + (Number(round.roundIndex || 0) + 1)),
-                matches: upcoming
+                matches: matches
             });
         });
 
         if (state.knockout.thirdPlace &&
-            state.knockout.thirdPlace.status !== "completed" &&
             state.knockout.thirdPlace.homeTeamId &&
             state.knockout.thirdPlace.awayTeamId) {
             roundBlocks.push({
@@ -121,6 +130,7 @@
                     return '' +
                         '<article class="summary-match">' +
                         '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
+                        renderMatchScoreLine(match) +
                         '</article>';
                 }).join("") +
                 '</div>';
