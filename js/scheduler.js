@@ -138,7 +138,10 @@
                     terrainId: terrainId,
                     homeGoals: null,
                     awayGoals: null,
-                    status: "scheduled"
+                    status: "scheduled",
+                    pausedAt: null,
+                    pausedTotalMs: 0,
+                    finalElapsedMs: null
                 });
             });
         });

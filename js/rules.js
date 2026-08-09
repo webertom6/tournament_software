@@ -44,6 +44,8 @@
                 gf: 0,
                 ga: 0,
                 gd: 0,
+                bestScore: 0,
+                lastScore: null,
                 points: 0
             });
         }
@@ -65,6 +67,10 @@
             home.ga += match.awayGoals;
             away.gf += match.awayGoals;
             away.ga += match.homeGoals;
+            home.bestScore = Math.max(home.bestScore, match.homeGoals);
+            away.bestScore = Math.max(away.bestScore, match.awayGoals);
+            home.lastScore = match.homeGoals;
+            away.lastScore = match.awayGoals;
 
             if (match.homeGoals > match.awayGoals) {
                 home.wins += 1;
@@ -93,11 +99,12 @@
             if (b.points !== a.points) {
                 return b.points - a.points;
             }
-            if (b.gd !== a.gd) {
-                return b.gd - a.gd;
-            }
+            // GD stays computed above for display, but tie-break uses total score then best single-match score
             if (b.gf !== a.gf) {
                 return b.gf - a.gf;
+            }
+            if (b.bestScore !== a.bestScore) {
+                return b.bestScore - a.bestScore;
             }
             return a.teamName.localeCompare(b.teamName);
         });

@@ -84,6 +84,14 @@
                         <input id="cfg-third-place" type="checkbox">
                         Enable third place match
                     </label>
+                    <label>
+                        Match duration (minutes)
+                        <input id="cfg-match-duration" type="number" step="1" min="1" placeholder="e.g. 10" required>
+                    </label>
+                    <label>
+                        Pause / break duration (minutes)
+                        <input id="cfg-pause-duration" type="number" step="1" min="1" placeholder="e.g. 3" required>
+                    </label>
                     <div class="button-row">
                         <button type="submit">Save config</button>
                     </div>
@@ -125,6 +133,7 @@
     <input id="import-state-input" type="file" accept="application/json" hidden>
 
     <script src="./js/state.js"></script>
+    <script src="./js/timer.js"></script>
     <script src="./js/rules.js"></script>
     <script src="./js/scheduler.js"></script>
     <script src="./js/bracket.js"></script>

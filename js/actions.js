@@ -97,7 +97,9 @@
                 phase1MatchesPerTeam: Number(rawConfig.phase1MatchesPerTeam),
                 qualifiedCount: Number(rawConfig.qualifiedCount),
                 seedingPolicy: rawConfig.seedingPolicy === "random" ? "random" : "ranking",
-                thirdPlaceMatch: Boolean(rawConfig.thirdPlaceMatch)
+                thirdPlaceMatch: Boolean(rawConfig.thirdPlaceMatch),
+                matchDurationSeconds: Number(rawConfig.matchDurationSeconds),
+                pauseDurationSeconds: Number(rawConfig.pauseDurationSeconds)
             };
 
             if (!Number.isFinite(parsed.POINT_VICTORY_PHASE1) || parsed.POINT_VICTORY_PHASE1 < 0) {
@@ -114,6 +116,12 @@
             }
             if (!Number.isFinite(parsed.qualifiedCount) || parsed.qualifiedCount < 2) {
                 throw new Error("Qualified count must be >= 2");
+            }
+            if (!Number.isFinite(parsed.matchDurationSeconds) || parsed.matchDurationSeconds < 1) {
+                throw new Error("Match duration must be >= 1 second");
+            }
+            if (!Number.isFinite(parsed.pauseDurationSeconds) || parsed.pauseDurationSeconds < 1) {
+                throw new Error("Pause duration must be >= 1 second");
             }
 
             state.config = parsed;
@@ -137,6 +145,7 @@
                 state.config.phase1MatchesPerTeam
             );
             state.phase1.generated = true;
+            state.phase1.roundTimers = {};
             clearKnockoutState(state);
         }, "Generated phase 1 schedule with configured matches per team");
     }
@@ -151,6 +160,31 @@
             throw new Error(fieldName + " must be an integer >= 0");
         }
         return parsed;
+    }
+
+    function getPhase1RoundStartedAt(state, roundIndex) {
+        const timer = state.phase1.roundTimers[String(roundIndex)];
+        return timer ? timer.startedAt : null;
+    }
+
+    function getRoundStartedAt(state, matchId) {
+        const phase1Match = findPhase1Match(state, matchId);
+        if (phase1Match) {
+            return getPhase1RoundStartedAt(state, phase1Match.roundIndex);
+        }
+        if (state.knockout.thirdPlace && state.knockout.thirdPlace.id === matchId) {
+            return state.knockout.thirdPlace.startedAt;
+        }
+        for (const round of state.knockout.rounds) {
+            if (round.matches.some((match) => match.id === matchId)) {
+                return round.startedAt;
+            }
+        }
+        return null;
+    }
+
+    function findAnyMatch(state, matchId) {
+        return findPhase1Match(state, matchId) || findKnockoutMatch(state, matchId);
     }
 
     function applyPhase1Score(matchId, homeTeamIdRaw, awayTeamIdRaw, homeGoalsRaw, awayGoalsRaw) {
@@ -180,6 +214,11 @@
             match.homeGoals = homeGoals;
             match.awayGoals = awayGoals;
             match.status = "completed";
+            match.finalElapsedMs = window.TournamentTimer.computeElapsedMs(
+                getPhase1RoundStartedAt(state, match.roundIndex),
+                match,
+                Date.now()
+            );
 
             if (state.knockout.generated) {
                 clearKnockoutState(state);
@@ -207,6 +246,7 @@
         window.TournamentState.update((state) => {
             state.phase1.generated = false;
             state.phase1.matches = [];
+            state.phase1.roundTimers = {};
             clearKnockoutState(state);
         }, "Reset phase 1 and knockout while preserving teams and terrains");
     }
@@ -286,6 +326,7 @@
             match.homeGoals = homeGoals;
             match.awayGoals = awayGoals;
             match.status = "completed";
+            match.finalElapsedMs = window.TournamentTimer.computeElapsedMs(getRoundStartedAt(state, match.id), match, Date.now());
             window.TournamentBracket.recomputeKnockout(state);
             window.TournamentBracket.clearDownstreamFromMatch(state, match.id);
         }, "Updated knockout score");
@@ -302,6 +343,106 @@
             match.status = "scheduled";
             window.TournamentBracket.clearDownstreamFromMatch(state, match.id);
         }, "Reopened knockout match and cleared dependent rounds");
+    }
+
+    function startPhase1RoundTimer(roundIndex) {
+        window.TournamentState.update((state) => {
+            if (!state.phase1.generated) {
+                throw new Error("Generate phase 1 first");
+            }
+            const key = String(roundIndex);
+            if (state.phase1.roundTimers[key]) {
+                throw new Error("Round timer already started");
+            }
+            const hasRound = state.phase1.matches.some((match) => String(match.roundIndex) === key);
+            if (!hasRound) {
+                throw new Error("Round not found");
+            }
+            state.phase1.roundTimers[key] = { startedAt: Date.now() };
+        }, "Started phase 1 round timer");
+    }
+
+    function stopPhase1RoundTimer(roundIndex) {
+        window.TournamentState.update((state) => {
+            const key = String(roundIndex);
+            const timer = state.phase1.roundTimers[key];
+            if (!timer || !timer.startedAt) {
+                throw new Error("Round timer not started");
+            }
+            if (timer.stoppedAt) {
+                throw new Error("Round timer already stopped");
+            }
+            timer.stoppedAt = Date.now();
+        }, "Stopped phase 1 round timer");
+    }
+
+    function startKnockoutRoundTimer(roundKey) {
+        window.TournamentState.update((state) => {
+            if (!state.knockout.generated) {
+                throw new Error("Knockout not generated");
+            }
+            const target = roundKey === "thirdPlace"
+                ? state.knockout.thirdPlace
+                : state.knockout.rounds.find((round) => round.id === roundKey);
+            if (!target) {
+                throw new Error("Round not found");
+            }
+            if (target.startedAt) {
+                throw new Error("Round timer already started");
+            }
+            target.startedAt = Date.now();
+        }, "Started knockout round timer");
+    }
+
+    function stopKnockoutRoundTimer(roundKey) {
+        window.TournamentState.update((state) => {
+            if (!state.knockout.generated) {
+                throw new Error("Knockout not generated");
+            }
+            const target = roundKey === "thirdPlace"
+                ? state.knockout.thirdPlace
+                : state.knockout.rounds.find((round) => round.id === roundKey);
+            if (!target || !target.startedAt) {
+                throw new Error("Round timer not started");
+            }
+            if (target.stoppedAt) {
+                throw new Error("Round timer already stopped");
+            }
+            target.stoppedAt = Date.now();
+        }, "Stopped knockout round timer");
+    }
+
+    function pauseMatchTimer(matchId) {
+        window.TournamentState.update((state) => {
+            const match = findAnyMatch(state, matchId);
+            if (!match) {
+                throw new Error("Match not found");
+            }
+            if (!getRoundStartedAt(state, matchId)) {
+                throw new Error("Start the round timer before pausing a match");
+            }
+            if (match.pausedAt) {
+                throw new Error("Match timer is already paused");
+            }
+            if (match.status === "completed" || match.finalElapsedMs !== null) {
+                throw new Error("Match timer is already stopped");
+            }
+            match.pausedAt = Date.now();
+        }, "Paused match timer");
+    }
+
+    function resumeMatchTimer(matchId) {
+        window.TournamentState.update((state) => {
+            const match = findAnyMatch(state, matchId);
+            if (!match) {
+                throw new Error("Match not found");
+            }
+            if (!match.pausedAt) {
+                throw new Error("Match timer is not paused");
+            }
+            match.pausedTotalMs = (match.pausedTotalMs || 0) + (Date.now() - match.pausedAt);
+            match.pausedAt = null;
+        }, "Resumed match timer");
     }
 
     function exportStateToDownload() {
@@ -336,6 +477,12 @@
         startKnockout: startKnockout,
         applyKnockoutScore: applyKnockoutScore,
         reopenKnockoutMatch: reopenKnockoutMatch,
+        startPhase1RoundTimer: startPhase1RoundTimer,
+        startKnockoutRoundTimer: startKnockoutRoundTimer,
+        stopPhase1RoundTimer: stopPhase1RoundTimer,
+        stopKnockoutRoundTimer: stopKnockoutRoundTimer,
+        pauseMatchTimer: pauseMatchTimer,
+        resumeMatchTimer: resumeMatchTimer,
         exportStateToDownload: exportStateToDownload,
         importStateFromText: importStateFromText,
         resetAll: resetAll

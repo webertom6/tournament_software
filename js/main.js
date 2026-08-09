@@ -6,6 +6,7 @@
         window.TournamentState.subscribe((state) => {
             window.TournamentRender.renderApp(state);
         });
+        window.setInterval(window.TournamentRender.tickTimers, 1000);
     }
 
     main();

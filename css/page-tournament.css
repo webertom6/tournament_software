@@ -96,11 +96,52 @@
     min-width: 0;
 }
 
+.round-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.round-timer-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.round-clock {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
 .match-card {
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 0.65rem;
     margin-bottom: 0.6rem;
+}
+
+.match-timer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+}
+
+.match-clock {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.match-clock.overtime {
+    color: var(--danger);
+}
+
+.break-clock {
+    color: var(--warn);
 }
 
 .match-head {

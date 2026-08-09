@@ -42,6 +42,24 @@
         return '<p><strong>Score: ' + home + " - " + away + '</strong></p>';
     }
 
+    function renderMatchTimerLine(roundStartedAt, match, matchDurationSeconds, pauseDurationSeconds) {
+        const timer = window.TournamentTimer;
+        if (match.finalElapsedMs !== null && match.finalElapsedMs !== undefined) {
+            return '<p class="muted">Time: ' + esc(timer.formatDuration(match.finalElapsedMs)) + ' (final)</p>';
+        }
+        if (!roundStartedAt) {
+            return "";
+        }
+        const now = Date.now();
+        const elapsed = timer.computeElapsedMs(roundStartedAt, match, now);
+        const remaining = Number(matchDurationSeconds) * 1000 - elapsed;
+        if (match.pausedAt) {
+            const breakRemaining = timer.computeBreakRemainingMs(match, pauseDurationSeconds, now);
+            return '<p class="muted">Time left: ' + esc(timer.formatCountdown(remaining)) + " - Paused (break " + esc(timer.formatDuration(breakRemaining)) + ')</p>';
+        }
+        return '<p class="muted">Time left: ' + esc(timer.formatCountdown(remaining)) + '</p>';
+    }
+
     function renderPhase1(state) {
         const target = document.getElementById("summary-phase1");
         if (!state || !state.phase1 || !state.phase1.generated) {
@@ -74,10 +92,13 @@
                 matches.map((match) => {
                     const home = getTeamName(state, match.homeTeamId);
                     const away = getTeamName(state, match.awayTeamId);
+                    const roundStartedAt = (state.phase1.roundTimers || {})[String(match.roundIndex)] ?
+                        (state.phase1.roundTimers || {})[String(match.roundIndex)].startedAt : null;
                     return '' +
                         '<article class="summary-match">' +
                         '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
                         renderMatchScoreLine(match) +
+                        renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
                         '</article>';
                 }).join("") +
@@ -102,6 +123,7 @@
             }
             roundBlocks.push({
                 name: round.name || ("Round " + (Number(round.roundIndex || 0) + 1)),
+                startedAt: round.startedAt,
                 matches: matches
             });
         });
@@ -111,6 +133,7 @@
             state.knockout.thirdPlace.awayTeamId) {
             roundBlocks.push({
                 name: "Third place",
+                startedAt: state.knockout.thirdPlace.startedAt,
                 matches: [state.knockout.thirdPlace]
             });
         }
@@ -131,6 +154,7 @@
                         '<article class="summary-match">' +
                         '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
                         renderMatchScoreLine(match) +
+                        renderMatchTimerLine(round.startedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
                         '</article>';
                 }).join("") +
                 '</div>';
@@ -151,6 +175,6 @@
         }
     });
 
-    setInterval(renderSummary, 5000);
+    setInterval(renderSummary, 1000);
     renderSummary();
 })();

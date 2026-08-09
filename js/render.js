@@ -55,6 +55,107 @@
         return '<select data-role="' + role + '" data-match-id="' + esc(matchId) + '" aria-label="' + role + '">' + options.join("") + '</select>';
     }
 
+    function renderRoundTimerControls(startedAt, stoppedAt, startAction, stopAction, roundKey) {
+        if (!startedAt) {
+            return '<div class="round-timer-controls">' +
+                '<button type="button" data-action="' + esc(startAction) + '" data-round-key="' + esc(roundKey) + '">Start round timer</button>' +
+                '</div>';
+        }
+        if (stoppedAt) {
+            return '<div class="round-timer-controls">' +
+                '<span class="muted">Round timer stopped at:</span> ' +
+                '<span class="round-clock" data-role="round-clock">' + esc(window.TournamentTimer.formatDuration(stoppedAt - startedAt)) + '</span>' +
+                '</div>';
+        }
+        return '<div class="round-timer-controls">' +
+            '<span class="muted">Round timer:</span> ' +
+            '<span class="round-clock" data-role="round-clock" data-started-at="' + startedAt + '">' +
+            esc(window.TournamentTimer.formatDuration(Date.now() - startedAt)) +
+            '</span>' +
+            '<button type="button" data-action="' + esc(stopAction) + '" data-round-key="' + esc(roundKey) + '">Stop round timer</button>' +
+            '</div>';
+    }
+
+    function renderMatchTimerBlock(roundStartedAt, match, matchDurationSeconds, pauseDurationSeconds) {
+        const timer = window.TournamentTimer;
+        const now = Date.now();
+
+        if (match.finalElapsedMs !== null && match.finalElapsedMs !== undefined) {
+            return '<div class="match-timer">' +
+                '<span class="match-clock" data-role="match-clock" data-final-elapsed-ms="' + match.finalElapsedMs + '">' +
+                esc(timer.formatDuration(match.finalElapsedMs)) + '</span>' +
+                '<span class="muted">Final time</span>' +
+                '</div>';
+        }
+
+        if (!roundStartedAt) {
+            return '<div class="match-timer"><span class="muted">Round timer not started</span></div>';
+        }
+
+        const matchDurationMs = Number(matchDurationSeconds) * 1000;
+        const pausedTotalMs = match.pausedTotalMs || 0;
+        const pausedAttr = match.pausedAt ? ' data-paused-at="' + match.pausedAt + '"' : '';
+        const clockAttrs = 'data-started-at="' + roundStartedAt + '" data-paused-total-ms="' + pausedTotalMs +
+            '" data-match-duration-ms="' + matchDurationMs + '"' + pausedAttr;
+        const elapsed = timer.computeElapsedMs(roundStartedAt, match, now);
+        const remaining = matchDurationMs - elapsed;
+        const overtimeClass = remaining < 0 ? " overtime" : "";
+        const clockHtml = '<span class="match-clock' + overtimeClass + '" data-role="match-clock" ' + clockAttrs + '>' + esc(timer.formatCountdown(remaining)) + '</span>';
+
+        if (match.pausedAt) {
+            const breakRemaining = timer.computeBreakRemainingMs(match, pauseDurationSeconds, now);
+            return '<div class="match-timer">' +
+                clockHtml +
+                '<span class="break-clock" data-role="match-break" data-paused-at="' + match.pausedAt + '" data-pause-duration-ms="' + (Number(pauseDurationSeconds) * 1000) + '">' +
+                esc("Break: " + timer.formatDuration(breakRemaining)) +
+                '</span>' +
+                '<button type="button" data-action="match-resume" data-match-id="' + esc(match.id) + '">Resume</button>' +
+                '</div>';
+        }
+
+        return '<div class="match-timer">' +
+            clockHtml +
+            '<button type="button" data-action="match-pause" data-match-id="' + esc(match.id) + '">Pause</button>' +
+            '</div>';
+    }
+
+    function tickTimers() {
+        const timer = window.TournamentTimer;
+        const now = Date.now();
+
+        document.querySelectorAll('[data-role="match-clock"]').forEach((el) => {
+            if (el.hasAttribute("data-final-elapsed-ms")) {
+                return;
+            }
+            const startedAt = Number(el.getAttribute("data-started-at"));
+            if (!startedAt) {
+                return;
+            }
+            const pausedTotalMs = Number(el.getAttribute("data-paused-total-ms") || 0);
+            const pausedAtRaw = el.getAttribute("data-paused-at");
+            const activeEnd = pausedAtRaw ? Number(pausedAtRaw) : now;
+            const elapsed = Math.max(0, activeEnd - startedAt - pausedTotalMs);
+            const matchDurationMs = Number(el.getAttribute("data-match-duration-ms") || 0);
+            const remaining = matchDurationMs - elapsed;
+            el.classList.toggle("overtime", remaining < 0);
+            el.textContent = timer.formatCountdown(remaining);
+        });
+
+        document.querySelectorAll('[data-role="match-break"]').forEach((el) => {
+            const pausedAt = Number(el.getAttribute("data-paused-at"));
+            const pauseDurationMs = Number(el.getAttribute("data-pause-duration-ms"));
+            el.textContent = "Break: " + timer.formatDuration(pauseDurationMs - (now - pausedAt));
+        });
+
+        document.querySelectorAll('[data-role="round-clock"]').forEach((el) => {
+            if (!el.hasAttribute("data-started-at")) {
+                return;
+            }
+            const startedAt = Number(el.getAttribute("data-started-at"));
+            el.textContent = timer.formatDuration(now - startedAt);
+        });
+    }
+
     function getTerrainName(state, terrainId) {
         const terrain = state.terrains.find((item) => item.id === terrainId);
         return terrain ? terrain.name : "No terrain";
@@ -90,9 +191,15 @@
         target.innerHTML = '<div class="round-grid">' + rounds.map((entry) => {
             const roundIndex = Number(entry[0]);
             const matches = entry[1];
+            const roundTimer = state.phase1.roundTimers[String(roundIndex)] || null;
+            const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
+            const roundStoppedAt = roundTimer ? roundTimer.stoppedAt : null;
             return '' +
                 '<div class="round-card">' +
+                '<div class="round-head">' +
                 '<h3>Round ' + (roundIndex + 1) + '</h3>' +
+                renderRoundTimerControls(roundStartedAt, roundStoppedAt, "phase1-start-round", "phase1-stop-round", String(roundIndex)) +
+                '</div>' +
                 matches.map((match) => {
                     return '' +
                         '<div class="match-card">' +
@@ -105,6 +212,7 @@
                         '<span class="vs-label">vs</span>' +
                         buildTeamSelect(state, "phase1-away-team", match.id, match.awayTeamId, match.homeTeamId, false) +
                         '</div>' +
+                        renderMatchTimerBlock(roundStartedAt, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                         '<div class="match-row">' +
                         '<input type="number" min="0" step="1" data-role="phase1-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
                         '<input type="number" min="0" step="1" data-role="phase1-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
@@ -129,7 +237,7 @@
         target.innerHTML =
             '<p class="muted">Qualified for knockout: top ' + normalizedQualified + " teams</p>" +
             "<table>" +
-            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead>" +
+            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>" +
             "<tbody>" +
             standings.map((row, index) => {
                 const isQualified = index < normalizedQualified;
@@ -144,6 +252,8 @@
                     "<td>" + row.gf + "</td>" +
                     "<td>" + row.ga + "</td>" +
                     "<td>" + row.gd + "</td>" +
+                    "<td>" + (row.lastScore === null ? "-" : row.lastScore) + "</td>" +
+                    "<td>" + row.bestScore + "</td>" +
                     "<td><strong>" + row.points + "</strong></td>" +
                     "</tr>";
             }).join("") +
@@ -170,7 +280,10 @@
         roundsTarget.innerHTML = '<div class="round-grid">' + state.knockout.rounds.map((round) => {
             return '' +
                 '<div class="round-card">' +
+                '<div class="round-head">' +
                 '<h3>' + esc(round.name) + '</h3>' +
+                renderRoundTimerControls(round.startedAt, round.stoppedAt, "ko-start-round", "ko-stop-round", round.id) +
+                '</div>' +
                 round.matches.map((match) => {
                     const isFirstRound = !match.homeSourceMatchId && !match.awaySourceMatchId;
                     const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
@@ -188,6 +301,7 @@
                         '<span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span>' +
                         '</div>' +
                         teamsHtml +
+                        renderMatchTimerBlock(round.startedAt, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                         '<div class="match-row">' +
                         '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
                         '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
@@ -205,12 +319,16 @@
             const away = tp.awayTeamId ? window.TournamentRules.getTeamNameById(state, tp.awayTeamId) : "TBD";
             thirdPlace.innerHTML = '' +
                 '<div class="round-card">' +
+                '<div class="round-head">' +
                 '<h3>Third place</h3>' +
+                renderRoundTimerControls(tp.startedAt, tp.stoppedAt, "ko-start-round", "ko-stop-round", "thirdPlace") +
+                '</div>' +
                 '<div class="match-card">' +
                 '<div class="match-head">' +
                 '<span>' + esc(home) + " vs " + esc(away) + '</span>' +
                 '<span class="status-pill ' + esc(tp.status) + '">' + esc(tp.status) + '</span>' +
                 '</div>' +
+                renderMatchTimerBlock(tp.startedAt, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                 '<div class="match-row">' +
                 '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.homeGoals) ? tp.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
                 '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.awayGoals) ? tp.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
@@ -253,6 +371,8 @@
         document.getElementById("cfg-qualified").value = state.config.qualifiedCount;
         document.getElementById("cfg-seeding").value = state.config.seedingPolicy;
         document.getElementById("cfg-third-place").checked = Boolean(state.config.thirdPlaceMatch);
+        document.getElementById("cfg-match-duration").value = Math.round(state.config.matchDurationSeconds / 60);
+        document.getElementById("cfg-pause-duration").value = Math.round(state.config.pauseDurationSeconds / 60);
     }
 
     function handleError(error) {
@@ -327,7 +447,9 @@
                     phase1MatchesPerTeam: document.getElementById("cfg-phase1-matches").value,
                     qualifiedCount: document.getElementById("cfg-qualified").value,
                     seedingPolicy: document.getElementById("cfg-seeding").value,
-                    thirdPlaceMatch: document.getElementById("cfg-third-place").checked
+                    thirdPlaceMatch: document.getElementById("cfg-third-place").checked,
+                    matchDurationSeconds: Number(document.getElementById("cfg-match-duration").value) * 60,
+                    pauseDurationSeconds: Number(document.getElementById("cfg-pause-duration").value) * 60
                 });
             } catch (error) {
                 handleError(error);
@@ -443,6 +565,35 @@
                 if (action === "ko-reopen") {
                     window.TournamentActions.reopenKnockoutMatch(target.getAttribute("data-match-id"));
                 }
+
+                if (action === "phase1-start-round") {
+                    window.TournamentActions.startPhase1RoundTimer(Number(target.getAttribute("data-round-key")));
+                    return;
+                }
+
+                if (action === "phase1-stop-round") {
+                    window.TournamentActions.stopPhase1RoundTimer(Number(target.getAttribute("data-round-key")));
+                    return;
+                }
+
+                if (action === "ko-start-round") {
+                    window.TournamentActions.startKnockoutRoundTimer(target.getAttribute("data-round-key"));
+                    return;
+                }
+
+                if (action === "ko-stop-round") {
+                    window.TournamentActions.stopKnockoutRoundTimer(target.getAttribute("data-round-key"));
+                    return;
+                }
+
+                if (action === "match-pause") {
+                    window.TournamentActions.pauseMatchTimer(target.getAttribute("data-match-id"));
+                    return;
+                }
+
+                if (action === "match-resume") {
+                    window.TournamentActions.resumeMatchTimer(target.getAttribute("data-match-id"));
+                }
             } catch (error) {
                 handleError(error);
             }
@@ -462,6 +613,7 @@
 
     window.TournamentRender = {
         bindEvents: bindEvents,
-        renderApp: renderApp
+        renderApp: renderApp,
+        tickTimers: tickTimers
     };
 })();
