@@ -3,6 +3,17 @@
         return teamA < teamB ? teamA + "::" + teamB : teamB + "::" + teamA;
     }
 
+    function shuffle(items) {
+        const result = items.slice();
+        for (let i = result.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = result[i];
+            result[i] = result[j];
+            result[j] = temp;
+        }
+        return result;
+    }
+
     function buildPairSequence(teamIds, matchesPerTeam) {
         if (matchesPerTeam < 1) {
             throw new Error("Phase 1 matches per team must be >= 1");
@@ -13,8 +24,12 @@
 
         const totalMatchSlots = teamIds.length * matchesPerTeam;
         if (totalMatchSlots % 2 !== 0) {
-            throw new Error("Invalid setup: team count x phase 1 matches per team must be even");
+            throw new Error("Invalid setup: team count (" + teamIds.length + ") x phase 1 matches per team (" + matchesPerTeam + ") must be even");
         }
+
+        // shuffled once per call so every generation produces a different pairing order
+        const randomOrder = new Map();
+        shuffle(teamIds).forEach((teamId, index) => randomOrder.set(teamId, index));
 
         const remaining = new Map();
         const meetings = new Map();
@@ -38,7 +53,7 @@
                 if (remDiff !== 0) {
                     return remDiff;
                 }
-                return String(a).localeCompare(String(b));
+                return randomOrder.get(a) - randomOrder.get(b);
             });
 
             const homeTeamId = active[0];
@@ -53,7 +68,7 @@
                 if (remDiff !== 0) {
                     return remDiff;
                 }
-                return String(a).localeCompare(String(b));
+                return randomOrder.get(a) - randomOrder.get(b);
             });
 
             const awayTeamId = candidates[0];

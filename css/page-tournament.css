@@ -64,13 +64,13 @@
 
 .list-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.45rem;
     align-items: center;
 }
 
-.list-row input[type="text"] {
-    min-width: 130px;
+.list-row span {
+    overflow-wrap: anywhere;
 }
 
 .checkbox-line {
@@ -134,6 +134,24 @@
     flex: 1 1 140px;
     white-space: nowrap;
     min-width: 0;
+}
+
+.match-teams {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.match-teams select {
+    flex: 1 1 140px;
+    min-width: 0;
+}
+
+.match-teams .vs-label {
+    color: var(--muted);
+    font-size: 0.85rem;
 }
 
 #phase1-standings {

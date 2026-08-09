@@ -50,6 +50,14 @@ button.danger {
     color: var(--danger);
 }
 
+button:disabled,
+input:disabled,
+select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #eef1f6;
+}
+
 input,
 select {
     border: 1px solid var(--border);

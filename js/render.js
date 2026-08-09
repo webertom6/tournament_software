@@ -18,8 +18,7 @@
         target.innerHTML = '<div class="list-rows">' + state.teams.map((team) => {
             return '' +
                 '<div class="list-row">' +
-                '<input type="text" data-role="team-name" data-team-id="' + esc(team.id) + '" value="' + esc(team.name) + '" placeholder="Team name">' +
-                '<button type="button" data-action="team-rename" data-team-id="' + esc(team.id) + '">Save</button>' +
+                '<span>' + esc(team.name) + '</span>' +
                 '<button type="button" data-action="team-remove" data-team-id="' + esc(team.id) + '" class="danger">Delete</button>' +
                 '</div>';
         }).join("") + '</div>';
@@ -35,11 +34,25 @@
         target.innerHTML = '<div class="list-rows">' + state.terrains.map((terrain) => {
             return '' +
                 '<div class="list-row">' +
-                '<input type="text" data-role="terrain-name" data-terrain-id="' + esc(terrain.id) + '" value="' + esc(terrain.name) + '" placeholder="Terrain name">' +
-                '<button type="button" data-action="terrain-rename" data-terrain-id="' + esc(terrain.id) + '">Save</button>' +
+                '<span>' + esc(terrain.name) + '</span>' +
                 '<button type="button" data-action="terrain-remove" data-terrain-id="' + esc(terrain.id) + '" class="danger">Delete</button>' +
                 '</div>';
         }).join("") + '</div>';
+    }
+
+    function buildTeamSelect(state, role, matchId, currentTeamId, otherTeamId, allowEmpty) {
+        const options = [];
+        if (allowEmpty) {
+            options.push('<option value=""' + (!currentTeamId ? ' selected' : '') + '>BYE / none</option>');
+        }
+        state.teams.forEach((team) => {
+            if (team.id === otherTeamId) {
+                return;
+            }
+            const selected = team.id === currentTeamId ? ' selected' : '';
+            options.push('<option value="' + esc(team.id) + '"' + selected + '>' + esc(team.name) + '</option>');
+        });
+        return '<select data-role="' + role + '" data-match-id="' + esc(matchId) + '" aria-label="' + role + '">' + options.join("") + '</select>';
     }
 
     function getTerrainName(state, terrainId) {
@@ -81,15 +94,17 @@
                 '<div class="round-card">' +
                 '<h3>Round ' + (roundIndex + 1) + '</h3>' +
                 matches.map((match) => {
-                    const homeName = window.TournamentRules.getTeamNameById(state, match.homeTeamId);
-                    const awayName = window.TournamentRules.getTeamNameById(state, match.awayTeamId);
                     return '' +
                         '<div class="match-card">' +
                         '<div class="match-head">' +
-                        '<span>' + esc(homeName) + " vs " + esc(awayName) + '</span>' +
                         '<span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span>' +
                         '</div>' +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+                        '<div class="match-teams">' +
+                        buildTeamSelect(state, "phase1-home-team", match.id, match.homeTeamId, match.awayTeamId, false) +
+                        '<span class="vs-label">vs</span>' +
+                        buildTeamSelect(state, "phase1-away-team", match.id, match.awayTeamId, match.homeTeamId, false) +
+                        '</div>' +
                         '<div class="match-row">' +
                         '<input type="number" min="0" step="1" data-role="phase1-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
                         '<input type="number" min="0" step="1" data-role="phase1-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
@@ -157,14 +172,22 @@
                 '<div class="round-card">' +
                 '<h3>' + esc(round.name) + '</h3>' +
                 round.matches.map((match) => {
+                    const isFirstRound = !match.homeSourceMatchId && !match.awaySourceMatchId;
                     const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
                     const away = match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD";
+                    const teamsHtml = isFirstRound ?
+                        '<div class="match-teams">' +
+                        buildTeamSelect(state, "ko-home-team", match.id, match.homeTeamId, match.awayTeamId, true) +
+                        '<span class="vs-label">vs</span>' +
+                        buildTeamSelect(state, "ko-away-team", match.id, match.awayTeamId, match.homeTeamId, true) +
+                        '</div>' :
+                        '<div class="match-head"><span>' + esc(home) + " vs " + esc(away) + '</span></div>';
                     return '' +
                         '<div class="match-card">' +
                         '<div class="match-head">' +
-                        '<span>' + esc(home) + " vs " + esc(away) + '</span>' +
                         '<span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span>' +
                         '</div>' +
+                        teamsHtml +
                         '<div class="match-row">' +
                         '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
                         '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
@@ -240,6 +263,35 @@
 
     function getSiblingScoreInput(role, matchId) {
         return document.querySelector('input[data-role="' + role + '"][data-match-id="' + matchId + '"]');
+    }
+
+    function getSiblingTeamId(role, matchId) {
+        // undefined means "no dropdown rendered, keep whatever team is already stored"
+        // null means "dropdown rendered but set to BYE / none"
+        const select = document.querySelector('select[data-role="' + role + '"][data-match-id="' + matchId + '"]');
+        if (!select) {
+            return undefined;
+        }
+        return select.value || null;
+    }
+
+    function applyStageGating(state) {
+        const setupLocked = Boolean(state.phase1.generated);
+        const phase1AllCompleted = state.phase1.matches.length > 0 &&
+            state.phase1.matches.every((match) => match.status === "completed");
+
+        document.getElementById("team-name").disabled = setupLocked;
+        document.querySelector("#form-add-team button[type='submit']").disabled = setupLocked;
+        document.getElementById("terrain-name").disabled = setupLocked;
+        document.querySelector("#form-add-terrain button[type='submit']").disabled = setupLocked;
+
+        document.querySelectorAll("#form-config input, #form-config select").forEach((field) => {
+            field.disabled = setupLocked;
+        });
+        document.querySelector("#form-config button[type='submit']").disabled = setupLocked;
+
+        document.getElementById("btn-generate-phase1").disabled = setupLocked;
+        document.getElementById("btn-start-knockout").disabled = !state.phase1.generated || !phase1AllCompleted || state.knockout.generated;
     }
 
     function bindEvents() {
@@ -353,22 +405,8 @@
             }
 
             try {
-                if (action === "team-rename") {
-                    const id = target.getAttribute("data-team-id");
-                    const input = document.querySelector('input[data-role="team-name"][data-team-id="' + id + '"]');
-                    window.TournamentActions.renameTeam(id, input ? input.value : "");
-                    return;
-                }
-
                 if (action === "team-remove") {
                     window.TournamentActions.removeTeam(target.getAttribute("data-team-id"));
-                    return;
-                }
-
-                if (action === "terrain-rename") {
-                    const id = target.getAttribute("data-terrain-id");
-                    const input = document.querySelector('input[data-role="terrain-name"][data-terrain-id="' + id + '"]');
-                    window.TournamentActions.renameTerrain(id, input ? input.value : "");
                     return;
                 }
 
@@ -381,7 +419,9 @@
                     const matchId = target.getAttribute("data-match-id");
                     const homeInput = getSiblingScoreInput("phase1-home", matchId);
                     const awayInput = getSiblingScoreInput("phase1-away", matchId);
-                    window.TournamentActions.applyPhase1Score(matchId, homeInput ? homeInput.value : "", awayInput ? awayInput.value : "");
+                    const homeTeamId = getSiblingTeamId("phase1-home-team", matchId);
+                    const awayTeamId = getSiblingTeamId("phase1-away-team", matchId);
+                    window.TournamentActions.applyPhase1Score(matchId, homeTeamId, awayTeamId, homeInput ? homeInput.value : "", awayInput ? awayInput.value : "");
                     return;
                 }
 
@@ -394,7 +434,9 @@
                     const matchId = target.getAttribute("data-match-id");
                     const homeInput = getSiblingScoreInput("ko-home", matchId);
                     const awayInput = getSiblingScoreInput("ko-away", matchId);
-                    window.TournamentActions.applyKnockoutScore(matchId, homeInput ? homeInput.value : "", awayInput ? awayInput.value : "");
+                    const homeTeamId = getSiblingTeamId("ko-home-team", matchId);
+                    const awayTeamId = getSiblingTeamId("ko-away-team", matchId);
+                    window.TournamentActions.applyKnockoutScore(matchId, homeTeamId, awayTeamId, homeInput ? homeInput.value : "", awayInput ? awayInput.value : "");
                     return;
                 }
 
@@ -415,6 +457,7 @@
         renderStandings(state);
         renderKnockout(state);
         renderAudit(state);
+        applyStageGating(state);
     }
 
     window.TournamentRender = {

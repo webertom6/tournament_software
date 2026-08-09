@@ -43,22 +43,6 @@
         }, 'Added team "' + normalized + '"');
     }
 
-    function renameTeam(teamId, newName) {
-        const normalized = normalizeName(newName);
-        if (!normalized) {
-            throw new Error("Team name is required");
-        }
-
-        window.TournamentState.update((state) => {
-            assertCanEditSetup(state);
-            const team = findTeam(state, teamId);
-            if (!team) {
-                throw new Error("Team not found");
-            }
-            team.name = normalized;
-        }, 'Renamed team to "' + normalized + '"');
-    }
-
     function removeTeam(teamId) {
         window.TournamentState.update((state) => {
             assertCanEditSetup(state);
@@ -89,22 +73,6 @@
         }, 'Added terrain "' + normalized + '"');
     }
 
-    function renameTerrain(terrainId, newName) {
-        const normalized = normalizeName(newName);
-        if (!normalized) {
-            throw new Error("Terrain name is required");
-        }
-
-        window.TournamentState.update((state) => {
-            assertCanEditSetup(state);
-            const terrain = findTerrain(state, terrainId);
-            if (!terrain) {
-                throw new Error("Terrain not found");
-            }
-            terrain.name = normalized;
-        }, 'Renamed terrain to "' + normalized + '"');
-    }
-
     function removeTerrain(terrainId) {
         window.TournamentState.update((state) => {
             assertCanEditSetup(state);
@@ -118,6 +86,10 @@
 
     function updateConfig(rawConfig) {
         window.TournamentState.update((state) => {
+            if (state.phase1.generated) {
+                throw new Error("Cannot change config after phase 1 is generated. Reset phases to restart.");
+            }
+
             const parsed = {
                 POINT_VICTORY_PHASE1: Number(rawConfig.POINT_VICTORY_PHASE1),
                 POINT_DRAW_PHASE1: Number(rawConfig.POINT_DRAW_PHASE1),
@@ -181,7 +153,7 @@
         return parsed;
     }
 
-    function applyPhase1Score(matchId, homeGoalsRaw, awayGoalsRaw) {
+    function applyPhase1Score(matchId, homeTeamIdRaw, awayTeamIdRaw, homeGoalsRaw, awayGoalsRaw) {
         const homeGoals = parseGoal(homeGoalsRaw, "Home goals");
         const awayGoals = parseGoal(awayGoalsRaw, "Away goals");
 
@@ -190,6 +162,21 @@
             if (!match) {
                 throw new Error("Phase 1 match not found");
             }
+
+            const homeTeamId = homeTeamIdRaw === undefined ? match.homeTeamId : homeTeamIdRaw;
+            const awayTeamId = awayTeamIdRaw === undefined ? match.awayTeamId : awayTeamIdRaw;
+            if (!homeTeamId || !awayTeamId) {
+                throw new Error("Both teams must be assigned");
+            }
+            if (homeTeamId === awayTeamId) {
+                throw new Error("Home and away teams must be different");
+            }
+            if (!findTeam(state, homeTeamId) || !findTeam(state, awayTeamId)) {
+                throw new Error("Selected team not found");
+            }
+
+            match.homeTeamId = homeTeamId;
+            match.awayTeamId = awayTeamId;
             match.homeGoals = homeGoals;
             match.awayGoals = awayGoals;
             match.status = "completed";
@@ -229,6 +216,11 @@
             if (!state.phase1.generated) {
                 throw new Error("Generate phase 1 first");
             }
+            const allCompleted = state.phase1.matches.length > 0 &&
+                state.phase1.matches.every((match) => match.status === "completed");
+            if (!allCompleted) {
+                throw new Error("All phase 1 matches must be completed before generating phase 2");
+            }
             const standings = window.TournamentRules.buildStandings(state);
             if (standings.length < 2) {
                 throw new Error("Need standings for at least 2 teams");
@@ -257,7 +249,7 @@
         return null;
     }
 
-    function applyKnockoutScore(matchId, homeGoalsRaw, awayGoalsRaw) {
+    function applyKnockoutScore(matchId, homeTeamIdRaw, awayTeamIdRaw, homeGoalsRaw, awayGoalsRaw) {
         const homeGoals = parseGoal(homeGoalsRaw, "Home goals");
         const awayGoals = parseGoal(awayGoalsRaw, "Away goals");
         if (homeGoals === awayGoals) {
@@ -272,9 +264,25 @@
             if (!match) {
                 throw new Error("Knockout match not found");
             }
-            if (!match.homeTeamId || !match.awayTeamId) {
+
+            const homeTeamId = homeTeamIdRaw === undefined ? match.homeTeamId : homeTeamIdRaw;
+            const awayTeamId = awayTeamIdRaw === undefined ? match.awayTeamId : awayTeamIdRaw;
+            if (!homeTeamId || !awayTeamId) {
                 throw new Error("Match participants are not both defined");
             }
+            if (homeTeamId === awayTeamId) {
+                throw new Error("Home and away teams must be different");
+            }
+            if ((homeTeamId !== match.homeTeamId || awayTeamId !== match.awayTeamId) &&
+                (match.homeSourceMatchId || match.awaySourceMatchId)) {
+                throw new Error("Only first round matches can have their teams changed manually");
+            }
+            if (!findTeam(state, homeTeamId) || !findTeam(state, awayTeamId)) {
+                throw new Error("Selected team not found");
+            }
+
+            match.homeTeamId = homeTeamId;
+            match.awayTeamId = awayTeamId;
             match.homeGoals = homeGoals;
             match.awayGoals = awayGoals;
             match.status = "completed";
@@ -317,10 +325,8 @@
 
     window.TournamentActions = {
         addTeam: addTeam,
-        renameTeam: renameTeam,
         removeTeam: removeTeam,
         addTerrain: addTerrain,
-        renameTerrain: renameTerrain,
         removeTerrain: removeTerrain,
         updateConfig: updateConfig,
         generatePhase1: generatePhase1,
