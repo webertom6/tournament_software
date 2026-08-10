@@ -39,13 +39,13 @@
         }
         const home = Number.isFinite(match.homeGoals) ? match.homeGoals : 0;
         const away = Number.isFinite(match.awayGoals) ? match.awayGoals : 0;
-        return '<p><strong>Score: ' + home + " - " + away + '</strong></p>';
+        return '<p>Score: <strong class="text-mono">' + home + " - " + away + '</strong></p>';
     }
 
     function renderMatchTimerLine(roundStartedAt, match, matchDurationSeconds, pauseDurationSeconds) {
         const timer = window.TournamentTimer;
         if (match.finalElapsedMs !== null && match.finalElapsedMs !== undefined) {
-            return '<p class="muted">Time: ' + esc(timer.formatDuration(match.finalElapsedMs)) + ' (final)</p>';
+            return '<p class="muted">Time: <span class="text-mono">' + esc(timer.formatDuration(match.finalElapsedMs)) + '</span> (final)</p>';
         }
         if (!roundStartedAt) {
             return "";
@@ -55,9 +55,83 @@
         const remaining = Number(matchDurationSeconds) * 1000 - elapsed;
         if (match.pausedAt) {
             const breakRemaining = timer.computeBreakRemainingMs(match, pauseDurationSeconds, now);
-            return '<p class="muted">Time left: ' + esc(timer.formatCountdown(remaining)) + " - Paused (break " + esc(timer.formatDuration(breakRemaining)) + ')</p>';
+            return '<p class="muted">Time left: <span class="text-mono">' + esc(timer.formatCountdown(remaining)) +
+                '</span> - Paused (break <span class="text-mono">' + esc(timer.formatDuration(breakRemaining)) + '</span>)</p>';
         }
-        return '<p class="muted">Time left: ' + esc(timer.formatCountdown(remaining)) + '</p>';
+        return '<p class="muted">Time left: <span class="text-mono">' + esc(timer.formatCountdown(remaining)) + '</span></p>';
+    }
+
+    function getStageLabel(state) {
+        if (!state) {
+            return "No data";
+        }
+        if (state.knockout && state.knockout.championTeamId) {
+            return "Champion crowned";
+        }
+        if (state.knockout && state.knockout.generated) {
+            return "Knockout";
+        }
+        if (state.phase1 && state.phase1.generated) {
+            return "Phase 1";
+        }
+        return "Setup";
+    }
+
+    function getPhase1ProgressLabel(state) {
+        if (!state || !state.phase1 || !state.phase1.generated) {
+            return "-";
+        }
+        const matches = state.phase1.matches || [];
+        const completed = matches.filter((match) => match.status === "completed").length;
+        return completed + " / " + matches.length;
+    }
+
+    function renderHeader(state) {
+        document.getElementById("summary-stage-pill").textContent = getStageLabel(state);
+        document.getElementById("summary-phase1-progress").textContent = getPhase1ProgressLabel(state);
+        const teamCount = state ? (state.teams || []).length : 0;
+        const terrainCount = state ? (state.terrains || []).length : 0;
+        document.getElementById("summary-meta").textContent = teamCount + " teams - " + terrainCount + " terrains";
+    }
+
+    function renderStandings(state) {
+        const target = document.getElementById("summary-standings");
+        if (!state || !state.phase1 || !state.phase1.generated) {
+            target.innerHTML = '<p class="summary-empty">Standings not available yet</p>';
+            return;
+        }
+
+        const standings = window.TournamentRules.buildStandings(state);
+        if (!standings.length) {
+            target.innerHTML = '<p class="summary-empty">No standings yet</p>';
+            return;
+        }
+
+        const qualifiedCount = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
+        const topBest = Math.max(0, ...standings.map((row) => row.bestScore));
+
+        target.innerHTML = '<div class="table-wrap"><table>' +
+            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Best</th><th>Pts</th></tr></thead>" +
+            "<tbody>" +
+            standings.map((row, index) => {
+                const isQualified = index < qualifiedCount;
+                const bestClass = row.bestScore > 0 && row.bestScore === topBest ? "text-mono best-score-top" : "text-mono";
+                return '' +
+                    "<tr>" +
+                    '<td class="rank text-mono">' + row.rank + "</td>" +
+                    "<td>" + esc(row.teamName) + (isQualified ? ' <span class="status-pill completed">Q</span>' : "") + "</td>" +
+                    "<td>" + row.played + "</td>" +
+                    "<td>" + row.wins + "</td>" +
+                    "<td>" + row.draws + "</td>" +
+                    "<td>" + row.losses + "</td>" +
+                    "<td>" + row.gf + "</td>" +
+                    "<td>" + row.ga + "</td>" +
+                    "<td>" + row.gd + "</td>" +
+                    '<td class="' + bestClass + '">' + row.bestScore + "</td>" +
+                    '<td class="text-mono"><strong>' + row.points + "</strong></td>" +
+                    "</tr>";
+            }).join("") +
+            "</tbody></table></div>";
     }
 
     function renderPhase1(state) {
@@ -88,7 +162,7 @@
             const matches = entry[1];
             return '' +
                 '<div class="summary-round">' +
-                '<h3>Round ' + (roundIndex + 1) + '</h3>' +
+                '<h3 class="text-display">Round ' + (roundIndex + 1) + '</h3>' +
                 matches.map((match) => {
                     const home = getTeamName(state, match.homeTeamId);
                     const away = getTeamName(state, match.awayTeamId);
@@ -146,7 +220,7 @@
         target.innerHTML = '<div class="summary-round-grid">' + roundBlocks.map((round) => {
             return '' +
                 '<div class="summary-round">' +
-                '<h3>' + esc(round.name) + '</h3>' +
+                '<h3 class="text-display">' + esc(round.name) + '</h3>' +
                 round.matches.map((match) => {
                     const home = getTeamName(state, match.homeTeamId);
                     const away = getTeamName(state, match.awayTeamId);
@@ -163,6 +237,8 @@
 
     function renderSummary() {
         const state = loadState();
+        renderHeader(state);
+        renderStandings(state);
         renderPhase1(state);
         renderKnockout(state);
         const timestamp = new Date().toLocaleString();

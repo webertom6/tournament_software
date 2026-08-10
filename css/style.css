@@ -1,13 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Roboto+Mono:wght@500;700&display=swap");
+
 :root {
-    --bg: #f3f6fb;
+    --font-body: "Barlow", system-ui, sans-serif;
+    --font-display: "Barlow Condensed", sans-serif;
+    --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --bg: #f5f7fa;
     --surface: #ffffff;
-    --text: #1a2433;
-    --muted: #4f5f79;
-    --brand: #15599e;
-    --border: #d8e0ec;
-    --ok: #1f9d55;
+    --navy: #061534;
+    --text: #04122f;
+    --muted: #5f6f86;
+    --brand: #005eff;
+    --border: #d9e6f4;
+    --ok: #00b33c;
     --warn: #b45309;
     --danger: #b91c1c;
+    --red: #e11d22;
+    --purple: #8b35ff;
 }
 
 * {
@@ -16,7 +24,7 @@
 
 body {
     margin: 0;
-    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body);
     background: var(--bg);
     color: var(--text);
     line-height: 1.45;
@@ -26,31 +34,88 @@ h1, h2, h3 {
     margin-top: 0;
 }
 
+.card h2,
+.summary-card h2,
+th {
+    font-family: var(--font-display);
+}
+
+.text-display {
+    font-family: var(--font-display);
+}
+
+.text-mono {
+    font-family: var(--font-mono);
+}
+
+.text-label {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.7rem;
+}
+
 button,
 input,
 select {
     font: inherit;
     min-height: 42px;
+    border-radius: 0;
 }
 
 button {
     cursor: pointer;
-    border: 1px solid var(--border);
-    background: #fff;
-    border-radius: 8px;
-    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--brand);
+    background: var(--brand);
+    color: #fff;
+    padding: 0.65rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
-button:hover {
-    border-color: var(--brand);
+button:not(:disabled):hover {
+    filter: brightness(0.88);
+}
+
+button:not(:disabled):active {
+    filter: brightness(0.75);
+    transform: scale(0.97);
+}
+
+button.secondary {
+    background: #fff;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+button.important {
+    background: var(--red);
+    border-color: var(--red);
 }
 
 button.danger {
-    border-color: #f3c2c2;
-    color: var(--danger);
+    background: var(--danger);
+    border-color: var(--danger);
 }
 
-button:disabled,
+button.reopen {
+    background: rgba(139, 53, 255, 0.12);
+    border-color: rgba(139, 53, 255, 0.4);
+    color: var(--purple);
+}
+
+button.timer-action {
+    background: rgba(180, 83, 9, 0.12);
+    border-color: rgba(180, 83, 9, 0.4);
+    color: var(--warn);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 input:disabled,
 select:disabled {
     opacity: 0.5;
@@ -61,7 +126,6 @@ select:disabled {
 input,
 select {
     border: 1px solid var(--border);
-    border-radius: 8px;
     padding: 0.45rem 0.55rem;
     width: 100%;
 }
@@ -100,10 +164,18 @@ th {
     color: var(--muted);
 }
 
+.rank {
+    color: var(--brand);
+    font-weight: 700;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
 .status-pill {
     display: inline-block;
     padding: 0.1rem 0.45rem;
-    border-radius: 999px;
     font-size: 0.75rem;
     border: 1px solid var(--border);
     background: #f9fafb;

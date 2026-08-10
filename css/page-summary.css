@@ -1,31 +1,114 @@
-.summary-header {
-    width: min(1100px, calc(100% - 2rem));
-    margin: 1rem auto 0;
+.summary-top-shell {
+    background: var(--navy);
+    color: #fff;
 }
 
-.summary-header__row {
-    display: flex;
-    justify-content: space-between;
+.summary-top-main {
+    width: min(1200px, calc(100% - 2rem));
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr auto;
+    gap: 1rem;
     align-items: center;
-    gap: 0.8rem;
+    padding: 1.2rem 0;
 }
 
-.summary-link {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.45rem 0.75rem;
+.summary-brand-small {
+    margin: 0 0 0.2rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+.summary-brand-title {
+    margin: 0;
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.summary-brand-meta {
+    margin: 0.4rem 0 0;
+    font-size: 0.95rem;
+    opacity: 0.85;
+}
+
+.summary-stat-wrap {
+    text-align: center;
+}
+
+.summary-nav-wrap {
+    text-align: right;
+}
+
+.summary-stat-label {
+    margin: 0 0 0.3rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+.summary-stat-value {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.summary-stage-pill {
+    display: inline-block;
+    margin: 0;
+    padding: 0.2rem 0.6rem;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.summary-nav-link {
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #fff;
     text-decoration: none;
-    color: var(--text);
-    background: #fff;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
-.summary-link:hover {
-    border-color: var(--brand);
+.summary-nav-link:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.summary-live-strip {
+    background: var(--red);
+}
+
+.summary-live-inner {
+    width: min(1200px, calc(100% - 2rem));
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.4rem 0;
+}
+
+.summary-live-left,
+.summary-live-right {
+    margin: 0;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 .summary-main {
-    width: min(1100px, calc(100% - 2rem));
-    margin: 1rem auto 2rem;
+    width: min(1200px, calc(100% - 2rem));
+    margin: 1.2rem auto 2rem;
     display: grid;
     gap: 1rem;
 }
@@ -33,7 +116,6 @@
 .summary-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
     padding: 1rem;
 }
 
@@ -45,13 +127,11 @@
 
 .summary-round {
     border: 1px solid var(--border);
-    border-radius: 10px;
     padding: 0.75rem;
 }
 
 .summary-match {
     border: 1px solid var(--border);
-    border-radius: 8px;
     padding: 0.6rem;
     margin-bottom: 0.55rem;
     background: #fff;
@@ -63,4 +143,57 @@
 
 .summary-empty {
     color: var(--muted);
+}
+
+.best-score-top {
+    color: var(--purple);
+}
+
+@media (max-width: 900px) {
+    .summary-top-main {
+        grid-template-columns: 1fr;
+        text-align: left;
+        padding: 1rem 0;
+    }
+
+    .summary-stat-wrap,
+    .summary-nav-wrap {
+        text-align: left;
+    }
+}
+
+@media (min-width: 2560px) {
+    .summary-brand-small {
+        font-size: 1.6rem;
+    }
+
+    .summary-brand-title {
+        font-size: 5.5rem;
+    }
+
+    .summary-brand-meta {
+        font-size: 1.8rem;
+    }
+
+    .summary-stat-label {
+        font-size: 1.4rem;
+    }
+
+    .summary-stat-value,
+    .summary-stage-pill {
+        font-size: 3rem;
+    }
+
+    .summary-live-left,
+    .summary-live-right {
+        font-size: 1.8rem;
+    }
+
+    .summary-card h2 {
+        font-size: 2.2rem;
+    }
+
+    .summary-match p {
+        font-size: 1.3rem;
+    }
 }
