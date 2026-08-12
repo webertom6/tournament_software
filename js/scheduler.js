@@ -90,13 +90,18 @@
         return pairs;
     }
 
-    function groupPairsIntoRounds(pairs) {
+    function groupPairsIntoRounds(pairs, terrainCount) {
         const rounds = [];
+        // a round is matches played at the same time, so it can never have more matches than terrains
+        const capacity = terrainCount > 0 ? terrainCount : Infinity;
 
         pairs.forEach((pair) => {
             let placed = false;
             for (let index = 0; index < rounds.length; index += 1) {
                 const round = rounds[index];
+                if (round.length >= capacity) {
+                    continue;
+                }
                 const collision = round.some((existing) => {
                     return existing.homeTeamId === pair.homeTeamId ||
                         existing.homeTeamId === pair.awayTeamId ||
@@ -119,7 +124,7 @@
 
     function buildPhase1Matches(teamIds, terrainIds, uid, matchesPerTeam) {
         const pairSequence = buildPairSequence(teamIds, matchesPerTeam);
-        const rounds = groupPairsIntoRounds(pairSequence);
+        const rounds = groupPairsIntoRounds(pairSequence, terrainIds.length);
         const matches = [];
         let terrainIndex = 0;
 
