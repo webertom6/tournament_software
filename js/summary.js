@@ -86,12 +86,122 @@
         return completed + " / " + matches.length;
     }
 
+    function getStageKey(state) {
+        if (!state) {
+            return "setup";
+        }
+        if (state.knockout && (state.knockout.generated || state.knockout.championTeamId)) {
+            return "knockout";
+        }
+        if (state.phase1 && state.phase1.generated) {
+            return "phase1";
+        }
+        return "setup";
+    }
+
+    function getCurrentPhase1RoundIndex(state) {
+        const matches = (state.phase1 && state.phase1.matches) || [];
+        if (!matches.length) {
+            return 0;
+        }
+        let maxRound = 0;
+        matches.forEach((match) => {
+            maxRound = Math.max(maxRound, match.roundIndex);
+        });
+        for (let roundIndex = 0; roundIndex <= maxRound; roundIndex += 1) {
+            const roundMatches = matches.filter((match) => match.roundIndex === roundIndex);
+            if (roundMatches.some((match) => match.status !== "completed")) {
+                return roundIndex;
+            }
+        }
+        return maxRound;
+    }
+
+    function getCurrentKnockoutRoundIndex(state) {
+        const rounds = (state.knockout && state.knockout.rounds) || [];
+        for (let roundIndex = 0; roundIndex < rounds.length; roundIndex += 1) {
+            const hasPlayable = rounds[roundIndex].matches.some((match) => {
+                return match.homeTeamId && match.awayTeamId && match.status !== "completed";
+            });
+            if (hasPlayable) {
+                return roundIndex;
+            }
+        }
+        return Math.max(0, rounds.length - 1);
+    }
+
+    function getContextStatLabel(stage) {
+        if (stage === "knockout") {
+            return "Round";
+        }
+        if (stage === "phase1") {
+            return "Phase 1";
+        }
+        return "Teams";
+    }
+
+    function getContextStatValue(state, stage) {
+        if (stage === "knockout") {
+            const rounds = (state.knockout && state.knockout.rounds) || [];
+            const round = rounds[getCurrentKnockoutRoundIndex(state)];
+            return round ? round.name : "-";
+        }
+        if (stage === "phase1") {
+            return getPhase1ProgressLabel(state);
+        }
+        return String((state.teams || []).length);
+    }
+
     function renderHeader(state) {
+        const stage = getStageKey(state);
         document.getElementById("summary-stage-pill").textContent = getStageLabel(state);
-        document.getElementById("summary-phase1-progress").textContent = getPhase1ProgressLabel(state);
+        document.getElementById("summary-stat-label").textContent = getContextStatLabel(stage);
+        document.getElementById("summary-stat-value").textContent = state ? getContextStatValue(state, stage) : "-";
         const teamCount = state ? (state.teams || []).length : 0;
         const terrainCount = state ? (state.terrains || []).length : 0;
         document.getElementById("summary-meta").textContent = teamCount + " teams - " + terrainCount + " terrains";
+    }
+
+    function getStandingsColumnCount(teamCount) {
+        if (teamCount > 40) {
+            return 3;
+        }
+        if (teamCount > 15) {
+            return 2;
+        }
+        return 1;
+    }
+
+    function chunkStandings(standings, columns) {
+        const perColumn = Math.ceil(standings.length / columns);
+        const chunks = [];
+        for (let index = 0; index < columns; index += 1) {
+            const chunk = standings.slice(index * perColumn, (index + 1) * perColumn);
+            if (chunk.length) {
+                chunks.push(chunk);
+            }
+        }
+        return chunks;
+    }
+
+    function renderStandingsTable(rows, qualifiedCount, topBest) {
+        return '<table>' +
+            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>GD</th><th>Best</th><th>Pts</th></tr></thead>" +
+            "<tbody>" +
+            rows.map((row) => {
+                const isQualified = row.rank <= qualifiedCount;
+                const bestClass = row.bestScore > 0 && row.bestScore === topBest ? "text-mono best-score-top" : "text-mono";
+                return '' +
+                    "<tr>" +
+                    '<td class="rank text-mono">' + row.rank + "</td>" +
+                    "<td>" + esc(row.teamName) + (isQualified ? ' <span class="status-pill completed">Q</span>' : "") + "</td>" +
+                    "<td>" + row.played + "</td>" +
+                    "<td>" + row.gd + "</td>" +
+                    '<td class="' + bestClass + '">' + row.bestScore + "</td>" +
+                    '<td class="text-mono"><strong>' + row.points + "</strong></td>" +
+                    "</tr>";
+            }).join("") +
+            "</tbody></table>";
     }
 
     function renderStandings(state) {
@@ -109,29 +219,12 @@
 
         const qualifiedCount = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
         const topBest = Math.max(0, ...standings.map((row) => row.bestScore));
+        const columnCount = getStandingsColumnCount(standings.length);
+        const columns = chunkStandings(standings, columnCount);
 
-        target.innerHTML = '<div class="table-wrap"><table>' +
-            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Best</th><th>Pts</th></tr></thead>" +
-            "<tbody>" +
-            standings.map((row, index) => {
-                const isQualified = index < qualifiedCount;
-                const bestClass = row.bestScore > 0 && row.bestScore === topBest ? "text-mono best-score-top" : "text-mono";
-                return '' +
-                    "<tr>" +
-                    '<td class="rank text-mono">' + row.rank + "</td>" +
-                    "<td>" + esc(row.teamName) + (isQualified ? ' <span class="status-pill completed">Q</span>' : "") + "</td>" +
-                    "<td>" + row.played + "</td>" +
-                    "<td>" + row.wins + "</td>" +
-                    "<td>" + row.draws + "</td>" +
-                    "<td>" + row.losses + "</td>" +
-                    "<td>" + row.gf + "</td>" +
-                    "<td>" + row.ga + "</td>" +
-                    "<td>" + row.gd + "</td>" +
-                    '<td class="' + bestClass + '">' + row.bestScore + "</td>" +
-                    '<td class="text-mono"><strong>' + row.points + "</strong></td>" +
-                    "</tr>";
-            }).join("") +
-            "</tbody></table></div>";
+        target.innerHTML = '<div class="standings-columns">' +
+            columns.map((rows) => '<div class="table-wrap">' + renderStandingsTable(rows, qualifiedCount, topBest) + '</div>').join("") +
+            '</div>';
     }
 
     function renderPhase1(state) {
@@ -147,100 +240,153 @@
             return;
         }
 
-        const byRound = new Map();
-        allMatches.forEach((match) => {
-            const key = String(match.roundIndex);
-            if (!byRound.has(key)) {
-                byRound.set(key, []);
-            }
-            byRound.get(key).push(match);
-        });
+        const currentRoundIndex = getCurrentPhase1RoundIndex(state);
+        const matches = allMatches.filter((match) => match.roundIndex === currentRoundIndex);
+        const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
+        const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
 
-        const rounds = Array.from(byRound.entries()).sort((a, b) => Number(a[0]) - Number(b[0]));
-        target.innerHTML = '<div class="summary-round-grid">' + rounds.map((entry) => {
-            const roundIndex = Number(entry[0]);
-            const matches = entry[1];
-            return '' +
-                '<div class="summary-round">' +
-                '<h3 class="text-display">Round ' + (roundIndex + 1) + '</h3>' +
-                matches.map((match) => {
-                    const home = getTeamName(state, match.homeTeamId);
-                    const away = getTeamName(state, match.awayTeamId);
-                    const roundStartedAt = (state.phase1.roundTimers || {})[String(match.roundIndex)] ?
-                        (state.phase1.roundTimers || {})[String(match.roundIndex)].startedAt : null;
-                    return '' +
-                        '<article class="summary-match">' +
-                        '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
-                        renderMatchScoreLine(match) +
-                        renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
-                        '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
-                        '</article>';
-                }).join("") +
-                '</div>';
-        }).join("") + '</div>';
+        target.innerHTML =
+            '<h3 class="text-display">Round ' + (currentRoundIndex + 1) + '</h3>' +
+            '<div class="summary-round-grid">' +
+            matches.map((match) => {
+                const home = getTeamName(state, match.homeTeamId);
+                const away = getTeamName(state, match.awayTeamId);
+                return '' +
+                    '<article class="summary-match">' +
+                    '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
+                    renderMatchScoreLine(match) +
+                    renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
+                    '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+                    '</article>';
+            }).join("") +
+            '</div>';
     }
 
-    function renderKnockout(state) {
-        const target = document.getElementById("summary-knockout");
+    function renderTeamsSetup(state) {
+        const target = document.getElementById("summary-teams-setup");
+        const teams = state ? (state.teams || []) : [];
+        if (!teams.length) {
+            target.innerHTML = '<p class="summary-empty">No teams registered yet</p>';
+            return;
+        }
+        target.innerHTML = '<div class="teams-setup-grid">' +
+            teams.map((team) => '<span class="team-chip text-display">' + esc(team.name) + '</span>').join("") +
+            '</div>';
+    }
+
+    let lastScrolledKnockoutRound = null;
+
+    function renderBracketMatch(state, match) {
+        const home = match.homeTeamId ? getTeamName(state, match.homeTeamId) : "TBD";
+        const away = match.awayTeamId ? getTeamName(state, match.awayTeamId) : "TBD";
+        const scoreLine = match.status === "completed" ?
+            '<p class="text-mono">' + (Number.isFinite(match.homeGoals) ? match.homeGoals : 0) + " - " + (Number.isFinite(match.awayGoals) ? match.awayGoals : 0) + '</p>' :
+            '<p class="muted">vs</p>';
+        return '<p class="bracket-team">' + esc(home) + '</p>' +
+            scoreLine +
+            '<p class="bracket-team">' + esc(away) + '</p>';
+    }
+
+    const BRACKET_ROW_HEIGHT = 100;
+
+    function renderBracket(state) {
+        const target = document.getElementById("summary-bracket");
         if (!state || !state.knockout || !state.knockout.generated) {
             target.innerHTML = '<p class="summary-empty">Knockout phase is not generated yet</p>';
             return;
         }
 
-        const roundBlocks = [];
-        (state.knockout.rounds || []).forEach((round) => {
-            const matches = (round.matches || []).filter((match) => {
-                return match.homeTeamId && match.awayTeamId;
-            });
-            if (!matches.length) {
-                return;
-            }
-            roundBlocks.push({
-                name: round.name || ("Round " + (Number(round.roundIndex || 0) + 1)),
-                startedAt: round.startedAt,
-                matches: matches
-            });
-        });
-
-        if (state.knockout.thirdPlace &&
-            state.knockout.thirdPlace.homeTeamId &&
-            state.knockout.thirdPlace.awayTeamId) {
-            roundBlocks.push({
-                name: "Third place",
-                startedAt: state.knockout.thirdPlace.startedAt,
-                matches: [state.knockout.thirdPlace]
-            });
-        }
-
-        if (!roundBlocks.length) {
-            target.innerHTML = '<p class="summary-empty">No upcoming knockout matches</p>';
+        const rounds = state.knockout.rounds || [];
+        if (!rounds.length) {
+            target.innerHTML = '<p class="summary-empty">No knockout rounds</p>';
             return;
         }
 
-        target.innerHTML = '<div class="summary-round-grid">' + roundBlocks.map((round) => {
-            return '' +
-                '<div class="summary-round">' +
-                '<h3 class="text-display">' + esc(round.name) + '</h3>' +
-                round.matches.map((match) => {
-                    const home = getTeamName(state, match.homeTeamId);
-                    const away = getTeamName(state, match.awayTeamId);
-                    return '' +
-                        '<article class="summary-match">' +
-                        '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
-                        renderMatchScoreLine(match) +
-                        renderMatchTimerLine(round.startedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
-                        '</article>';
-                }).join("") +
+        const leafCount = rounds[0].matches.length;
+        const bodyHeight = leafCount * BRACKET_ROW_HEIGHT;
+        const currentRoundIndex = getCurrentKnockoutRoundIndex(state);
+
+        // match k in round R is centered at (k + 0.5) * 2^R / leafCount, so a pair's
+        // midpoint always lands exactly on the next round's slot - standard bracket row-doubling math
+        const roundColumns = rounds.map((round, roundIndex) => {
+            const isCurrent = roundIndex === currentRoundIndex;
+            const isLast = roundIndex === rounds.length - 1;
+            const spacing = Math.pow(2, roundIndex);
+
+            const centerOf = (k) => ((k + 0.5) * spacing / leafCount) * 100;
+
+            const matchesHtml = round.matches.map((match, k) => {
+                return '<div class="bracket-match" style="top:' + centerOf(k) + '%">' + renderBracketMatch(state, match) + '</div>';
+            }).join("");
+
+            let connectorsHtml = "";
+            if (!isLast) {
+                for (let pairIndex = 0; pairIndex * 2 < round.matches.length; pairIndex += 1) {
+                    const top = centerOf(pairIndex * 2);
+                    const bottom = centerOf(pairIndex * 2 + 1);
+                    connectorsHtml += '<div class="bracket-connector" style="top:' + top + '%; height:' + (bottom - top) + '%"></div>';
+                }
+            }
+
+            return '<div class="bracket-round' + (isCurrent ? " bracket-round--current" : "") + '" data-round-index="' + roundIndex + '">' +
+                '<h3 class="bracket-round-title text-display">' + esc(round.name) + '</h3>' +
+                '<div class="bracket-round-body" style="height:' + bodyHeight + 'px">' +
+                matchesHtml + connectorsHtml +
+                '</div>' +
                 '</div>';
-        }).join("") + '</div>';
+        });
+
+        let championHtml = "";
+        if (state.knockout.championTeamId) {
+            championHtml = '<div class="bracket-round bracket-champion-col">' +
+                '<h3 class="bracket-round-title text-display">Champion</h3>' +
+                '<div class="bracket-round-body" style="height:' + bodyHeight + 'px">' +
+                '<div class="bracket-champion text-display">' + esc(getTeamName(state, state.knockout.championTeamId)) + '</div>' +
+                '</div>' +
+                '</div>';
+        }
+
+        let thirdPlaceHtml = "";
+        const thirdPlace = state.knockout.thirdPlace;
+        if (thirdPlace && thirdPlace.homeTeamId && thirdPlace.awayTeamId) {
+            thirdPlaceHtml = '<div class="bracket-third-place">' +
+                '<h3 class="text-display">Third place</h3>' +
+                '<div class="bracket-match bracket-match--static">' + renderBracketMatch(state, thirdPlace) + '</div>' +
+                '</div>';
+        }
+
+        target.innerHTML = '<div class="bracket-scroll"><div class="bracket-tree">' +
+            roundColumns.join("") + championHtml +
+            '</div></div>' + thirdPlaceHtml;
+
+        if (lastScrolledKnockoutRound !== currentRoundIndex) {
+            lastScrolledKnockoutRound = currentRoundIndex;
+            const columnEl = target.querySelector('.bracket-round[data-round-index="' + currentRoundIndex + '"]');
+            if (columnEl) {
+                columnEl.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+            }
+        }
+    }
+
+    function toggleViews(stage) {
+        document.getElementById("view-setup").hidden = stage !== "setup";
+        document.getElementById("view-phase1").hidden = stage !== "phase1";
+        document.getElementById("view-knockout").hidden = stage !== "knockout";
     }
 
     function renderSummary() {
         const state = loadState();
+        const stage = getStageKey(state);
         renderHeader(state);
-        renderStandings(state);
-        renderPhase1(state);
-        renderKnockout(state);
+        toggleViews(stage);
+        if (stage === "setup") {
+            renderTeamsSetup(state);
+        } else if (stage === "phase1") {
+            renderStandings(state);
+            renderPhase1(state);
+        } else if (stage === "knockout") {
+            renderBracket(state);
+        }
         const timestamp = new Date().toLocaleString();
         document.getElementById("summary-last-update").textContent = "Last refresh: " + timestamp;
     }

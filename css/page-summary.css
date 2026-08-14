@@ -4,7 +4,7 @@
 }
 
 .summary-top-main {
-    width: min(1200px, calc(100% - 2rem));
+    width: min(1800px, calc(100% - 3rem));
     margin: 0 auto;
     display: grid;
     grid-template-columns: 1.4fr 1fr 1fr auto;
@@ -89,7 +89,7 @@
 }
 
 .summary-live-inner {
-    width: min(1200px, calc(100% - 2rem));
+    width: min(1800px, calc(100% - 3rem));
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -107,7 +107,7 @@
 }
 
 .summary-main {
-    width: min(1200px, calc(100% - 2rem));
+    width: min(1800px, calc(100% - 3rem));
     margin: 1.2rem auto 2rem;
     display: grid;
     gap: 1rem;
@@ -123,11 +123,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 0.8rem;
-}
-
-.summary-round {
-    border: 1px solid var(--border);
-    padding: 0.75rem;
 }
 
 .summary-match {
@@ -149,6 +144,141 @@
     color: var(--purple);
 }
 
+.teams-setup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.8rem;
+}
+
+.team-chip {
+    display: block;
+    border: 1px solid var(--border);
+    background: #fff;
+    padding: 0.9rem 1rem;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.summary-phase1-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.standings-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+}
+
+.standings-columns .table-wrap {
+    flex: 1 1 220px;
+}
+
+.standings-columns table {
+    font-size: 0.85rem;
+}
+
+.summary-card--bracket {
+    overflow: hidden;
+}
+
+.bracket-scroll {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.bracket-tree {
+    display: flex;
+    align-items: flex-start;
+    gap: 2.5rem;
+    padding: 0.5rem 0.5rem 1rem;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+}
+
+.bracket-round-title {
+    text-align: center;
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.bracket-round--current .bracket-match {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px rgba(0, 94, 255, 0.15);
+}
+
+.bracket-round-body {
+    position: relative;
+}
+
+/* each match/connector is placed at an exact % computed from the standard
+   bracket row-doubling formula, so pairs always line up with their next round */
+.bracket-match {
+    position: absolute;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    border: 1px solid var(--border);
+    background: #fff;
+    padding: 0.35rem 0.55rem;
+}
+
+.bracket-match--static {
+    position: static;
+    transform: none;
+}
+
+.bracket-connector {
+    position: absolute;
+    left: 100%;
+    width: 2.5rem;
+    box-sizing: border-box;
+    border-top: 2px solid var(--border);
+    border-bottom: 2px solid var(--border);
+    border-right: 2px solid var(--border);
+}
+
+.bracket-team {
+    margin: 0.1rem 0;
+    font-size: 0.85rem;
+}
+
+.bracket-match p.text-mono,
+.bracket-match p.muted {
+    margin: 0.1rem 0;
+    font-size: 0.8rem;
+}
+
+.bracket-champion-col {
+    justify-content: center;
+}
+
+.bracket-champion-col .bracket-round-body {
+    display: flex;
+    align-items: center;
+}
+
+.bracket-champion {
+    border: 2px solid var(--purple);
+    color: var(--purple);
+    padding: 0.8rem 1rem;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    width: 100%;
+}
+
+.bracket-third-place {
+    margin-top: 1rem;
+    max-width: 220px;
+}
+
 @media (max-width: 900px) {
     .summary-top-main {
         grid-template-columns: 1fr;
@@ -159,6 +289,10 @@
     .summary-stat-wrap,
     .summary-nav-wrap {
         text-align: left;
+    }
+
+    .summary-phase1-layout {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -195,5 +329,26 @@
 
     .summary-match p {
         font-size: 1.3rem;
+    }
+
+    .team-chip {
+        font-size: 1.8rem;
+        padding: 1.3rem 1rem;
+    }
+
+    .standings-columns table {
+        font-size: 1.4rem;
+    }
+
+    .bracket-round-title {
+        font-size: 1.6rem;
+    }
+
+    .bracket-team {
+        font-size: 1.5rem;
+    }
+
+    .bracket-champion {
+        font-size: 2rem;
     }
 }

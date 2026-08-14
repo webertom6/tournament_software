@@ -20,8 +20,8 @@
                 <span id="summary-stage-pill" class="summary-stage-pill text-display">Setup</span>
             </div>
             <div class="summary-stat-wrap">
-                <p class="summary-stat-label text-display">Phase 1</p>
-                <p id="summary-phase1-progress" class="summary-stat-value text-mono">-</p>
+                <p id="summary-stat-label" class="summary-stat-label text-display">Phase 1</p>
+                <p id="summary-stat-value" class="summary-stat-value text-mono">-</p>
             </div>
             <div class="summary-nav-wrap">
                 <a class="summary-nav-link" href="./index.html">Admin page</a>
@@ -29,26 +29,32 @@
         </div>
         <div class="summary-live-strip">
             <div class="summary-live-inner">
-                <p class="summary-live-left text-mono">* Live</p>
+                <p class="summary-live-left text-mono">· Live</p>
                 <p id="summary-last-update" class="summary-live-right text-mono"></p>
             </div>
         </div>
     </header>
 
     <main class="summary-main">
-        <section class="summary-card" aria-labelledby="standings-title">
-            <h2 id="standings-title">Standings</h2>
-            <div id="summary-standings"></div>
+        <section id="view-setup" class="summary-card" aria-labelledby="setup-title" hidden>
+            <h2 id="setup-title">Registered Teams</h2>
+            <div id="summary-teams-setup"></div>
         </section>
 
-        <section class="summary-card" aria-labelledby="knockout-title">
-            <h2 id="knockout-title">Knockout - upcoming matches</h2>
-            <div id="summary-knockout"></div>
+        <section id="view-phase1" class="summary-phase1-layout" hidden>
+            <div class="summary-card" aria-labelledby="phase1-title">
+                <h2 id="phase1-title">Phase 1 - current round</h2>
+                <div id="summary-phase1"></div>
+            </div>
+            <div class="summary-card" aria-labelledby="standings-title">
+                <h2 id="standings-title">Standings</h2>
+                <div id="summary-standings"></div>
+            </div>
         </section>
 
-        <section class="summary-card" aria-labelledby="phase1-title">
-            <h2 id="phase1-title">Phase 1 - upcoming matches</h2>
-            <div id="summary-phase1"></div>
+        <section id="view-knockout" class="summary-card summary-card--bracket" aria-labelledby="knockout-title" hidden>
+            <h2 id="knockout-title">Knockout</h2>
+            <div id="summary-bracket"></div>
         </section>
     </main>
 
