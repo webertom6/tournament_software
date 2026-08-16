@@ -374,11 +374,19 @@
         document.getElementById("view-knockout").hidden = stage !== "knockout";
     }
 
-    let standingsHidden = false;
+    const SUMMARY_PREFS_KEY = "tournament_software_summary_prefs_v1";
 
-    function applyStandingsVisibility() {
-        document.getElementById("view-phase1").classList.toggle("standings-hidden", standingsHidden);
-        document.getElementById("btn-toggle-standings").textContent = standingsHidden ? "Show standings" : "Hide standings";
+    function getSummaryPrefs() {
+        try {
+            const raw = localStorage.getItem(SUMMARY_PREFS_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return {
+                standingsHidden: Boolean(parsed.standingsHidden),
+                autoScrollActive: Boolean(parsed.autoScrollActive)
+            };
+        } catch (error) {
+            return { standingsHidden: false, autoScrollActive: false };
+        }
     }
 
     // pixels per second - tune to taste, kept as one named constant
@@ -416,8 +424,10 @@
     }
 
     function setAutoScroll(active) {
+        if (active === autoScrollActive) {
+            return;
+        }
         autoScrollActive = active;
-        document.getElementById("btn-auto-scroll").textContent = active ? "Stop auto-scroll" : "Start auto-scroll";
 
         if (active) {
             autoScrollLastTime = null;
@@ -430,15 +440,10 @@
         }
     }
 
-    function bindControls() {
-        document.getElementById("btn-toggle-standings").addEventListener("click", () => {
-            standingsHidden = !standingsHidden;
-            applyStandingsVisibility();
-        });
-        document.getElementById("btn-auto-scroll").addEventListener("click", () => {
-            setAutoScroll(!autoScrollActive);
-        });
-        applyStandingsVisibility();
+    function applySummaryPrefs() {
+        const prefs = getSummaryPrefs();
+        document.getElementById("view-phase1").classList.toggle("standings-hidden", prefs.standingsHidden);
+        setAutoScroll(prefs.autoScrollActive);
     }
 
     function renderSummary() {
@@ -446,6 +451,7 @@
         const stage = getStageKey(state);
         renderHeader(state);
         toggleViews(stage);
+        applySummaryPrefs();
         if (stage === "setup") {
             renderTeamsSetup(state);
         } else if (stage === "phase1") {
@@ -459,12 +465,11 @@
     }
 
     window.addEventListener("storage", (event) => {
-        if (event.key === STORAGE_KEY) {
+        if (event.key === STORAGE_KEY || event.key === SUMMARY_PREFS_KEY) {
             renderSummary();
         }
     });
 
     setInterval(renderSummary, 1000);
-    bindControls();
     renderSummary();
 })();

@@ -1,4 +1,33 @@
 (function () {
+    const SUMMARY_PREFS_KEY = "tournament_software_summary_prefs_v1";
+
+    function getSummaryPrefs() {
+        try {
+            const raw = localStorage.getItem(SUMMARY_PREFS_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return {
+                standingsHidden: Boolean(parsed.standingsHidden),
+                autoScrollActive: Boolean(parsed.autoScrollActive)
+            };
+        } catch (error) {
+            return { standingsHidden: false, autoScrollActive: false };
+        }
+    }
+
+    function setSummaryPrefs(partial) {
+        const next = Object.assign(getSummaryPrefs(), partial);
+        localStorage.setItem(SUMMARY_PREFS_KEY, JSON.stringify(next));
+        return next;
+    }
+
+    function updateSummaryControlButtons() {
+        const prefs = getSummaryPrefs();
+        document.getElementById("btn-toggle-summary-standings").textContent =
+            prefs.standingsHidden ? "Show summary standings" : "Hide summary standings";
+        document.getElementById("btn-toggle-summary-scroll").textContent =
+            prefs.autoScrollActive ? "Stop summary auto-scroll" : "Start summary auto-scroll";
+    }
+
     function esc(value) {
         return String(value || "")
             .replace(/&/g, "&amp;")
@@ -415,6 +444,8 @@
     }
 
     function bindEvents() {
+        updateSummaryControlButtons();
+
         document.getElementById("form-add-team").addEventListener("submit", (event) => {
             event.preventDefault();
             try {
@@ -482,6 +513,16 @@
             } catch (error) {
                 handleError(error);
             }
+        });
+
+        document.getElementById("btn-toggle-summary-standings").addEventListener("click", () => {
+            setSummaryPrefs({ standingsHidden: !getSummaryPrefs().standingsHidden });
+            updateSummaryControlButtons();
+        });
+
+        document.getElementById("btn-toggle-summary-scroll").addEventListener("click", () => {
+            setSummaryPrefs({ autoScrollActive: !getSummaryPrefs().autoScrollActive });
+            updateSummaryControlButtons();
         });
 
         document.getElementById("btn-export-state").addEventListener("click", () => {
