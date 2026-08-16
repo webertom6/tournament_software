@@ -40,7 +40,10 @@
 }
 
 .summary-nav-wrap {
-    text-align: right;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 .summary-stat-label {
@@ -182,6 +185,26 @@
     grid-template-columns: 2fr 1fr;
     gap: 1rem;
     align-items: start;
+}
+
+.summary-phase1-layout.standings-hidden {
+    grid-template-columns: 1fr;
+}
+
+.summary-phase1-layout.standings-hidden .summary-standings-card {
+    display: none;
+}
+
+.summary-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.summary-card-head h2 {
+    margin: 0;
 }
 
 .standings-columns {

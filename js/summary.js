@@ -374,6 +374,73 @@
         document.getElementById("view-knockout").hidden = stage !== "knockout";
     }
 
+    let standingsHidden = false;
+
+    function applyStandingsVisibility() {
+        document.getElementById("view-phase1").classList.toggle("standings-hidden", standingsHidden);
+        document.getElementById("btn-toggle-standings").textContent = standingsHidden ? "Show standings" : "Hide standings";
+    }
+
+    // pixels per second - tune to taste, kept as one named constant
+    const AUTO_SCROLL_SPEED = 40;
+    const AUTO_SCROLL_TICK_MS = 16;
+
+    let autoScrollActive = false;
+    let autoScrollDirection = 1;
+    let autoScrollLastTime = null;
+    let autoScrollIntervalId = null;
+
+    function autoScrollTick() {
+        const now = Date.now();
+        if (autoScrollLastTime === null) {
+            autoScrollLastTime = now;
+            return;
+        }
+        const deltaSeconds = (now - autoScrollLastTime) / 1000;
+        autoScrollLastTime = now;
+
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        if (maxScroll <= 0) {
+            return;
+        }
+
+        let next = window.scrollY + autoScrollDirection * AUTO_SCROLL_SPEED * deltaSeconds;
+        if (next >= maxScroll) {
+            next = maxScroll;
+            autoScrollDirection = -1;
+        } else if (next <= 0) {
+            next = 0;
+            autoScrollDirection = 1;
+        }
+        window.scrollTo(0, next);
+    }
+
+    function setAutoScroll(active) {
+        autoScrollActive = active;
+        document.getElementById("btn-auto-scroll").textContent = active ? "Stop auto-scroll" : "Start auto-scroll";
+
+        if (active) {
+            autoScrollLastTime = null;
+            if (!autoScrollIntervalId) {
+                autoScrollIntervalId = setInterval(autoScrollTick, AUTO_SCROLL_TICK_MS);
+            }
+        } else if (autoScrollIntervalId) {
+            clearInterval(autoScrollIntervalId);
+            autoScrollIntervalId = null;
+        }
+    }
+
+    function bindControls() {
+        document.getElementById("btn-toggle-standings").addEventListener("click", () => {
+            standingsHidden = !standingsHidden;
+            applyStandingsVisibility();
+        });
+        document.getElementById("btn-auto-scroll").addEventListener("click", () => {
+            setAutoScroll(!autoScrollActive);
+        });
+        applyStandingsVisibility();
+    }
+
     function renderSummary() {
         const state = loadState();
         const stage = getStageKey(state);
@@ -398,5 +465,6 @@
     });
 
     setInterval(renderSummary, 1000);
+    bindControls();
     renderSummary();
 })();
