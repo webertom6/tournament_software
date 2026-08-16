@@ -287,7 +287,7 @@
             '<p class="bracket-team">' + esc(away) + '</p>';
     }
 
-    const BRACKET_ROW_HEIGHT = 100;
+    const BRACKET_ROW_HEIGHT = 120;
 
     function renderBracket(state) {
         const target = document.getElementById("summary-bracket");
