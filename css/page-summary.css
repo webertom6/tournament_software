@@ -182,13 +182,17 @@
 
 .summary-phase1-layout {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
     align-items: start;
 }
 
-.summary-phase1-layout.standings-hidden {
-    grid-template-columns: 1fr;
+.summary-matches-card {
+    display: none;
+}
+
+.summary-phase1-layout.standings-hidden .summary-matches-card {
+    display: block;
 }
 
 .summary-phase1-layout.standings-hidden .summary-standings-card {
@@ -348,10 +352,6 @@
     .summary-stat-wrap,
     .summary-nav-wrap {
         text-align: left;
-    }
-
-    .summary-phase1-layout {
-        grid-template-columns: 1fr;
     }
 }
 

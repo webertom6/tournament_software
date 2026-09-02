@@ -516,13 +516,17 @@
         });
 
         document.getElementById("btn-toggle-summary-standings").addEventListener("click", () => {
-            setSummaryPrefs({ standingsHidden: !getSummaryPrefs().standingsHidden });
+            const nextHidden = !getSummaryPrefs().standingsHidden;
+            setSummaryPrefs({ standingsHidden: nextHidden });
             updateSummaryControlButtons();
+            window.TournamentState.update(() => {}, nextHidden ? "Hid summary standings" : "Showed summary standings");
         });
 
         document.getElementById("btn-toggle-summary-scroll").addEventListener("click", () => {
-            setSummaryPrefs({ autoScrollActive: !getSummaryPrefs().autoScrollActive });
+            const nextActive = !getSummaryPrefs().autoScrollActive;
+            setSummaryPrefs({ autoScrollActive: nextActive });
             updateSummaryControlButtons();
+            window.TournamentState.update(() => {}, nextActive ? "Started summary auto-scroll" : "Stopped summary auto-scroll");
         });
 
         document.getElementById("btn-export-state").addEventListener("click", () => {
