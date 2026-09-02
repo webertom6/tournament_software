@@ -324,7 +324,10 @@
                 for (let pairIndex = 0; pairIndex * 2 < round.matches.length; pairIndex += 1) {
                     const top = centerOf(pairIndex * 2);
                     const bottom = centerOf(pairIndex * 2 + 1);
+                    const mid = (top + bottom) / 2;
                     connectorsHtml += '<div class="bracket-connector" style="top:' + top + '%; height:' + (bottom - top) + '%"></div>';
+                    // mid always lands on the next round's match center, so the tick points straight into it
+                    connectorsHtml += '<div class="bracket-connector-tick" style="top:' + mid + '%"></div>';
                 }
             }
 

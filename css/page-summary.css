@@ -291,11 +291,20 @@
 .bracket-connector {
     position: absolute;
     left: 100%;
-    width: 2.5rem;
+    width: 1.5rem;
     box-sizing: border-box;
     border-top: 2px solid var(--border);
     border-bottom: 2px solid var(--border);
     border-right: 2px solid var(--border);
+}
+
+/* short horizontal tick from the connector's vertical bar into the next round's match */
+.bracket-connector-tick {
+    position: absolute;
+    left: calc(100% + 1.5rem);
+    width: 1rem;
+    border-top: 2px solid var(--border);
+    transform: translateY(-50%);
 }
 
 .bracket-team {
