@@ -330,6 +330,7 @@
                         '<span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span>' +
                         '</div>' +
                         teamsHtml +
+                        '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
                         renderMatchTimerBlock(round.startedAt, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                         '<div class="match-row">' +
                         '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
@@ -357,6 +358,7 @@
                 '<span>' + esc(home) + " vs " + esc(away) + '</span>' +
                 '<span class="status-pill ' + esc(tp.status) + '">' + esc(tp.status) + '</span>' +
                 '</div>' +
+                '<p class="muted">Terrain: ' + esc(getTerrainName(state, tp.terrainId)) + '</p>' +
                 renderMatchTimerBlock(tp.startedAt, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                 '<div class="match-row">' +
                 '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.homeGoals) ? tp.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +

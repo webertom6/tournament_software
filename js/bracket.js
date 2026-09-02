@@ -52,7 +52,7 @@
         return seeds;
     }
 
-    function generateKnockoutStructure(qualifiedTeamIds, config, uid) {
+    function generateKnockoutStructure(qualifiedTeamIds, config, uid, terrainIds) {
         const normalizedCount = normalizeQualifiedCount(qualifiedTeamIds.length, config.qualifiedCount);
         const selected = qualifiedTeamIds.slice(0, normalizedCount);
         const seededTeams = buildSeededTeams(selected, config.seedingPolicy);
@@ -68,6 +68,16 @@
 
         const totalRounds = Math.log2(bracketSize);
         const rounds = [];
+        const availableTerrains = Array.isArray(terrainIds) ? terrainIds : [];
+        let terrainIndex = 0;
+        const nextTerrainId = () => {
+            if (!availableTerrains.length) {
+                return null;
+            }
+            const terrainId = availableTerrains[terrainIndex % availableTerrains.length];
+            terrainIndex += 1;
+            return terrainId;
+        };
 
         for (let roundIndex = 0; roundIndex < totalRounds; roundIndex += 1) {
             const matchCount = bracketSize / Math.pow(2, roundIndex + 1);
@@ -88,6 +98,7 @@
                     slotIndex: matchIndex,
                     homeTeamId: null,
                     awayTeamId: null,
+                    terrainId: nextTerrainId(),
                     homeGoals: null,
                     awayGoals: null,
                     status: "scheduled",
@@ -148,6 +159,7 @@
                     awaySourceMatchId: semiRound.matches[1].id,
                     homeTeamId: null,
                     awayTeamId: null,
+                    terrainId: nextTerrainId(),
                     homeGoals: null,
                     awayGoals: null,
                     status: "scheduled",
