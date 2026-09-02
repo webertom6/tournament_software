@@ -7,59 +7,67 @@
     width: min(1800px, calc(100% - 3rem));
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr auto;
-    gap: 1rem;
+    grid-template-columns: 1.1fr 2fr 1fr;
+    gap: 1.2rem;
     align-items: center;
-    padding: 1.2rem 0;
+    padding: 1.4rem 0;
 }
 
 .summary-brand-small {
     margin: 0 0 0.2rem;
-    font-size: 0.85rem;
-    letter-spacing: 0.28em;
+    font-size: 0.875rem;
+    letter-spacing: 0.32em;
     text-transform: uppercase;
-    opacity: 0.75;
+    opacity: 0.8;
 }
 
 .summary-brand-title {
-    margin: 0;
-    font-size: 2.4rem;
+    margin: 0.25rem 0 0;
+    font-size: 3.5rem;
     font-weight: 800;
-    line-height: 1;
+    line-height: 0.95;
     text-transform: uppercase;
 }
 
 .summary-brand-meta {
     margin: 0.4rem 0 0;
-    font-size: 0.95rem;
-    opacity: 0.85;
+    font-size: 1.25rem;
+    opacity: 0.88;
 }
 
-.summary-stat-wrap {
+.summary-clock-wrap {
     text-align: center;
 }
 
-.summary-stat-label {
-    margin: 0 0 0.3rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.2em;
+.summary-clock-label {
+    margin: 0 0 0.25rem;
+    font-size: 1.625rem;
+    letter-spacing: 0.3em;
     text-transform: uppercase;
-    opacity: 0.75;
+    opacity: 0.8;
 }
 
-.summary-stat-value {
-    margin: 0;
-    font-size: 1.6rem;
+.summary-round-name {
+    margin: 0 0 0.15rem;
+    font-size: 1.4rem;
     font-weight: 700;
+    text-transform: uppercase;
+}
+
+.summary-clock-value {
+    margin: 0;
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 0.95;
 }
 
 .summary-stage-pill {
     display: inline-block;
     margin: 0;
-    padding: 0.2rem 0.6rem;
-    background: rgba(255, 255, 255, 0.12);
+    padding: 0.25rem 0.65rem;
+    background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.35);
-    font-size: 1rem;
+    font-size: 2rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -82,8 +90,8 @@
 .summary-live-left,
 .summary-live-right {
     margin: 0;
-    font-size: 0.85rem;
-    letter-spacing: 0.12em;
+    font-size: 1.5rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
 }
 
@@ -336,8 +344,18 @@
         padding: 1rem 0;
     }
 
-    .summary-stat-wrap {
+    .summary-clock-wrap {
         text-align: left;
+    }
+
+    .summary-live-inner {
+        flex-wrap: wrap;
+        gap: 0.2rem 0.6rem;
+    }
+
+    .summary-live-left,
+    .summary-live-right {
+        font-size: 1rem;
     }
 }
 
@@ -354,13 +372,17 @@
         font-size: 1.8rem;
     }
 
-    .summary-stat-label {
-        font-size: 1.4rem;
+    .summary-clock-label {
+        font-size: 2rem;
     }
 
-    .summary-stat-value,
+    .summary-round-name {
+        font-size: 1.8rem;
+    }
+
+    .summary-clock-value,
     .summary-stage-pill {
-        font-size: 3rem;
+        font-size: 4.5rem;
     }
 
     .summary-live-left,

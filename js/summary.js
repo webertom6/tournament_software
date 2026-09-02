@@ -77,15 +77,6 @@
         return "Setup";
     }
 
-    function getPhase1ProgressLabel(state) {
-        if (!state || !state.phase1 || !state.phase1.generated) {
-            return "-";
-        }
-        const matches = state.phase1.matches || [];
-        const completed = matches.filter((match) => match.status === "completed").length;
-        return completed + " / " + matches.length;
-    }
-
     function getStageKey(state) {
         if (!state) {
             return "setup";
@@ -130,33 +121,43 @@
         return Math.max(0, rounds.length - 1);
     }
 
-    function getContextStatLabel(stage) {
-        if (stage === "knockout") {
-            return "Round";
-        }
+    // only one round is ever live at a time, so the header shows a single round-level
+    // clock even though matches carry their own pause state for scheduling flexibility
+    function getCurrentRoundInfo(state, stage) {
         if (stage === "phase1") {
-            return "Phase 1";
+            const currentRoundIndex = getCurrentPhase1RoundIndex(state);
+            const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
+            return {
+                name: "Round " + (currentRoundIndex + 1),
+                startedAt: roundTimer ? roundTimer.startedAt : null
+            };
         }
-        return "Teams";
-    }
-
-    function getContextStatValue(state, stage) {
         if (stage === "knockout") {
             const rounds = (state.knockout && state.knockout.rounds) || [];
             const round = rounds[getCurrentKnockoutRoundIndex(state)];
-            return round ? round.name : "-";
+            return {
+                name: round ? round.name : "-",
+                startedAt: round ? round.startedAt : null
+            };
         }
-        if (stage === "phase1") {
-            return getPhase1ProgressLabel(state);
-        }
-        return String((state.teams || []).length);
+        return { name: "-", startedAt: null };
     }
 
     function renderHeader(state) {
         const stage = getStageKey(state);
         document.getElementById("summary-stage-pill").textContent = getStageLabel(state);
-        document.getElementById("summary-stat-label").textContent = getContextStatLabel(stage);
-        document.getElementById("summary-stat-value").textContent = state ? getContextStatValue(state, stage) : "-";
+
+        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { name: "-", startedAt: null };
+        document.getElementById("summary-round-name").textContent = roundInfo.name;
+
+        const matchDurationSeconds = state ? (state.config || {}).matchDurationSeconds : null;
+        let clockText = "--:--";
+        if (roundInfo.startedAt && Number.isFinite(Number(matchDurationSeconds))) {
+            const remaining = Number(matchDurationSeconds) * 1000 - (Date.now() - roundInfo.startedAt);
+            clockText = window.TournamentTimer.formatCountdown(remaining);
+        }
+        document.getElementById("summary-round-clock").textContent = clockText;
+
         const teamCount = state ? (state.teams || []).length : 0;
         const terrainCount = state ? (state.terrains || []).length : 0;
         document.getElementById("summary-meta").textContent = teamCount + " teams - " + terrainCount + " terrains";
