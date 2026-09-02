@@ -39,13 +39,6 @@
     text-align: center;
 }
 
-.summary-nav-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
-
 .summary-stat-label {
     margin: 0 0 0.3rem;
     font-size: 0.75rem;
@@ -70,21 +63,6 @@
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-}
-
-.summary-nav-link {
-    display: inline-block;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    color: #fff;
-    text-decoration: none;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.summary-nav-link:hover {
-    background: rgba(255, 255, 255, 0.12);
 }
 
 .summary-live-strip {
@@ -358,8 +336,7 @@
         padding: 1rem 0;
     }
 
-    .summary-stat-wrap,
-    .summary-nav-wrap {
+    .summary-stat-wrap {
         text-align: left;
     }
 }
