@@ -242,25 +242,44 @@
         }
 
         const currentRoundIndex = getCurrentPhase1RoundIndex(state);
-        const matches = allMatches.filter((match) => match.roundIndex === currentRoundIndex);
-        const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
-        const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
+        let maxRoundIndex = 0;
+        allMatches.forEach((match) => {
+            maxRoundIndex = Math.max(maxRoundIndex, match.roundIndex);
+        });
 
-        target.innerHTML =
-            '<h3 class="text-display">Round ' + (currentRoundIndex + 1) + '</h3>' +
-            '<div class="summary-round-grid">' +
-            matches.map((match) => {
-                const home = getTeamName(state, match.homeTeamId);
-                const away = getTeamName(state, match.awayTeamId);
-                return '' +
-                    '<article class="summary-match">' +
-                    '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
-                    renderMatchScoreLine(match) +
-                    renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
-                    '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
-                    '</article>';
-            }).join("") +
-            '</div>';
+        const roundBlocks = [];
+        for (let roundIndex = 0; roundIndex <= maxRoundIndex; roundIndex += 1) {
+            const matches = allMatches.filter((match) => match.roundIndex === roundIndex);
+            const isCompleted = matches.every((match) => match.status === "completed");
+            const isCurrent = !isCompleted && roundIndex === currentRoundIndex;
+            const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
+            const statusLabel = isCompleted ? "Completed" : (isCurrent ? "In progress" : "Upcoming");
+            const roundTimer = (state.phase1.roundTimers || {})[String(roundIndex)];
+            const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
+
+            roundBlocks.push('' +
+                '<section class="summary-round-block summary-round-block--' + statusKey + '">' +
+                '<div class="summary-round-block-head">' +
+                '<h3 class="text-display">Round ' + (roundIndex + 1) + '</h3>' +
+                '<span class="summary-round-status ' + statusKey + '">' + statusLabel + '</span>' +
+                '</div>' +
+                '<div class="summary-round-grid">' +
+                matches.map((match) => {
+                    const home = getTeamName(state, match.homeTeamId);
+                    const away = getTeamName(state, match.awayTeamId);
+                    return '' +
+                        '<article class="summary-match">' +
+                        '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
+                        renderMatchScoreLine(match) +
+                        renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
+                        '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+                        '</article>';
+                }).join("") +
+                '</div>' +
+                '</section>');
+        }
+
+        target.innerHTML = '<div class="summary-phase1-rounds">' + roundBlocks.join("") + '</div>';
     }
 
     function renderTeamsSetup(state) {
