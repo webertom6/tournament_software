@@ -16,13 +16,16 @@
                 phase1MatchesPerTeam: 3,
                 qualifiedCount: 4,
                 seedingPolicy: "ranking",
-                thirdPlaceMatch: false
+                thirdPlaceMatch: false,
+                matchDurationSeconds: 600,
+                pauseDurationSeconds: 180
             },
             teams: [],
             terrains: [],
             phase1: {
                 generated: false,
-                matches: []
+                matches: [],
+                roundTimers: {}
             },
             knockout: {
                 generated: false,
@@ -49,13 +52,16 @@
                 phase1MatchesPerTeam: Number.isFinite(raw.config && raw.config.phase1MatchesPerTeam) ? raw.config.phase1MatchesPerTeam : fallback.config.phase1MatchesPerTeam,
                 qualifiedCount: Number.isFinite(raw.config && raw.config.qualifiedCount) ? raw.config.qualifiedCount : fallback.config.qualifiedCount,
                 seedingPolicy: raw.config && (raw.config.seedingPolicy === "random" ? "random" : "ranking"),
-                thirdPlaceMatch: Boolean(raw.config && raw.config.thirdPlaceMatch)
+                thirdPlaceMatch: Boolean(raw.config && raw.config.thirdPlaceMatch),
+                matchDurationSeconds: Number.isFinite(raw.config && raw.config.matchDurationSeconds) ? raw.config.matchDurationSeconds : fallback.config.matchDurationSeconds,
+                pauseDurationSeconds: Number.isFinite(raw.config && raw.config.pauseDurationSeconds) ? raw.config.pauseDurationSeconds : fallback.config.pauseDurationSeconds
             },
             teams: Array.isArray(raw.teams) ? raw.teams.filter(Boolean) : [],
             terrains: Array.isArray(raw.terrains) ? raw.terrains.filter(Boolean) : [],
             phase1: raw.phase1 && typeof raw.phase1 === "object" ? {
                 generated: Boolean(raw.phase1.generated),
-                matches: Array.isArray(raw.phase1.matches) ? raw.phase1.matches.filter(Boolean) : []
+                matches: Array.isArray(raw.phase1.matches) ? raw.phase1.matches.filter(Boolean) : [],
+                roundTimers: raw.phase1.roundTimers && typeof raw.phase1.roundTimers === "object" ? raw.phase1.roundTimers : {}
             } : fallback.phase1,
             knockout: raw.knockout && typeof raw.knockout === "object" ? {
                 generated: Boolean(raw.knockout.generated),
