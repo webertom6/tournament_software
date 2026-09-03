@@ -43,22 +43,6 @@
         }, 'Added team "' + normalized + '"');
     }
 
-    function renameTeam(teamId, newName) {
-        const normalized = normalizeName(newName);
-        if (!normalized) {
-            throw new Error("Team name is required");
-        }
-
-        window.TournamentState.update((state) => {
-            assertCanEditSetup(state);
-            const team = findTeam(state, teamId);
-            if (!team) {
-                throw new Error("Team not found");
-            }
-            team.name = normalized;
-        }, 'Renamed team to "' + normalized + '"');
-    }
-
     function removeTeam(teamId) {
         window.TournamentState.update((state) => {
             assertCanEditSetup(state);
@@ -89,22 +73,6 @@
         }, 'Added terrain "' + normalized + '"');
     }
 
-    function renameTerrain(terrainId, newName) {
-        const normalized = normalizeName(newName);
-        if (!normalized) {
-            throw new Error("Terrain name is required");
-        }
-
-        window.TournamentState.update((state) => {
-            assertCanEditSetup(state);
-            const terrain = findTerrain(state, terrainId);
-            if (!terrain) {
-                throw new Error("Terrain not found");
-            }
-            terrain.name = normalized;
-        }, 'Renamed terrain to "' + normalized + '"');
-    }
-
     function removeTerrain(terrainId) {
         window.TournamentState.update((state) => {
             assertCanEditSetup(state);
@@ -118,6 +86,10 @@
 
     function updateConfig(rawConfig) {
         window.TournamentState.update((state) => {
+            if (state.phase1.generated) {
+                throw new Error("Cannot change config after phase 1 is generated. Reset phases to restart.");
+            }
+
             const parsed = {
                 POINT_VICTORY_PHASE1: Number(rawConfig.POINT_VICTORY_PHASE1),
                 POINT_DRAW_PHASE1: Number(rawConfig.POINT_DRAW_PHASE1),
@@ -125,7 +97,9 @@
                 phase1MatchesPerTeam: Number(rawConfig.phase1MatchesPerTeam),
                 qualifiedCount: Number(rawConfig.qualifiedCount),
                 seedingPolicy: rawConfig.seedingPolicy === "random" ? "random" : "ranking",
-                thirdPlaceMatch: Boolean(rawConfig.thirdPlaceMatch)
+                thirdPlaceMatch: Boolean(rawConfig.thirdPlaceMatch),
+                matchDurationSeconds: Number(rawConfig.matchDurationSeconds),
+                pauseDurationSeconds: Number(rawConfig.pauseDurationSeconds)
             };
 
             if (!Number.isFinite(parsed.POINT_VICTORY_PHASE1) || parsed.POINT_VICTORY_PHASE1 < 0) {
@@ -142,6 +116,12 @@
             }
             if (!Number.isFinite(parsed.qualifiedCount) || parsed.qualifiedCount < 2) {
                 throw new Error("Qualified count must be >= 2");
+            }
+            if (!Number.isFinite(parsed.matchDurationSeconds) || parsed.matchDurationSeconds < 1) {
+                throw new Error("Match duration must be >= 1 second");
+            }
+            if (!Number.isFinite(parsed.pauseDurationSeconds) || parsed.pauseDurationSeconds < 1) {
+                throw new Error("Pause duration must be >= 1 second");
             }
 
             state.config = parsed;
@@ -165,6 +145,7 @@
                 state.config.phase1MatchesPerTeam
             );
             state.phase1.generated = true;
+            state.phase1.roundTimers = {};
             clearKnockoutState(state);
         }, "Generated phase 1 schedule with configured matches per team");
     }
@@ -181,7 +162,32 @@
         return parsed;
     }
 
-    function applyPhase1Score(matchId, homeGoalsRaw, awayGoalsRaw) {
+    function getPhase1RoundStartedAt(state, roundIndex) {
+        const timer = state.phase1.roundTimers[String(roundIndex)];
+        return timer ? timer.startedAt : null;
+    }
+
+    function getRoundStartedAt(state, matchId) {
+        const phase1Match = findPhase1Match(state, matchId);
+        if (phase1Match) {
+            return getPhase1RoundStartedAt(state, phase1Match.roundIndex);
+        }
+        if (state.knockout.thirdPlace && state.knockout.thirdPlace.id === matchId) {
+            return state.knockout.thirdPlace.startedAt;
+        }
+        for (const round of state.knockout.rounds) {
+            if (round.matches.some((match) => match.id === matchId)) {
+                return round.startedAt;
+            }
+        }
+        return null;
+    }
+
+    function findAnyMatch(state, matchId) {
+        return findPhase1Match(state, matchId) || findKnockoutMatch(state, matchId);
+    }
+
+    function applyPhase1Score(matchId, homeTeamIdRaw, awayTeamIdRaw, homeGoalsRaw, awayGoalsRaw) {
         const homeGoals = parseGoal(homeGoalsRaw, "Home goals");
         const awayGoals = parseGoal(awayGoalsRaw, "Away goals");
 
@@ -190,9 +196,29 @@
             if (!match) {
                 throw new Error("Phase 1 match not found");
             }
+
+            const homeTeamId = homeTeamIdRaw === undefined ? match.homeTeamId : homeTeamIdRaw;
+            const awayTeamId = awayTeamIdRaw === undefined ? match.awayTeamId : awayTeamIdRaw;
+            if (!homeTeamId || !awayTeamId) {
+                throw new Error("Both teams must be assigned");
+            }
+            if (homeTeamId === awayTeamId) {
+                throw new Error("Home and away teams must be different");
+            }
+            if (!findTeam(state, homeTeamId) || !findTeam(state, awayTeamId)) {
+                throw new Error("Selected team not found");
+            }
+
+            match.homeTeamId = homeTeamId;
+            match.awayTeamId = awayTeamId;
             match.homeGoals = homeGoals;
             match.awayGoals = awayGoals;
             match.status = "completed";
+            match.finalElapsedMs = window.TournamentTimer.computeElapsedMs(
+                getPhase1RoundStartedAt(state, match.roundIndex),
+                match,
+                Date.now()
+            );
 
             if (state.knockout.generated) {
                 clearKnockoutState(state);
@@ -220,6 +246,7 @@
         window.TournamentState.update((state) => {
             state.phase1.generated = false;
             state.phase1.matches = [];
+            state.phase1.roundTimers = {};
             clearKnockoutState(state);
         }, "Reset phase 1 and knockout while preserving teams and terrains");
     }
@@ -228,6 +255,11 @@
         window.TournamentState.update((state) => {
             if (!state.phase1.generated) {
                 throw new Error("Generate phase 1 first");
+            }
+            const allCompleted = state.phase1.matches.length > 0 &&
+                state.phase1.matches.every((match) => match.status === "completed");
+            if (!allCompleted) {
+                throw new Error("All phase 1 matches must be completed before generating phase 2");
             }
             const standings = window.TournamentRules.buildStandings(state);
             if (standings.length < 2) {
@@ -257,7 +289,7 @@
         return null;
     }
 
-    function applyKnockoutScore(matchId, homeGoalsRaw, awayGoalsRaw) {
+    function applyKnockoutScore(matchId, homeTeamIdRaw, awayTeamIdRaw, homeGoalsRaw, awayGoalsRaw) {
         const homeGoals = parseGoal(homeGoalsRaw, "Home goals");
         const awayGoals = parseGoal(awayGoalsRaw, "Away goals");
         if (homeGoals === awayGoals) {
@@ -272,12 +304,29 @@
             if (!match) {
                 throw new Error("Knockout match not found");
             }
-            if (!match.homeTeamId || !match.awayTeamId) {
+
+            const homeTeamId = homeTeamIdRaw === undefined ? match.homeTeamId : homeTeamIdRaw;
+            const awayTeamId = awayTeamIdRaw === undefined ? match.awayTeamId : awayTeamIdRaw;
+            if (!homeTeamId || !awayTeamId) {
                 throw new Error("Match participants are not both defined");
             }
+            if (homeTeamId === awayTeamId) {
+                throw new Error("Home and away teams must be different");
+            }
+            if ((homeTeamId !== match.homeTeamId || awayTeamId !== match.awayTeamId) &&
+                (match.homeSourceMatchId || match.awaySourceMatchId)) {
+                throw new Error("Only first round matches can have their teams changed manually");
+            }
+            if (!findTeam(state, homeTeamId) || !findTeam(state, awayTeamId)) {
+                throw new Error("Selected team not found");
+            }
+
+            match.homeTeamId = homeTeamId;
+            match.awayTeamId = awayTeamId;
             match.homeGoals = homeGoals;
             match.awayGoals = awayGoals;
             match.status = "completed";
+            match.finalElapsedMs = window.TournamentTimer.computeElapsedMs(getRoundStartedAt(state, match.id), match, Date.now());
             window.TournamentBracket.recomputeKnockout(state);
             window.TournamentBracket.clearDownstreamFromMatch(state, match.id);
         }, "Updated knockout score");
@@ -294,6 +343,106 @@
             match.status = "scheduled";
             window.TournamentBracket.clearDownstreamFromMatch(state, match.id);
         }, "Reopened knockout match and cleared dependent rounds");
+    }
+
+    function startPhase1RoundTimer(roundIndex) {
+        window.TournamentState.update((state) => {
+            if (!state.phase1.generated) {
+                throw new Error("Generate phase 1 first");
+            }
+            const key = String(roundIndex);
+            if (state.phase1.roundTimers[key]) {
+                throw new Error("Round timer already started");
+            }
+            const hasRound = state.phase1.matches.some((match) => String(match.roundIndex) === key);
+            if (!hasRound) {
+                throw new Error("Round not found");
+            }
+            state.phase1.roundTimers[key] = { startedAt: Date.now() };
+        }, "Started phase 1 round timer");
+    }
+
+    function stopPhase1RoundTimer(roundIndex) {
+        window.TournamentState.update((state) => {
+            const key = String(roundIndex);
+            const timer = state.phase1.roundTimers[key];
+            if (!timer || !timer.startedAt) {
+                throw new Error("Round timer not started");
+            }
+            if (timer.stoppedAt) {
+                throw new Error("Round timer already stopped");
+            }
+            timer.stoppedAt = Date.now();
+        }, "Stopped phase 1 round timer");
+    }
+
+    function startKnockoutRoundTimer(roundKey) {
+        window.TournamentState.update((state) => {
+            if (!state.knockout.generated) {
+                throw new Error("Knockout not generated");
+            }
+            const target = roundKey === "thirdPlace"
+                ? state.knockout.thirdPlace
+                : state.knockout.rounds.find((round) => round.id === roundKey);
+            if (!target) {
+                throw new Error("Round not found");
+            }
+            if (target.startedAt) {
+                throw new Error("Round timer already started");
+            }
+            target.startedAt = Date.now();
+        }, "Started knockout round timer");
+    }
+
+    function stopKnockoutRoundTimer(roundKey) {
+        window.TournamentState.update((state) => {
+            if (!state.knockout.generated) {
+                throw new Error("Knockout not generated");
+            }
+            const target = roundKey === "thirdPlace"
+                ? state.knockout.thirdPlace
+                : state.knockout.rounds.find((round) => round.id === roundKey);
+            if (!target || !target.startedAt) {
+                throw new Error("Round timer not started");
+            }
+            if (target.stoppedAt) {
+                throw new Error("Round timer already stopped");
+            }
+            target.stoppedAt = Date.now();
+        }, "Stopped knockout round timer");
+    }
+
+    function pauseMatchTimer(matchId) {
+        window.TournamentState.update((state) => {
+            const match = findAnyMatch(state, matchId);
+            if (!match) {
+                throw new Error("Match not found");
+            }
+            if (!getRoundStartedAt(state, matchId)) {
+                throw new Error("Start the round timer before pausing a match");
+            }
+            if (match.pausedAt) {
+                throw new Error("Match timer is already paused");
+            }
+            if (match.status === "completed" || match.finalElapsedMs !== null) {
+                throw new Error("Match timer is already stopped");
+            }
+            match.pausedAt = Date.now();
+        }, "Paused match timer");
+    }
+
+    function resumeMatchTimer(matchId) {
+        window.TournamentState.update((state) => {
+            const match = findAnyMatch(state, matchId);
+            if (!match) {
+                throw new Error("Match not found");
+            }
+            if (!match.pausedAt) {
+                throw new Error("Match timer is not paused");
+            }
+            match.pausedTotalMs = (match.pausedTotalMs || 0) + (Date.now() - match.pausedAt);
+            match.pausedAt = null;
+        }, "Resumed match timer");
     }
 
     function exportStateToDownload() {
@@ -317,10 +466,8 @@
 
     window.TournamentActions = {
         addTeam: addTeam,
-        renameTeam: renameTeam,
         removeTeam: removeTeam,
         addTerrain: addTerrain,
-        renameTerrain: renameTerrain,
         removeTerrain: removeTerrain,
         updateConfig: updateConfig,
         generatePhase1: generatePhase1,
@@ -330,6 +477,12 @@
         startKnockout: startKnockout,
         applyKnockoutScore: applyKnockoutScore,
         reopenKnockoutMatch: reopenKnockoutMatch,
+        startPhase1RoundTimer: startPhase1RoundTimer,
+        startKnockoutRoundTimer: startKnockoutRoundTimer,
+        stopPhase1RoundTimer: stopPhase1RoundTimer,
+        stopKnockoutRoundTimer: stopKnockoutRoundTimer,
+        pauseMatchTimer: pauseMatchTimer,
+        resumeMatchTimer: resumeMatchTimer,
         exportStateToDownload: exportStateToDownload,
         importStateFromText: importStateFromText,
         resetAll: resetAll

@@ -75,6 +75,8 @@
                 id: uid("ko_round"),
                 roundIndex: roundIndex,
                 name: getRoundName(roundIndex, totalRounds),
+                startedAt: null,
+                stoppedAt: null,
                 matches: []
             };
 
@@ -92,7 +94,10 @@
                     nextMatchId: null,
                     nextSlot: null,
                     homeSourceMatchId: null,
-                    awaySourceMatchId: null
+                    awaySourceMatchId: null,
+                    pausedAt: null,
+                    pausedTotalMs: 0,
+                    finalElapsedMs: null
                 });
             }
 
@@ -137,13 +142,18 @@
                     roundIndex: rounds.length,
                     slotIndex: 0,
                     name: "Third place",
+                    startedAt: null,
+                    stoppedAt: null,
                     homeSourceMatchId: semiRound.matches[0].id,
                     awaySourceMatchId: semiRound.matches[1].id,
                     homeTeamId: null,
                     awayTeamId: null,
                     homeGoals: null,
                     awayGoals: null,
-                    status: "scheduled"
+                    status: "scheduled",
+                    pausedAt: null,
+                    pausedTotalMs: 0,
+                    finalElapsedMs: null
                 };
             }
         }
@@ -175,6 +185,10 @@
         match.homeGoals = null;
         match.awayGoals = null;
         match.status = "scheduled";
+        // a changed pairing invalidates any timing recorded for the old one
+        match.pausedAt = null;
+        match.pausedTotalMs = 0;
+        match.finalElapsedMs = null;
     }
 
     function autoCompleteBye(match) {
