@@ -35,7 +35,7 @@
 
     function renderMatchScoreLine(match) {
         if (match.status !== "completed") {
-            return '<p class="muted">Status: upcoming</p>';
+            return "";
         }
         const home = Number.isFinite(match.homeGoals) ? match.homeGoals : 0;
         const away = Number.isFinite(match.awayGoals) ? match.awayGoals : 0;
