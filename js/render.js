@@ -48,9 +48,12 @@
         try {
             const raw = localStorage.getItem(OPERATOR_UI_PREFS_KEY);
             const parsed = raw ? JSON.parse(raw) : {};
-            return { sections: (parsed.sections && typeof parsed.sections === "object") ? parsed.sections : {} };
+            return {
+                sections: (parsed.sections && typeof parsed.sections === "object") ? parsed.sections : {},
+                rounds: (parsed.rounds && typeof parsed.rounds === "object") ? parsed.rounds : {}
+            };
         } catch (error) {
-            return { sections: {} };
+            return { sections: {}, rounds: {} };
         }
     }
 
@@ -58,6 +61,17 @@
         const prefs = getOperatorUiPrefs();
         prefs.sections[sectionId] = isOpen;
         localStorage.setItem(OPERATOR_UI_PREFS_KEY, JSON.stringify(prefs));
+    }
+
+    function setRoundOverride(roundKey, isOpen) {
+        const prefs = getOperatorUiPrefs();
+        prefs.rounds[roundKey] = isOpen;
+        localStorage.setItem(OPERATOR_UI_PREFS_KEY, JSON.stringify(prefs));
+    }
+
+    function isRoundOpen(roundKey, defaultOpen) {
+        const override = getOperatorUiPrefs().rounds[roundKey];
+        return typeof override === "boolean" ? override : defaultOpen;
     }
 
     // default open/closed tracks whichever phase the operator is actively working on
@@ -278,6 +292,31 @@
         return Array.from(map.entries()).sort((a, b) => Number(a[0]) - Number(b[0]));
     }
 
+    // first round with an unfinished match is "current"; if every round is done, keep the last one open
+    function getCurrentPhase1RoundIndex(rounds) {
+        for (let i = 0; i < rounds.length; i += 1) {
+            if (rounds[i][1].some((match) => match.status !== "completed")) {
+                return Number(rounds[i][0]);
+            }
+        }
+        return rounds.length ? Number(rounds[rounds.length - 1][0]) : 0;
+    }
+
+    function getCurrentKnockoutRoundIndex(rounds) {
+        for (let i = 0; i < rounds.length; i += 1) {
+            const hasPlayable = rounds[i].matches.some((match) => match.homeTeamId && match.awayTeamId && match.status !== "completed");
+            if (hasPlayable) {
+                return i;
+            }
+        }
+        return Math.max(0, rounds.length - 1);
+    }
+
+    function renderRoundStatusPill(statusKey) {
+        const label = statusKey === "completed" ? "Completed" : (statusKey === "current" ? "In progress" : "Upcoming");
+        return '<span class="status-pill ' + statusKey + '">' + label + '</span>';
+    }
+
     function renderPhase1(state) {
         const summary = document.getElementById("phase1-summary");
         const target = document.getElementById("phase1-matches");
@@ -293,18 +332,28 @@
             '<p class="muted">Configured phase 1 matches per team: <strong>' + state.config.phase1MatchesPerTeam + "</strong></p>";
 
         const rounds = groupPhase1ByRound(state.phase1.matches);
-        target.innerHTML = '<div class="round-grid">' + rounds.map((entry) => {
+        const currentRoundIndex = getCurrentPhase1RoundIndex(rounds);
+        target.innerHTML = '<div class="round-stack">' + rounds.map((entry) => {
             const roundIndex = Number(entry[0]);
             const matches = entry[1];
             const roundTimer = state.phase1.roundTimers[String(roundIndex)] || null;
             const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
             const roundStoppedAt = roundTimer ? roundTimer.stoppedAt : null;
+            const isCompleted = matches.every((match) => match.status === "completed");
+            const isCurrent = !isCompleted && roundIndex === currentRoundIndex;
+            const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
+            const roundKey = "phase1:" + roundIndex;
+            const isOpen = isRoundOpen(roundKey, isCurrent);
             return '' +
-                '<div class="round-card">' +
-                '<div class="round-head">' +
+                '<details class="round-card round-card--' + statusKey + '"' + (isOpen ? " open" : "") + '>' +
+                '<summary class="round-summary" data-action="round-toggle" data-round-key="' + esc(roundKey) + '">' +
                 '<h3>Round ' + (roundIndex + 1) + '</h3>' +
+                renderRoundStatusPill(statusKey) +
+                '<span class="chevron" aria-hidden="true"></span>' +
+                '</summary>' +
+                '<div class="round-body">' +
                 renderRoundTimerControls(roundStartedAt, roundStoppedAt, "phase1-start-round", "phase1-stop-round", String(roundIndex)) +
-                '</div>' +
+                '<div class="match-row-scroller">' +
                 matches.map((match) => {
                     return '' +
                         '<div class="match-card">' +
@@ -326,7 +375,9 @@
                         '</div>' +
                         '</div>';
                 }).join("") +
-                '</div>';
+                '</div>' +
+                '</div>' +
+                '</details>';
         }).join("") + '</div>';
     }
 
@@ -382,13 +433,23 @@
 
         summary.innerHTML = '<p>Seeding policy: <strong>' + esc(state.config.seedingPolicy) + "</strong></p>";
 
-        roundsTarget.innerHTML = '<div class="round-grid">' + state.knockout.rounds.map((round) => {
+        const currentKnockoutRoundIndex = getCurrentKnockoutRoundIndex(state.knockout.rounds);
+        roundsTarget.innerHTML = '<div class="round-stack">' + state.knockout.rounds.map((round, roundIndex) => {
+            const isCompleted = round.matches.every((match) => match.status === "completed");
+            const isCurrent = !isCompleted && roundIndex === currentKnockoutRoundIndex;
+            const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
+            const roundKey = "knockout:" + round.id;
+            const isOpen = isRoundOpen(roundKey, isCurrent);
             return '' +
-                '<div class="round-card">' +
-                '<div class="round-head">' +
+                '<details class="round-card round-card--' + statusKey + '"' + (isOpen ? " open" : "") + '>' +
+                '<summary class="round-summary" data-action="round-toggle" data-round-key="' + esc(roundKey) + '">' +
                 '<h3>' + esc(round.name) + '</h3>' +
+                renderRoundStatusPill(statusKey) +
+                '<span class="chevron" aria-hidden="true"></span>' +
+                '</summary>' +
+                '<div class="round-body">' +
                 renderRoundTimerControls(round.startedAt, round.stoppedAt, "ko-start-round", "ko-stop-round", round.id) +
-                '</div>' +
+                '<div class="match-row-scroller">' +
                 round.matches.map((match) => {
                     const isFirstRound = !match.homeSourceMatchId && !match.awaySourceMatchId;
                     const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
@@ -416,7 +477,9 @@
                         '</div>' +
                         '</div>';
                 }).join("") +
-                '</div>';
+                '</div>' +
+                '</div>' +
+                '</details>';
         }).join("") + '</div>';
 
         if (state.knockout.thirdPlace) {
@@ -647,6 +710,14 @@
 
             const action = target.getAttribute("data-action");
             if (!action) {
+                return;
+            }
+
+            if (action === "round-toggle") {
+                const details = target.closest("details.round-card");
+                if (details) {
+                    setRoundOverride(target.getAttribute("data-round-key"), !details.open);
+                }
                 return;
             }
 
