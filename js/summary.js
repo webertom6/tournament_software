@@ -97,6 +97,15 @@
         return maxRound;
     }
 
+    function getPhase1TotalRounds(state) {
+        const matches = (state.phase1 && state.phase1.matches) || [];
+        let maxRound = 0;
+        matches.forEach((match) => {
+            maxRound = Math.max(maxRound, match.roundIndex);
+        });
+        return maxRound + 1;
+    }
+
     function getCurrentKnockoutRoundIndex(state) {
         const rounds = (state.knockout && state.knockout.rounds) || [];
         for (let roundIndex = 0; roundIndex < rounds.length; roundIndex += 1) {
@@ -110,6 +119,18 @@
         return Math.max(0, rounds.length - 1);
     }
 
+    // bracket.js only names the last 3 rounds (Quarterfinal/Semifinal/Final); earlier
+    // rounds keep a generic stored name, so derive "Round of N" from the round's own match count
+    function getKnockoutRoundLabel(round) {
+        if (!round) {
+            return "-";
+        }
+        if (round.name === "Quarterfinal" || round.name === "Semifinal" || round.name === "Final") {
+            return round.name;
+        }
+        return "Round of " + (round.matches.length * 2);
+    }
+
     // only one round is ever live at a time, so the header shows a single round-level
     // clock even though matches carry their own pause state for scheduling flexibility
     function getCurrentRoundInfo(state, stage) {
@@ -117,7 +138,7 @@
             const currentRoundIndex = getCurrentPhase1RoundIndex(state);
             const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
             return {
-                name: "Round " + (currentRoundIndex + 1),
+                label: "Round " + (currentRoundIndex + 1) + "/" + getPhase1TotalRounds(state),
                 startedAt: roundTimer ? roundTimer.startedAt : null
             };
         }
@@ -125,19 +146,19 @@
             const rounds = (state.knockout && state.knockout.rounds) || [];
             const round = rounds[getCurrentKnockoutRoundIndex(state)];
             return {
-                name: round ? round.name : "-",
+                label: getKnockoutRoundLabel(round),
                 startedAt: round ? round.startedAt : null
             };
         }
-        return { name: "-", startedAt: null };
+        return { label: "-", startedAt: null };
     }
 
     function renderHeader(state) {
         const stage = getStageKey(state);
         document.getElementById("summary-stage-pill").textContent = getStageLabel(state);
 
-        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { name: "-", startedAt: null };
-        document.getElementById("summary-round-name").textContent = roundInfo.name;
+        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { label: "-", startedAt: null };
+        document.getElementById("summary-clock-label").textContent = roundInfo.label;
 
         const matchDurationSeconds = state ? (state.config || {}).matchDurationSeconds : null;
         let clockText = "--:--";

@@ -47,13 +47,6 @@
     opacity: 0.8;
 }
 
-.summary-round-name {
-    margin: 0 0 0.15rem;
-    font-size: 1.4rem;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
 .summary-clock-value {
     margin: 0;
     font-size: 4rem;
@@ -472,10 +465,6 @@
 
     .summary-clock-label {
         font-size: 2rem;
-    }
-
-    .summary-round-name {
-        font-size: 1.8rem;
     }
 
     .summary-clock-value,
