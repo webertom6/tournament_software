@@ -41,6 +41,66 @@
             .replace(/'/g, "&#39;");
     }
 
+    const OPERATOR_UI_PREFS_KEY = "tournament_software_operator_ui_prefs_v1";
+    const COLLAPSIBLE_SECTION_IDS = ["setup", "phase1", "standings", "knockout", "audit"];
+
+    function getOperatorUiPrefs() {
+        try {
+            const raw = localStorage.getItem(OPERATOR_UI_PREFS_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return { sections: (parsed.sections && typeof parsed.sections === "object") ? parsed.sections : {} };
+        } catch (error) {
+            return { sections: {} };
+        }
+    }
+
+    function setSectionOverride(sectionId, isOpen) {
+        const prefs = getOperatorUiPrefs();
+        prefs.sections[sectionId] = isOpen;
+        localStorage.setItem(OPERATOR_UI_PREFS_KEY, JSON.stringify(prefs));
+    }
+
+    // default open/closed tracks whichever phase the operator is actively working on
+    function getDefaultSectionOpen(sectionId, state) {
+        const phase1Generated = Boolean(state && state.phase1 && state.phase1.generated);
+        const knockoutGenerated = Boolean(state && state.knockout && state.knockout.generated);
+        if (sectionId === "setup") {
+            return !phase1Generated;
+        }
+        if (sectionId === "phase1") {
+            return phase1Generated && !knockoutGenerated;
+        }
+        if (sectionId === "knockout") {
+            return knockoutGenerated;
+        }
+        return false;
+    }
+
+    function applyCollapsibleSections(state) {
+        const prefs = getOperatorUiPrefs();
+        COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
+            const details = document.getElementById("section-" + sectionId);
+            if (!details) {
+                return;
+            }
+            const override = prefs.sections[sectionId];
+            details.open = typeof override === "boolean" ? override : getDefaultSectionOpen(sectionId, state);
+        });
+    }
+
+    function bindCollapsibleSections() {
+        COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
+            const details = document.getElementById("section-" + sectionId);
+            if (!details) {
+                return;
+            }
+            const summary = details.querySelector(":scope > summary");
+            summary.addEventListener("click", () => {
+                setSectionOverride(sectionId, !details.open);
+            });
+        });
+    }
+
     function renderTeams(state) {
         const target = document.getElementById("teams-list");
         if (!state.teams.length) {
@@ -451,6 +511,7 @@
 
     function bindEvents() {
         updateSummaryControlButtons();
+        bindCollapsibleSections();
 
         document.getElementById("form-add-team").addEventListener("submit", (event) => {
             event.preventDefault();
@@ -660,6 +721,7 @@
         renderKnockout(state);
         renderAudit(state);
         applyStageGating(state);
+        applyCollapsibleSections(state);
     }
 
     window.TournamentRender = {

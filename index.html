@@ -26,16 +26,18 @@
     </header>
 
     <main class="app-main" id="app-root">
-        <section class="card" aria-labelledby="setup-title">
-            <div class="card-head">
+        <details class="card" id="section-setup" data-section="setup">
+            <summary class="card-summary">
                 <h2 id="setup-title">Setup</h2>
-                <div class="button-row">
-                    <button id="btn-toggle-summary-standings" type="button" class="secondary toggle-on">Standings: ON</button>
-                    <button id="btn-toggle-summary-scroll" type="button" class="secondary toggle-off">Auto-scroll: OFF</button>
-                    <button id="btn-export-state" type="button">Export state</button>
-                    <button id="btn-import-state" type="button">Import state</button>
-                    <button id="btn-reset-state" type="button" class="danger">Reset all</button>
-                </div>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
+            <div class="button-row">
+                <button id="btn-toggle-summary-standings" type="button" class="secondary toggle-on">Standings: ON</button>
+                <button id="btn-toggle-summary-scroll" type="button" class="secondary toggle-off">Auto-scroll: OFF</button>
+                <button id="btn-export-state" type="button">Export state</button>
+                <button id="btn-import-state" type="button">Import state</button>
+                <button id="btn-reset-state" type="button" class="danger">Reset all</button>
             </div>
 
             <div class="grid-2">
@@ -117,31 +119,52 @@
                 <button id="btn-start-knockout" type="button">Generate phase 2 knockout</button>
                 <button id="btn-reset-phases" type="button">Reset phases</button>
             </div>
-        </section>
+            </div>
+        </details>
 
-        <section class="card" aria-labelledby="phase1-title">
-            <h2 id="phase1-title">Phase 1 matches</h2>
+        <details class="card" id="section-phase1" data-section="phase1">
+            <summary class="card-summary">
+                <h2 id="phase1-title">Phase 1 matches</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div id="phase1-summary"></div>
             <div id="phase1-matches"></div>
-        </section>
+            </div>
+        </details>
 
-        <section class="card" aria-labelledby="standings-title">
-            <h2 id="standings-title">Standings</h2>
+        <details class="card" id="section-standings" data-section="standings">
+            <summary class="card-summary">
+                <h2 id="standings-title">Standings</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div id="phase1-standings"></div>
-        </section>
+            </div>
+        </details>
 
-        <section class="card" aria-labelledby="knockout-title">
-            <h2 id="knockout-title">Phase 2 knockout</h2>
+        <details class="card" id="section-knockout" data-section="knockout">
+            <summary class="card-summary">
+                <h2 id="knockout-title">Phase 2 knockout</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div id="knockout-summary"></div>
             <div id="knockout-rounds"></div>
             <div id="third-place-block"></div>
             <div id="champion-block"></div>
-        </section>
+            </div>
+        </details>
 
-        <section class="card" aria-labelledby="audit-title">
-            <h2 id="audit-title">Audit and correction history</h2>
+        <details class="card" id="section-audit" data-section="audit">
+            <summary class="card-summary">
+                <h2 id="audit-title">Audit and correction history</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div id="audit-log"></div>
-        </section>
+            </div>
+        </details>
     </main>
 
     <input id="import-state-input" type="file" accept="application/json" hidden>
