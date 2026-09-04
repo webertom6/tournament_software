@@ -314,7 +314,13 @@
             renderTerrainLine(state, match);
     }
 
-    const BRACKET_ROW_HEIGHT = 120;
+    // measured worst-case (pre-score, terrain chip shown) match-box height + a visible
+    // gap, per breakpoint - must stay taller than the actual rendered box or boxes
+    // touch/overlap in the densest round (row-doubling math itself is unaffected by
+    // this value, it only scales the container's total pixel height)
+    function getBracketRowHeight() {
+        return window.matchMedia("(min-width: 2560px)").matches ? 190 : 145;
+    }
 
     function renderBracket(state) {
         const target = document.getElementById("summary-bracket");
@@ -330,7 +336,7 @@
         }
 
         const leafCount = rounds[0].matches.length;
-        const bodyHeight = leafCount * BRACKET_ROW_HEIGHT;
+        const bodyHeight = leafCount * getBracketRowHeight();
         const currentRoundIndex = getCurrentKnockoutRoundIndex(state);
 
         // match k in round R is centered at (k + 0.5) * 2^R / leafCount, so a pair's
