@@ -42,25 +42,6 @@
         return '<p>Score: <strong class="text-mono">' + home + " - " + away + '</strong></p>';
     }
 
-    function renderMatchTimerLine(roundStartedAt, match, matchDurationSeconds, pauseDurationSeconds) {
-        const timer = window.TournamentTimer;
-        if (match.finalElapsedMs !== null && match.finalElapsedMs !== undefined) {
-            return '<p class="muted">Time: <span class="text-mono">' + esc(timer.formatDuration(match.finalElapsedMs)) + '</span> (final)</p>';
-        }
-        if (!roundStartedAt) {
-            return "";
-        }
-        const now = Date.now();
-        const elapsed = timer.computeElapsedMs(roundStartedAt, match, now);
-        const remaining = Number(matchDurationSeconds) * 1000 - elapsed;
-        if (match.pausedAt) {
-            const breakRemaining = timer.computeBreakRemainingMs(match, pauseDurationSeconds, now);
-            return '<p class="muted">Time left: <span class="text-mono">' + esc(timer.formatCountdown(remaining)) +
-                '</span> - Paused (break <span class="text-mono">' + esc(timer.formatDuration(breakRemaining)) + '</span>)</p>';
-        }
-        return '<p class="muted">Time left: <span class="text-mono">' + esc(timer.formatCountdown(remaining)) + '</span></p>';
-    }
-
     function getStageLabel(state) {
         if (!state) {
             return "No data";
@@ -254,9 +235,6 @@
             const isCurrent = !isCompleted && roundIndex === currentRoundIndex;
             const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
             const statusLabel = isCompleted ? "Completed" : (isCurrent ? "In progress" : "Upcoming");
-            const roundTimer = (state.phase1.roundTimers || {})[String(roundIndex)];
-            const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
-
             roundBlocks.push('' +
                 '<section class="summary-round-block summary-round-block--' + statusKey + '">' +
                 '<div class="summary-round-block-head">' +
@@ -271,7 +249,6 @@
                         '<article class="summary-match">' +
                         '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
                         renderMatchScoreLine(match) +
-                        renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
                         '</article>';
                 }).join("") +
