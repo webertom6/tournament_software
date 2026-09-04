@@ -311,7 +311,7 @@
         return '<p class="bracket-team">' + esc(home) + '</p>' +
             scoreLine +
             '<p class="bracket-team">' + esc(away) + '</p>' +
-            '<p class="muted">' + esc(getTerrainName(state, match.terrainId)) + '</p>';
+            renderTerrainLine(state, match);
     }
 
     const BRACKET_ROW_HEIGHT = 120;
