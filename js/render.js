@@ -20,12 +20,16 @@
         return next;
     }
 
+    function setToggleButtonState(button, isOn, label) {
+        button.textContent = label + ": " + (isOn ? "ON" : "OFF");
+        button.classList.toggle("toggle-on", isOn);
+        button.classList.toggle("toggle-off", !isOn);
+    }
+
     function updateSummaryControlButtons() {
         const prefs = getSummaryPrefs();
-        document.getElementById("btn-toggle-summary-standings").textContent =
-            prefs.standingsHidden ? "Show summary standings" : "Hide summary standings";
-        document.getElementById("btn-toggle-summary-scroll").textContent =
-            prefs.autoScrollActive ? "Stop summary auto-scroll" : "Start summary auto-scroll";
+        setToggleButtonState(document.getElementById("btn-toggle-summary-standings"), !prefs.standingsHidden, "Standings");
+        setToggleButtonState(document.getElementById("btn-toggle-summary-scroll"), prefs.autoScrollActive, "Auto-scroll");
     }
 
     function esc(value) {

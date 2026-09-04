@@ -93,6 +93,18 @@ button.secondary {
     color: var(--text);
 }
 
+button.secondary.toggle-on {
+    background: var(--ok);
+    border-color: var(--ok);
+    color: #fff;
+}
+
+button.secondary.toggle-off {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
+
 button.important {
     background: var(--red);
     border-color: var(--red);
