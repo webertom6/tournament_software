@@ -100,7 +100,6 @@
 .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
     padding: 1rem;
 }
 
@@ -113,7 +112,6 @@
 
 .panel {
     border: 1px solid var(--border);
-    border-radius: 10px;
     padding: 0.8rem;
 }
 
@@ -183,7 +181,6 @@
 
 .round-card {
     border: 1px solid var(--border);
-    border-radius: 10px;
     padding: 0.8rem;
     min-width: 0;
 }
@@ -210,7 +207,6 @@
 
 .match-card {
     border: 1px solid var(--border);
-    border-radius: 8px;
     padding: 0.65rem;
     margin-bottom: 0.6rem;
 }
@@ -294,7 +290,6 @@
 .champion-box {
     border: 1px solid #b9e8cb;
     background: #f0fff4;
-    border-radius: 10px;
     padding: 0.8rem;
     margin-top: 0.7rem;
 }
@@ -306,7 +301,6 @@
 
 .audit-item {
     border: 1px solid var(--border);
-    border-radius: 8px;
     padding: 0.55rem 0.65rem;
     background: #fff;
 }
