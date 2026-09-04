@@ -146,7 +146,7 @@
     function renderTerrains(state) {
         const target = document.getElementById("terrains-list");
         if (!state.terrains.length) {
-            target.innerHTML = '<p class="muted">No terrains yet, matches will still be generated</p>';
+            target.innerHTML = '<p class="muted">No terrains yet - a round can then hold any number of simultaneous matches; add terrains to cap each round at one match per terrain</p>';
             return;
         }
 
@@ -533,6 +533,20 @@
         }).join("") + '</div>';
     }
 
+    function renderOverview(state) {
+        const target = document.getElementById("config-overview");
+        const config = state.config;
+        const seedingLabel = config.seedingPolicy === "random" ? "Randomized" : "Ranking order";
+        target.innerHTML = '<div class="overview-grid">' +
+            '<div><span class="text-label">Win / draw / loss</span><strong>' + config.POINT_VICTORY_PHASE1 + " / " + config.POINT_DRAW_PHASE1 + " / " + config.POINT_LOSS_PHASE1 + '</strong></div>' +
+            '<div><span class="text-label">Phase 1 matches per team</span><strong>' + config.phase1MatchesPerTeam + '</strong></div>' +
+            '<div><span class="text-label">Qualified for knockout</span><strong>' + config.qualifiedCount + '</strong></div>' +
+            '<div><span class="text-label">Seeding</span><strong>' + esc(seedingLabel) + '</strong></div>' +
+            '<div><span class="text-label">Third place match</span><strong>' + (config.thirdPlaceMatch ? "Yes" : "No") + '</strong></div>' +
+            '<div><span class="text-label">Match / pause duration</span><strong>' + Math.round(config.matchDurationSeconds / 60) + " min / " + Math.round(config.pauseDurationSeconds / 60) + ' min</strong></div>' +
+            '</div>';
+    }
+
     function syncConfigForm(state) {
         document.getElementById("cfg-win").value = state.config.POINT_VICTORY_PHASE1;
         document.getElementById("cfg-draw").value = state.config.POINT_DRAW_PHASE1;
@@ -797,6 +811,7 @@
 
     function renderApp(state) {
         syncConfigForm(state);
+        renderOverview(state);
         renderTeams(state);
         renderTerrains(state);
         renderPhase1(state);

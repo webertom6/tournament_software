@@ -110,6 +110,27 @@
     margin-bottom: 0.8rem;
 }
 
+.overview-card {
+    margin-bottom: 0.8rem;
+}
+
+.overview-card h2 {
+    margin-bottom: 0.6rem;
+}
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.6rem 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.overview-grid strong {
+    display: block;
+    font-family: var(--font-mono);
+    margin-top: 0.15rem;
+}
+
 .card-summary {
     list-style: none;
     cursor: pointer;
