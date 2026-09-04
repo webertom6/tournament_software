@@ -88,6 +88,16 @@
         });
     }
 
+    function setAllSectionsOpen(isOpen) {
+        COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
+            setSectionOverride(sectionId, isOpen);
+            const details = document.getElementById("section-" + sectionId);
+            if (details) {
+                details.open = isOpen;
+            }
+        });
+    }
+
     function bindCollapsibleSections() {
         COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
             const details = document.getElementById("section-" + sectionId);
@@ -99,6 +109,8 @@
                 setSectionOverride(sectionId, !details.open);
             });
         });
+        document.getElementById("btn-expand-all").addEventListener("click", () => setAllSectionsOpen(true));
+        document.getElementById("btn-collapse-all").addEventListener("click", () => setAllSectionsOpen(false));
     }
 
     function renderTeams(state) {

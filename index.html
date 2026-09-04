@@ -26,20 +26,22 @@
     </header>
 
     <main class="app-main" id="app-root">
+        <div class="operator-toolbar">
+            <button id="btn-toggle-summary-standings" type="button" class="secondary toggle-on">Standings: ON</button>
+            <button id="btn-toggle-summary-scroll" type="button" class="secondary toggle-off">Auto-scroll: OFF</button>
+            <button id="btn-export-state" type="button">Export state</button>
+            <button id="btn-import-state" type="button">Import state</button>
+            <button id="btn-reset-state" type="button" class="danger">Reset all</button>
+            <button id="btn-expand-all" type="button" class="secondary">Expand all</button>
+            <button id="btn-collapse-all" type="button" class="secondary">Collapse all</button>
+        </div>
+
         <details class="card" id="section-setup" data-section="setup">
             <summary class="card-summary">
                 <h2 id="setup-title">Setup</h2>
                 <span class="chevron" aria-hidden="true"></span>
             </summary>
             <div class="card-body">
-            <div class="button-row">
-                <button id="btn-toggle-summary-standings" type="button" class="secondary toggle-on">Standings: ON</button>
-                <button id="btn-toggle-summary-scroll" type="button" class="secondary toggle-off">Auto-scroll: OFF</button>
-                <button id="btn-export-state" type="button">Export state</button>
-                <button id="btn-import-state" type="button">Import state</button>
-                <button id="btn-reset-state" type="button" class="danger">Reset all</button>
-            </div>
-
             <div class="grid-2">
                 <div class="panel">
                     <h3>Teams</h3>
