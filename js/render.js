@@ -90,6 +90,27 @@
         return false;
     }
 
+    const PROGRESS_STEPS = [
+        { key: "setup", label: "Setup", targetSection: "setup" },
+        { key: "phase1", label: "Group Matches", targetSection: "phase1" },
+        { key: "knockout", label: "Knockout", targetSection: "knockout" },
+        { key: "champion", label: "Champion", targetSection: "knockout" }
+    ];
+
+    function getCurrentWorkflowStep(state) {
+        if (state && state.knockout && state.knockout.championTeamId) {
+            return "champion";
+        }
+        if (state && state.knockout && state.knockout.generated) {
+            return "knockout";
+        }
+        if (state && state.phase1 && state.phase1.generated) {
+            return "phase1";
+        }
+        return "setup";
+    }
+
+
     function applyCollapsibleSections(state) {
         const prefs = getOperatorUiPrefs();
         COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
@@ -533,6 +554,15 @@
         }).join("") + '</div>';
     }
 
+    function renderProgressBar(state) {
+        const target = document.getElementById("progress-bar");
+        const currentStep = getCurrentWorkflowStep(state);
+        target.innerHTML = PROGRESS_STEPS.map((step) => {
+            const isCurrent = step.key === currentStep;
+            return '<button type="button" class="progress-step' + (isCurrent ? " progress-step--current" : "") + '" data-action="progress-jump" data-target-section="' + esc(step.targetSection) + '">' + esc(step.label) + '</button>';
+        }).join("");
+    }
+
     function renderOverview(state) {
         const target = document.getElementById("config-overview");
         const config = state.config;
@@ -735,6 +765,17 @@
                 return;
             }
 
+            if (action === "progress-jump") {
+                const sectionId = target.getAttribute("data-target-section");
+                setSectionOverride(sectionId, true);
+                const details = document.getElementById("section-" + sectionId);
+                if (details) {
+                    details.open = true;
+                    details.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+                return;
+            }
+
             try {
                 if (action === "team-remove") {
                     window.TournamentActions.removeTeam(target.getAttribute("data-team-id"));
@@ -811,6 +852,7 @@
 
     function renderApp(state) {
         syncConfigForm(state);
+        renderProgressBar(state);
         renderOverview(state);
         renderTeams(state);
         renderTerrains(state);
