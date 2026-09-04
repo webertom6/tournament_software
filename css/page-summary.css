@@ -227,6 +227,19 @@
     font-weight: 600;
 }
 
+.summary-terrain {
+    display: inline-block;
+    margin: 0.3rem 0 0;
+    padding: 0.2rem 0.6rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--brand);
+    border: 1px solid var(--brand);
+    background: #eaf1ff;
+}
+
 .summary-empty {
     color: var(--muted);
 }
@@ -489,6 +502,10 @@
 
     .summary-match .text-mono {
         font-size: 1.8rem;
+    }
+
+    .summary-terrain {
+        font-size: 2.1rem;
     }
 
     .summary-round-block-head h3 {

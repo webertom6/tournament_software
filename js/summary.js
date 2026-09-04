@@ -42,6 +42,14 @@
         return '<p>Score: <strong class="text-mono">' + home + " - " + away + '</strong></p>';
     }
 
+    // terrain only matters before the score is in - once saved, the score is the only thing worth a glance
+    function renderTerrainLine(state, match) {
+        if (match.status === "completed") {
+            return "";
+        }
+        return '<p class="summary-terrain"> Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>';
+    }
+
     function getStageLabel(state) {
         if (!state) {
             return "No data";
@@ -249,7 +257,7 @@
                         '<article class="summary-match">' +
                         '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
                         renderMatchScoreLine(match) +
-                        '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+                        renderTerrainLine(state, match) +
                         '</article>';
                 }).join("") +
                 '</div>' +
