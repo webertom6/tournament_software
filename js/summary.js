@@ -308,9 +308,9 @@
         const scoreLine = match.status === "completed" ?
             '<p class="text-mono">' + (Number.isFinite(match.homeGoals) ? match.homeGoals : 0) + " - " + (Number.isFinite(match.awayGoals) ? match.awayGoals : 0) + '</p>' :
             '<p class="muted">vs</p>';
-        return '<p class="bracket-team">' + esc(home) + '</p>' +
+        return '<p class="bracket-team" title="' + esc(home) + '">' + esc(home) + '</p>' +
             scoreLine +
-            '<p class="bracket-team">' + esc(away) + '</p>' +
+            '<p class="bracket-team" title="' + esc(away) + '">' + esc(away) + '</p>' +
             renderTerrainLine(state, match);
     }
 
