@@ -311,13 +311,48 @@
     font-weight: 600;
 }
 
+/* min-width:0 (not overflow:hidden) lets this grid item shrink to the track width instead
+   of growing to the bracket tree's content size; overflow:hidden here previously did the
+   same job but also broke position:sticky for .bracket-titles-sticky further down */
 .summary-card--bracket {
-    overflow: hidden;
+    min-width: 0;
 }
 
 .bracket-scroll {
     overflow-x: auto;
     padding-bottom: 0.5rem;
+}
+
+/* sits outside .bracket-scroll so it can stick to the viewport - position:sticky breaks
+   once nested inside an overflow-x:auto ancestor, so titles live in their own row instead
+   and are kept in horizontal sync with the columns below via JS scroll mirroring */
+.bracket-titles-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    overflow: hidden;
+    background: #00399c;
+    color: #fff;
+}
+
+.bracket-titles-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 2.5rem;
+    padding: 0.5rem 0.5rem 0;
+    background: #00399c;
+    color: #fff;
+}
+
+.bracket-title-col {
+    min-width: 200px;
+    flex: none;
+    text-align: center;
+    padding: 0.3rem 0;
+    font-size: 1rem;
+
+    border-right: 1px solid #e7e8ea;
+    border-left: 1px solid #e7e8ea
 }
 
 .bracket-tree {
@@ -331,12 +366,6 @@
     display: flex;
     flex-direction: column;
     min-width: 200px;
-}
-
-.bracket-round-title {
-    text-align: center;
-    margin: 0 0 0.5rem;
-    font-size: 1rem;
 }
 
 .bracket-round--current .bracket-match {
@@ -521,7 +550,7 @@
         font-size: 1.6rem;
     }
 
-    .bracket-round-title {
+    .bracket-title-col {
         font-size: 1.6rem;
     }
 

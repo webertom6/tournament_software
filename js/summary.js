@@ -365,17 +365,22 @@
             }
 
             return '<div class="bracket-round' + (isCurrent ? " bracket-round--current" : "") + '" data-round-index="' + roundIndex + '">' +
-                '<h3 class="bracket-round-title text-display">' + esc(round.name) + '</h3>' +
                 '<div class="bracket-round-body" style="height:' + bodyHeight + 'px">' +
                 matchesHtml + connectorsHtml +
                 '</div>' +
                 '</div>';
         });
 
+        // titles live in their own row, outside the horizontally-scrolling container, so
+        // they can be position:sticky to the viewport (sticky breaks once nested inside an
+        // overflow-x:auto ancestor) - kept in horizontal sync with the columns below via scroll mirroring
+        const titleColumns = rounds.map((round) => '<div class="bracket-title-col text-display">' + esc(round.name) + '</div>');
+
         let championHtml = "";
+        let championTitleHtml = "";
         if (state.knockout.championTeamId) {
+            championTitleHtml = '<div class="bracket-title-col text-display">Champion</div>';
             championHtml = '<div class="bracket-round bracket-champion-col">' +
-                '<h3 class="bracket-round-title text-display">Champion</h3>' +
                 '<div class="bracket-round-body" style="height:' + bodyHeight + 'px">' +
                 '<div class="bracket-champion text-display">' + esc(getTeamName(state, state.knockout.championTeamId)) + '</div>' +
                 '</div>' +
@@ -391,9 +396,20 @@
                 '</div>';
         }
 
-        target.innerHTML = '<div class="bracket-scroll"><div class="bracket-tree">' +
+        target.innerHTML =
+            '<div class="bracket-titles-sticky"><div class="bracket-titles-inner" id="bracket-titles-inner">' +
+            titleColumns.join("") + championTitleHtml +
+            '</div></div>' +
+            '<div class="bracket-scroll" id="bracket-scroll">' +
+            '<div class="bracket-tree">' +
             roundColumns.join("") + championHtml +
             '</div></div>' + thirdPlaceHtml;
+
+        const scrollEl = document.getElementById("bracket-scroll");
+        const titlesInner = document.getElementById("bracket-titles-inner");
+        scrollEl.addEventListener("scroll", () => {
+            titlesInner.style.transform = "translateX(" + (-scrollEl.scrollLeft) + "px)";
+        });
 
         if (lastScrolledKnockoutRound !== currentRoundIndex) {
             lastScrolledKnockoutRound = currentRoundIndex;
