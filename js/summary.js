@@ -439,11 +439,23 @@
             titlesInner.style.transform = "translateX(" + (-scrollEl.scrollLeft) + "px)";
         });
 
-        if (lastScrolledKnockoutRound !== currentRoundIndex) {
-            lastScrolledKnockoutRound = currentRoundIndex;
-            const columnEl = target.querySelector('.bracket-round[data-round-index="' + currentRoundIndex + '"]');
-            if (columnEl) {
-                columnEl.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+        const isNewCurrentRound = lastScrolledKnockoutRound !== currentRoundIndex;
+        lastScrolledKnockoutRound = currentRoundIndex;
+        const columnEl = target.querySelector('.bracket-round[data-round-index="' + currentRoundIndex + '"]');
+        if (columnEl) {
+            // the whole bracket is rebuilt on every 1s re-render (fresh scrollLeft=0 node each
+            // time), so the scroll position must be re-applied every tick, not just on round change
+            const maxScrollLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+            // offsetLeft is relative to the nearest POSITIONED ancestor, which here is nothing
+            // closer than <body> (neither .bracket-scroll nor .bracket-tree are positioned), so
+            // it's the wrong reference frame and way overshoots; measure via bounding rects
+            // relative to the scroll container itself instead
+            const columnOffset = columnEl.getBoundingClientRect().left - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
+            const desiredScrollLeft = Math.min(Math.max(0, columnOffset), maxScrollLeft);
+            if (isNewCurrentRound) {
+                scrollEl.scrollTo({ left: desiredScrollLeft, behavior: "smooth" });
+            } else {
+                scrollEl.scrollLeft = desiredScrollLeft;
             }
         }
     }
