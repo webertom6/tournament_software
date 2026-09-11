@@ -18,7 +18,7 @@
             </div>
             <div class="summary-clock-wrap">
                 <p id="summary-clock-label" class="summary-clock-label text-display">Round</p>
-                <p id="summary-round-clock" class="summary-clock-value text-mono">--:--</p>
+                <p id="summary-round-clock" class="summary-clock-value text-mono js-round-clock">--:--</p>
             </div>
             <div class="summary-clock-wrap">
                 <p class="summary-clock-label text-display">Stage</p>
@@ -58,6 +58,12 @@
             <div id="summary-bracket"></div>
         </section>
     </main>
+
+    <footer class="summary-footer">
+        <img class="summary-footer-qr" src="./assets/qr-repo.png" alt="scan to open the project repository">
+        <span class="summary-footer-credit text-mono">github.com/webertom6/tournament_software</span>
+        <span class="summary-footer-remaining text-mono">Round: <strong class="js-round-clock">--:--</strong></span>
+    </footer>
 
     <script src="./js/rules.js"></script>
     <script src="./js/bracket.js"></script>

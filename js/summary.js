@@ -125,10 +125,10 @@
         if (!round) {
             return "-";
         }
-        if (round.name === "Quarterfinal" || round.name === "Semifinal" || round.name === "Final") {
+        if (round.name === "QUARTERFINAL" || round.name === "SEMIFINAL" || round.name === "FINAL") {
             return round.name;
         }
-        return "Round of " + (round.matches.length * 2);
+        return "ROUND OF " + (round.matches.length * 2);
     }
 
     // only one round is ever live at a time, so the header shows a single round-level
@@ -166,7 +166,9 @@
             const remaining = Number(matchDurationSeconds) * 1000 - (Date.now() - roundInfo.startedAt);
             clockText = window.TournamentTimer.formatCountdown(remaining);
         }
-        document.getElementById("summary-round-clock").textContent = clockText;
+        document.querySelectorAll(".js-round-clock").forEach(function (el) {
+            el.textContent = clockText;
+        });
 
         const teamCount = state ? (state.teams || []).length : 0;
         const terrainCount = state ? (state.terrains || []).length : 0;
