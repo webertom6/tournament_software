@@ -322,6 +322,40 @@
         return window.matchMedia("(min-width: 2560px)").matches ? 190 : 145;
     }
 
+    // sized so every bracket-match column fits the longest registered team name without
+    // truncating - measured via canvas instead of the DOM so it doesn't depend on layout
+    let bracketMeasureCanvas = null;
+    function measureLongestTeamNameWidth(state) {
+        if (!bracketMeasureCanvas) {
+            bracketMeasureCanvas = document.createElement("canvas");
+        }
+        const ctx = bracketMeasureCanvas.getContext("2d");
+        ctx.font = "600 1.05rem Barlow, system-ui, sans-serif";
+        let max = 0;
+        (state.teams || []).forEach((team) => {
+            const width = ctx.measureText(team.name || "").width;
+            if (width > max) {
+                max = width;
+            }
+        });
+        return max;
+    }
+
+    function getBracketColumnWidth(state) {
+        const MATCH_CARD_PADDING = 22; // .bracket-match padding, both sides
+        const MIN_WIDTH = 200;
+        return Math.max(MIN_WIDTH, Math.ceil(measureLongestTeamNameWidth(state)) + MATCH_CARD_PADDING);
+    }
+
+    function renderChampion(state) {
+        const target = document.getElementById("summary-champion");
+        if (state && state.knockout && state.knockout.championTeamId) {
+            target.innerHTML = '<div class="bracket-champion text-display">Champion: ' + esc(getTeamName(state, state.knockout.championTeamId)) + '</div>';
+        } else {
+            target.innerHTML = "";
+        }
+    }
+
     function renderBracket(state) {
         const target = document.getElementById("summary-bracket");
         if (!state || !state.knockout || !state.knockout.generated) {
@@ -338,6 +372,9 @@
         const leafCount = rounds[0].matches.length;
         const bodyHeight = leafCount * getBracketRowHeight();
         const currentRoundIndex = getCurrentKnockoutRoundIndex(state);
+        const columnWidth = getBracketColumnWidth(state);
+        const TREE_GAP = 40; // px, matches .bracket-tree's 2.5rem gap
+        const titleColumnWidth = columnWidth + TREE_GAP;
 
         // match k in round R is centered at (k + 0.5) * 2^R / leafCount, so a pair's
         // midpoint always lands exactly on the next round's slot - standard bracket row-doubling math
@@ -364,7 +401,7 @@
                 }
             }
 
-            return '<div class="bracket-round' + (isCurrent ? " bracket-round--current" : "") + '" data-round-index="' + roundIndex + '">' +
+            return '<div class="bracket-round' + (isCurrent ? " bracket-round--current" : "") + '" data-round-index="' + roundIndex + '" style="width:' + columnWidth + 'px">' +
                 '<div class="bracket-round-body" style="height:' + bodyHeight + 'px">' +
                 matchesHtml + connectorsHtml +
                 '</div>' +
@@ -374,18 +411,7 @@
         // titles live in their own row, outside the horizontally-scrolling container, so
         // they can be position:sticky to the viewport (sticky breaks once nested inside an
         // overflow-x:auto ancestor) - kept in horizontal sync with the columns below via scroll mirroring
-        const titleColumns = rounds.map((round) => '<div class="bracket-title-col text-display">' + esc(round.name) + '</div>');
-
-        let championHtml = "";
-        let championTitleHtml = "";
-        if (state.knockout.championTeamId) {
-            championTitleHtml = '<div class="bracket-title-col text-display">Champion</div>';
-            championHtml = '<div class="bracket-round bracket-champion-col">' +
-                '<div class="bracket-round-body" style="height:' + bodyHeight + 'px">' +
-                '<div class="bracket-champion text-display">' + esc(getTeamName(state, state.knockout.championTeamId)) + '</div>' +
-                '</div>' +
-                '</div>';
-        }
+        const titleColumns = rounds.map((round) => '<div class="bracket-title-col text-display" style="width:' + titleColumnWidth + 'px">' + esc(round.name) + '</div>');
 
         let thirdPlaceHtml = "";
         const thirdPlace = state.knockout.thirdPlace;
@@ -398,11 +424,11 @@
 
         target.innerHTML =
             '<div class="bracket-titles-sticky"><div class="bracket-titles-inner" id="bracket-titles-inner">' +
-            titleColumns.join("") + championTitleHtml +
+            titleColumns.join("") +
             '</div></div>' +
             '<div class="bracket-scroll" id="bracket-scroll">' +
             '<div class="bracket-tree">' +
-            roundColumns.join("") + championHtml +
+            roundColumns.join("") +
             '</div></div>' + thirdPlaceHtml;
 
         const scrollEl = document.getElementById("bracket-scroll");
@@ -510,6 +536,7 @@
             renderStandings(state);
             renderPhase1(state);
         } else if (stage === "knockout") {
+            renderChampion(state);
             renderBracket(state);
         }
         const timestamp = new Date().toLocaleString();

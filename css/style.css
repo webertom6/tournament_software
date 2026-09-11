@@ -127,6 +127,13 @@ button.timer-action {
     color: var(--warn);
 }
 
+/* keep the pause/resume row the same height regardless of which button (or none) is shown */
+.match-timer button {
+    min-height: 0;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.7rem;
+}
+
 button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -168,6 +175,10 @@ td {
     padding: 0.5rem;
     text-align: left;
     vertical-align: middle;
+}
+
+tbody tr:hover {
+    background: #eef1f6;
 }
 
 th {

@@ -319,6 +319,8 @@
 }
 
 .bracket-scroll {
+    display: flex;
+    justify-content: safe center;
     overflow-x: auto;
     padding-bottom: 0.5rem;
 }
@@ -330,6 +332,8 @@
     position: sticky;
     top: 0;
     z-index: 6;
+    display: flex;
+    justify-content: safe center;
     overflow: hidden;
     background: #00399c;
     color: #fff;
@@ -344,11 +348,11 @@
     color: #fff;
 }
 
-/* width matches one round-column's full period (200px content + the .bracket-tree's
-   2.5rem gap) so touching title-cols line up with their match column below and their
-   shared edge reads as a single divider instead of two borders with a gap between */
+/* width is set inline per-render (js/summary.js) to match one round-column's full
+   period (longest team name + the .bracket-tree's 2.5rem gap), so touching title-cols
+   line up with their match column below and their shared edge reads as a single
+   divider instead of two borders with a gap between; min-width is just a floor */
 .bracket-title-col {
-    width: 240px;
     min-width: 240px;
     box-sizing: border-box;
     flex: none;
@@ -359,7 +363,7 @@
 }
 
 .bracket-title-col:first-child {
-    border-right: 1px solid #e7e8ea;
+    border-left: 1px solid #e7e8ea;
 }
 
 .bracket-tree {
@@ -369,6 +373,8 @@
     padding: 0.5rem 0.5rem 1rem;
 }
 
+/* width is set inline per-render (js/summary.js), sized to the longest registered
+   team name so .bracket-team never needs to truncate; min-width is just a floor */
 .bracket-round {
     display: flex;
     flex-direction: column;
@@ -449,23 +455,14 @@
     font-size: 1rem;
 }
 
-.bracket-champion-col {
-    justify-content: center;
-}
-
-.bracket-champion-col .bracket-round-body {
-    display: flex;
-    align-items: center;
-}
-
 .bracket-champion {
     border: 2px solid var(--purple);
     color: var(--purple);
     padding: 0.8rem 1rem;
+    margin-bottom: 0.8rem;
     text-align: center;
     font-size: 1.3rem;
     font-weight: 700;
-    width: 100%;
 }
 
 .bracket-third-place {
