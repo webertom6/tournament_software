@@ -333,6 +333,16 @@
         return Math.max(0, rounds.length - 1);
     }
 
+    // bracket.js only names the last 3 rounds (Quarterfinal/Semifinal/Final); earlier
+    // rounds keep a generic stored name, so derive "Round of N" from the round's own match count
+    // (mirrors js/summary.js's getKnockoutRoundLabel so both pages label rounds the same way)
+    function getKnockoutRoundLabel(round) {
+        if (round.name === "Quarterfinal" || round.name === "Semifinal" || round.name === "Final") {
+            return round.name;
+        }
+        return "Round of " + (round.matches.length * 2);
+    }
+
     function renderRoundStatusPill(statusKey) {
         const label = statusKey === "completed" ? "Completed" : (statusKey === "current" ? "In progress" : "Upcoming");
         return '<span class="status-pill ' + statusKey + '">' + label + '</span>';
@@ -464,7 +474,7 @@
             return '' +
                 '<details class="round-card round-card--' + statusKey + '"' + (isOpen ? " open" : "") + '>' +
                 '<summary class="round-summary" data-action="round-toggle" data-round-key="' + esc(roundKey) + '">' +
-                '<h3>' + esc(round.name) + '</h3>' +
+                '<h3>' + esc(getKnockoutRoundLabel(round)) + '</h3>' +
                 renderRoundStatusPill(statusKey) +
                 '<span class="chevron" aria-hidden="true"></span>' +
                 '</summary>' +

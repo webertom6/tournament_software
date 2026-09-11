@@ -411,7 +411,7 @@
         // titles live in their own row, outside the horizontally-scrolling container, so
         // they can be position:sticky to the viewport (sticky breaks once nested inside an
         // overflow-x:auto ancestor) - kept in horizontal sync with the columns below via scroll mirroring
-        const titleColumns = rounds.map((round) => '<div class="bracket-title-col text-display" style="width:' + titleColumnWidth + 'px">' + esc(round.name) + '</div>');
+        const titleColumns = rounds.map((round) => '<div class="bracket-title-col text-display" style="width:' + titleColumnWidth + 'px">' + esc(getKnockoutRoundLabel(round)) + '</div>');
 
         let thirdPlaceHtml = "";
         const thirdPlace = state.knockout.thirdPlace;
