@@ -417,6 +417,25 @@ details[open] > summary .chevron {
     font-size: 0.85rem;
 }
 
+.match-teams-static {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-bottom: 0.5rem;
+}
+
+.match-teams-static .team-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.match-teams-static .vs-label {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-right: 0.3rem;
+}
+
 #phase1-standings {
     overflow-x: auto;
 }

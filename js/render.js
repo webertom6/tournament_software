@@ -195,6 +195,14 @@
         return '<select data-role="' + role + '" data-match-id="' + esc(matchId) + '" aria-label="' + role + '">' + options.join("") + '</select>';
     }
 
+    function renderMatchTeamsStatic(home, away) {
+        return '' +
+            '<div class="match-teams-static">' +
+            '<span class="team-line" title="' + esc(home) + '">' + esc(home) + '</span>' +
+            '<span class="team-line" title="' + esc(away) + '"><span class="vs-label">vs</span> ' + esc(away) + '</span>' +
+            '</div>';
+    }
+
     function renderRoundTimerControls(startedAt, stoppedAt, startAction, stopAction, roundKey) {
         if (!startedAt) {
             return '<div class="round-timer-controls">' +
@@ -491,7 +499,7 @@
                         '<span class="vs-label">vs</span>' +
                         buildTeamSelect(state, "ko-away-team", match.id, match.awayTeamId, match.homeTeamId, true) +
                         '</div>' :
-                        '<div class="match-head"><span>' + esc(home) + " vs " + esc(away) + '</span></div>';
+                        renderMatchTeamsStatic(home, away);
                     return '' +
                         '<div class="match-card">' +
                         '<div class="match-head">' +
@@ -525,9 +533,9 @@
                 '</div>' +
                 '<div class="match-card">' +
                 '<div class="match-head">' +
-                '<span>' + esc(home) + " vs " + esc(away) + '</span>' +
                 '<span class="status-pill ' + esc(tp.status) + '">' + esc(tp.status) + '</span>' +
                 '</div>' +
+                renderMatchTeamsStatic(home, away) +
                 '<p class="muted">Terrain: ' + esc(getTerrainName(state, tp.terrainId)) + '</p>' +
                 renderMatchTimerBlock(tp.startedAt, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                 '<div class="match-row">' +
