@@ -125,10 +125,10 @@
         if (!round) {
             return "-";
         }
-        if (round.name === "QUARTERFINAL" || round.name === "SEMIFINAL" || round.name === "FINAL") {
+        if (round.name === "Quarterfinal" || round.name === "Semifinal" || round.name === "Final") {
             return round.name;
         }
-        return "ROUND OF " + (round.matches.length * 2);
+        return "Round of " + (round.matches.length * 2);
     }
 
     // only one round is ever live at a time, so the header shows a single round-level
