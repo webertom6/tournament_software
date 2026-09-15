@@ -7,84 +7,70 @@
     width: min(1800px, calc(100% - 3rem));
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr auto;
-    gap: 1rem;
+    grid-template-columns: 1.1fr 2fr 1fr;
+    gap: 1.2rem;
     align-items: center;
-    padding: 1.2rem 0;
+    padding: 1.4rem 0;
 }
 
 .summary-brand-small {
     margin: 0 0 0.2rem;
-    font-size: 0.85rem;
-    letter-spacing: 0.28em;
+    font-size: 0.875rem;
+    letter-spacing: 0.32em;
     text-transform: uppercase;
-    opacity: 0.75;
+    opacity: 0.8;
 }
 
 .summary-brand-title {
-    margin: 0;
-    font-size: 2.4rem;
+    margin: 0.25rem 0 0;
+    font-size: 3.5rem;
     font-weight: 800;
-    line-height: 1;
+    line-height: 0.95;
     text-transform: uppercase;
 }
 
 .summary-brand-meta {
     margin: 0.4rem 0 0;
-    font-size: 0.95rem;
-    opacity: 0.85;
+    font-size: 1.25rem;
+    opacity: 0.88;
 }
 
-.summary-stat-wrap {
+.summary-clock-wrap {
     text-align: center;
 }
 
-.summary-nav-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
-
-.summary-stat-label {
-    margin: 0 0 0.3rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.2em;
+.summary-clock-label {
+    margin: 0 0 0.25rem;
+    font-size: 1.625rem;
+    letter-spacing: 0.3em;
     text-transform: uppercase;
-    opacity: 0.75;
+    opacity: 0.8;
 }
 
-.summary-stat-value {
-    margin: 0;
-    font-size: 1.6rem;
+.summary-round-name {
+    margin: 0 0 0.15rem;
+    font-size: 1.4rem;
     font-weight: 700;
+    text-transform: uppercase;
+}
+
+.summary-clock-value {
+    margin: 0;
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 0.95;
 }
 
 .summary-stage-pill {
     display: inline-block;
     margin: 0;
-    padding: 0.2rem 0.6rem;
-    background: rgba(255, 255, 255, 0.12);
+    padding: 0.25rem 0.65rem;
+    background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.35);
-    font-size: 1rem;
+    font-size: 2rem;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-}
-
-.summary-nav-link {
-    display: inline-block;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    color: #fff;
-    text-decoration: none;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.summary-nav-link:hover {
-    background: rgba(255, 255, 255, 0.12);
 }
 
 .summary-live-strip {
@@ -104,8 +90,8 @@
 .summary-live-left,
 .summary-live-right {
     margin: 0;
-    font-size: 0.85rem;
-    letter-spacing: 0.12em;
+    font-size: 1.5rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
 }
 
@@ -126,6 +112,91 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 0.8rem;
+}
+
+.summary-phase1-rounds {
+    display: grid;
+    gap: 1.2rem;
+}
+
+.summary-round-block {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0.9rem 1rem 1.1rem;
+}
+
+.summary-round-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.7rem;
+}
+
+.summary-round-block-head h3 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.summary-round-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+}
+
+.summary-round-status.completed {
+    color: var(--ok);
+    border-color: #b9e8cb;
+    background: #f0fff4;
+}
+
+.summary-round-status.current {
+    color: #fff;
+    border-color: var(--brand);
+    background: var(--brand);
+}
+
+.summary-round-status.upcoming {
+    color: var(--muted);
+    border-color: var(--border);
+    background: #f5f7fa;
+}
+
+/* current round gets the same brand-blue halo used for the active bracket round, so the
+   two views read as one consistent "you are here" signal across the whole summary page */
+.summary-round-block--current {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(0, 94, 255, 0.15);
+}
+
+.summary-round-block--current .summary-round-block-head h3 {
+    color: var(--brand);
+}
+
+.summary-round-block--completed {
+    border-color: #cdeedb;
+}
+
+.summary-round-block--completed .summary-match {
+    background: #fbfffc;
+    border-color: #d9f0e2;
+}
+
+.summary-round-block--upcoming {
+    background: #f9fafc;
+}
+
+.summary-round-block--upcoming .summary-round-block-head h3 {
+    color: var(--muted);
+}
+
+.summary-round-block--upcoming .summary-match {
+    background: #f9fafc;
 }
 
 .summary-match {
@@ -182,13 +253,17 @@
 
 .summary-phase1-layout {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
     align-items: start;
 }
 
-.summary-phase1-layout.standings-hidden {
-    grid-template-columns: 1fr;
+.summary-matches-card {
+    display: none;
+}
+
+.summary-phase1-layout.standings-hidden .summary-matches-card {
+    display: block;
 }
 
 .summary-phase1-layout.standings-hidden .summary-standings-card {
@@ -287,11 +362,20 @@
 .bracket-connector {
     position: absolute;
     left: 100%;
-    width: 2.5rem;
+    width: 1.5rem;
     box-sizing: border-box;
     border-top: 2px solid var(--border);
     border-bottom: 2px solid var(--border);
     border-right: 2px solid var(--border);
+}
+
+/* short horizontal tick from the connector's vertical bar into the next round's match */
+.bracket-connector-tick {
+    position: absolute;
+    left: calc(100% + 1.5rem);
+    width: 1rem;
+    border-top: 2px solid var(--border);
+    transform: translateY(-50%);
 }
 
 .bracket-team {
@@ -345,13 +429,18 @@
         padding: 1rem 0;
     }
 
-    .summary-stat-wrap,
-    .summary-nav-wrap {
+    .summary-clock-wrap {
         text-align: left;
     }
 
-    .summary-phase1-layout {
-        grid-template-columns: 1fr;
+    .summary-live-inner {
+        flex-wrap: wrap;
+        gap: 0.2rem 0.6rem;
+    }
+
+    .summary-live-left,
+    .summary-live-right {
+        font-size: 1rem;
     }
 }
 
@@ -368,13 +457,17 @@
         font-size: 1.8rem;
     }
 
-    .summary-stat-label {
-        font-size: 1.4rem;
+    .summary-clock-label {
+        font-size: 2rem;
     }
 
-    .summary-stat-value,
+    .summary-round-name {
+        font-size: 1.8rem;
+    }
+
+    .summary-clock-value,
     .summary-stage-pill {
-        font-size: 3rem;
+        font-size: 4.5rem;
     }
 
     .summary-live-left,
@@ -396,6 +489,15 @@
 
     .summary-match .text-mono {
         font-size: 1.8rem;
+    }
+
+    .summary-round-block-head h3 {
+        font-size: 2.1rem;
+    }
+
+    .summary-round-status {
+        font-size: 1.3rem;
+        padding: 0.35rem 1rem;
     }
 
     .team-chip {

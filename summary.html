@@ -15,16 +15,14 @@
                 <h1 class="summary-brand-title text-display">Live Summary</h1>
                 <p id="summary-meta" class="summary-brand-meta text-mono">-</p>
             </div>
-            <div class="summary-stat-wrap">
-                <p class="summary-stat-label text-display">Stage</p>
+            <div class="summary-clock-wrap">
+                <p class="summary-clock-label text-display">Round</p>
+                <p id="summary-round-name" class="summary-round-name text-display">-</p>
+                <p id="summary-round-clock" class="summary-clock-value text-mono">--:--</p>
+            </div>
+            <div class="summary-clock-wrap">
+                <p class="summary-clock-label text-display">Stage</p>
                 <span id="summary-stage-pill" class="summary-stage-pill text-display">Setup</span>
-            </div>
-            <div class="summary-stat-wrap">
-                <p id="summary-stat-label" class="summary-stat-label text-display">Phase 1</p>
-                <p id="summary-stat-value" class="summary-stat-value text-mono">-</p>
-            </div>
-            <div class="summary-nav-wrap">
-                <a class="summary-nav-link" href="./index.html">Admin page</a>
             </div>
         </div>
         <div class="summary-live-strip">
@@ -42,7 +40,7 @@
         </section>
 
         <section id="view-phase1" class="summary-phase1-layout" hidden>
-            <div class="summary-card" aria-labelledby="phase1-title">
+            <div class="summary-card summary-matches-card" aria-labelledby="phase1-title">
                 <div class="summary-card-head">
                     <h2 id="phase1-title">Phase 1 - current round</h2>
                 </div>

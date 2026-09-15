@@ -77,15 +77,6 @@
         return "Setup";
     }
 
-    function getPhase1ProgressLabel(state) {
-        if (!state || !state.phase1 || !state.phase1.generated) {
-            return "-";
-        }
-        const matches = state.phase1.matches || [];
-        const completed = matches.filter((match) => match.status === "completed").length;
-        return completed + " / " + matches.length;
-    }
-
     function getStageKey(state) {
         if (!state) {
             return "setup";
@@ -130,33 +121,43 @@
         return Math.max(0, rounds.length - 1);
     }
 
-    function getContextStatLabel(stage) {
-        if (stage === "knockout") {
-            return "Round";
-        }
+    // only one round is ever live at a time, so the header shows a single round-level
+    // clock even though matches carry their own pause state for scheduling flexibility
+    function getCurrentRoundInfo(state, stage) {
         if (stage === "phase1") {
-            return "Phase 1";
+            const currentRoundIndex = getCurrentPhase1RoundIndex(state);
+            const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
+            return {
+                name: "Round " + (currentRoundIndex + 1),
+                startedAt: roundTimer ? roundTimer.startedAt : null
+            };
         }
-        return "Teams";
-    }
-
-    function getContextStatValue(state, stage) {
         if (stage === "knockout") {
             const rounds = (state.knockout && state.knockout.rounds) || [];
             const round = rounds[getCurrentKnockoutRoundIndex(state)];
-            return round ? round.name : "-";
+            return {
+                name: round ? round.name : "-",
+                startedAt: round ? round.startedAt : null
+            };
         }
-        if (stage === "phase1") {
-            return getPhase1ProgressLabel(state);
-        }
-        return String((state.teams || []).length);
+        return { name: "-", startedAt: null };
     }
 
     function renderHeader(state) {
         const stage = getStageKey(state);
         document.getElementById("summary-stage-pill").textContent = getStageLabel(state);
-        document.getElementById("summary-stat-label").textContent = getContextStatLabel(stage);
-        document.getElementById("summary-stat-value").textContent = state ? getContextStatValue(state, stage) : "-";
+
+        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { name: "-", startedAt: null };
+        document.getElementById("summary-round-name").textContent = roundInfo.name;
+
+        const matchDurationSeconds = state ? (state.config || {}).matchDurationSeconds : null;
+        let clockText = "--:--";
+        if (roundInfo.startedAt && Number.isFinite(Number(matchDurationSeconds))) {
+            const remaining = Number(matchDurationSeconds) * 1000 - (Date.now() - roundInfo.startedAt);
+            clockText = window.TournamentTimer.formatCountdown(remaining);
+        }
+        document.getElementById("summary-round-clock").textContent = clockText;
+
         const teamCount = state ? (state.teams || []).length : 0;
         const terrainCount = state ? (state.terrains || []).length : 0;
         document.getElementById("summary-meta").textContent = teamCount + " teams - " + terrainCount + " terrains";
@@ -241,25 +242,44 @@
         }
 
         const currentRoundIndex = getCurrentPhase1RoundIndex(state);
-        const matches = allMatches.filter((match) => match.roundIndex === currentRoundIndex);
-        const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
-        const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
+        let maxRoundIndex = 0;
+        allMatches.forEach((match) => {
+            maxRoundIndex = Math.max(maxRoundIndex, match.roundIndex);
+        });
 
-        target.innerHTML =
-            '<h3 class="text-display">Round ' + (currentRoundIndex + 1) + '</h3>' +
-            '<div class="summary-round-grid">' +
-            matches.map((match) => {
-                const home = getTeamName(state, match.homeTeamId);
-                const away = getTeamName(state, match.awayTeamId);
-                return '' +
-                    '<article class="summary-match">' +
-                    '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
-                    renderMatchScoreLine(match) +
-                    renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
-                    '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
-                    '</article>';
-            }).join("") +
-            '</div>';
+        const roundBlocks = [];
+        for (let roundIndex = 0; roundIndex <= maxRoundIndex; roundIndex += 1) {
+            const matches = allMatches.filter((match) => match.roundIndex === roundIndex);
+            const isCompleted = matches.every((match) => match.status === "completed");
+            const isCurrent = !isCompleted && roundIndex === currentRoundIndex;
+            const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
+            const statusLabel = isCompleted ? "Completed" : (isCurrent ? "In progress" : "Upcoming");
+            const roundTimer = (state.phase1.roundTimers || {})[String(roundIndex)];
+            const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
+
+            roundBlocks.push('' +
+                '<section class="summary-round-block summary-round-block--' + statusKey + '">' +
+                '<div class="summary-round-block-head">' +
+                '<h3 class="text-display">Round ' + (roundIndex + 1) + '</h3>' +
+                '<span class="summary-round-status ' + statusKey + '">' + statusLabel + '</span>' +
+                '</div>' +
+                '<div class="summary-round-grid">' +
+                matches.map((match) => {
+                    const home = getTeamName(state, match.homeTeamId);
+                    const away = getTeamName(state, match.awayTeamId);
+                    return '' +
+                        '<article class="summary-match">' +
+                        '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
+                        renderMatchScoreLine(match) +
+                        renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
+                        '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+                        '</article>';
+                }).join("") +
+                '</div>' +
+                '</section>');
+        }
+
+        target.innerHTML = '<div class="summary-phase1-rounds">' + roundBlocks.join("") + '</div>';
     }
 
     function renderTeamsSetup(state) {
@@ -284,7 +304,8 @@
             '<p class="muted">vs</p>';
         return '<p class="bracket-team">' + esc(home) + '</p>' +
             scoreLine +
-            '<p class="bracket-team">' + esc(away) + '</p>';
+            '<p class="bracket-team">' + esc(away) + '</p>' +
+            '<p class="muted">' + esc(getTerrainName(state, match.terrainId)) + '</p>';
     }
 
     const BRACKET_ROW_HEIGHT = 120;
@@ -324,7 +345,10 @@
                 for (let pairIndex = 0; pairIndex * 2 < round.matches.length; pairIndex += 1) {
                     const top = centerOf(pairIndex * 2);
                     const bottom = centerOf(pairIndex * 2 + 1);
+                    const mid = (top + bottom) / 2;
                     connectorsHtml += '<div class="bracket-connector" style="top:' + top + '%; height:' + (bottom - top) + '%"></div>';
+                    // mid always lands on the next round's match center, so the tick points straight into it
+                    connectorsHtml += '<div class="bracket-connector-tick" style="top:' + mid + '%"></div>';
                 }
             }
 

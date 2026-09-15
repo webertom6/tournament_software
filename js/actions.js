@@ -267,7 +267,8 @@
             }
             const qualifiedCount = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
             const qualified = standings.slice(0, qualifiedCount).map((row) => row.teamId);
-            const knockout = window.TournamentBracket.generateKnockoutStructure(qualified, state.config, window.TournamentState.uid);
+            const terrainIds = state.terrains.map((terrain) => terrain.id);
+            const knockout = window.TournamentBracket.generateKnockoutStructure(qualified, state.config, window.TournamentState.uid, terrainIds);
             state.knockout.generated = true;
             state.knockout.rounds = knockout.rounds;
             state.knockout.thirdPlace = knockout.thirdPlace;

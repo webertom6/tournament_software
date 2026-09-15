@@ -330,6 +330,7 @@
                         '<span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span>' +
                         '</div>' +
                         teamsHtml +
+                        '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
                         renderMatchTimerBlock(round.startedAt, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                         '<div class="match-row">' +
                         '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
@@ -357,6 +358,7 @@
                 '<span>' + esc(home) + " vs " + esc(away) + '</span>' +
                 '<span class="status-pill ' + esc(tp.status) + '">' + esc(tp.status) + '</span>' +
                 '</div>' +
+                '<p class="muted">Terrain: ' + esc(getTerrainName(state, tp.terrainId)) + '</p>' +
                 renderMatchTimerBlock(tp.startedAt, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                 '<div class="match-row">' +
                 '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.homeGoals) ? tp.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
@@ -516,13 +518,17 @@
         });
 
         document.getElementById("btn-toggle-summary-standings").addEventListener("click", () => {
-            setSummaryPrefs({ standingsHidden: !getSummaryPrefs().standingsHidden });
+            const nextHidden = !getSummaryPrefs().standingsHidden;
+            setSummaryPrefs({ standingsHidden: nextHidden });
             updateSummaryControlButtons();
+            window.TournamentState.update(() => {}, nextHidden ? "Hid summary standings" : "Showed summary standings");
         });
 
         document.getElementById("btn-toggle-summary-scroll").addEventListener("click", () => {
-            setSummaryPrefs({ autoScrollActive: !getSummaryPrefs().autoScrollActive });
+            const nextActive = !getSummaryPrefs().autoScrollActive;
+            setSummaryPrefs({ autoScrollActive: nextActive });
             updateSummaryControlButtons();
+            window.TournamentState.update(() => {}, nextActive ? "Started summary auto-scroll" : "Stopped summary auto-scroll");
         });
 
         document.getElementById("btn-export-state").addEventListener("click", () => {
