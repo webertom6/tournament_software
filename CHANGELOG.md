@@ -134,3 +134,137 @@ Screen real estate: .summary-main/.summary-top-main/.summary-live-inner widened 
 Bug caught and fixed during verification: the hidden attribute wasn't actually hiding #view-phase1 because its own class (display: grid) out-specificities the [hidden] UA rule. Added a global [hidden] { display: none !important; } in style.css — noted in repo memory since it'll bite again if more toggleable sections are added.
 
 Verified live in-browser at all four stages (setup/phase1/knockout/champion) with seeded data (10, 24, and 8-team scenarios) — view switching, current-round filtering, standings columns, bracket propagation, and the champion box all behaved correctly. node --check passes on all JS files.
+
+# feature/fix_design
+## context
+Continues the `fix/correct_client_implementation` work: finalizes the flat
+bordered visual system (favicon, project docs, license), reworks the
+operator console into collapsible sections with a workflow progress bar and
+a config overview card, cleans up the public summary screen (header,
+terrain chip, round status pills, champion box), fixes several bracket
+display bugs (overlap, sticky round titles, auto-scroll to the current
+round), and adds a sticky footer with a QR code linking to the repository.
+
+## changes
+
+### knockout matches now get a terrain assigned
+date : 02-09-2026
+
+- changes : knockout matches are now assigned a terrain the same way phase 1
+  matches are, instead of running with no terrain at all.
+- impact files : `bracket.js` (terrain assignment on bracket generation),
+  `actions.js`, `render.js`, `summary.js` (display the assigned terrain).
+- fix : fixed knockout matches showing no terrain, leaving the operator with
+  no way to tell teams where to play.
+
+### summary screen header and remote-control cleanup
+date : 04-09-2026
+
+- changes : reworked the summary page header (brand block, stage pill and
+  round clock rearranged, phase moved to the right, round timer centered);
+  every round/match now shows an explicit status pill (upcoming / current /
+  completed) instead of relying on position alone; removed admin-only
+  controls that had leaked onto the public-facing summary screen; the
+  Standings / Auto-scroll remote toggles are now recolored green/red to make
+  their ON/OFF state obvious at a glance.
+- impact files : `summary.html`, `page-summary.css`, `summary.js`,
+  `index.html`, `render.js`, `style.css`.
+- fix : fixed admin-only controls being visible on the public summary
+  screen.
+
+### operator console: collapsible sections, sticky progress bar, overview card
+date : 04-09-2026
+
+- changes : setup / phase 1 / standings / knockout / audit sections are now
+  native `<details>`/`<summary>` collapsibles with a chevron indicator and
+  auto-expand the phase the operator is actively working on; individual
+  rounds also stack as collapsible bars, with the current round
+  auto-expanded; added an operator toolbar with expand-all/collapse-all
+  buttons; added a sticky mini progress bar (Setup -> Group Matches ->
+  Knockout -> Champion) that jumps to and expands the target section on
+  click; added an overview card summarizing the locked-in config (win/draw/
+  loss points, phase 1 matches per team, qualified count, seeding, third
+  place, match/pause duration); added a short explanatory message on the
+  terrains panel.
+- impact files : `index.html`, `page-tournament.css`, `render.js`.
+- fix : none.
+
+### visual design finalization: square corners, favicon, project docs
+date : 04-09-2026
+
+- changes : removed the last remaining rounded corners so every surface
+  matches the flat/bordered style; added a favicon; added `DESIGN.md` /
+  `PRODUCT.md` (design system and product scope references) and a
+  `LICENSE`; removed the per-team match timer display, redundant once round
+  timers were introduced.
+- impact files : `page-tournament.css`, `assets/logo_charneux.svg`,
+  `index.html`, `summary.html`, `DESIGN.md`, `PRODUCT.md`, `LICENSE`,
+  `summary.js`.
+- fix : none.
+
+### bracket terrain chip, overlap fix, round-name display
+date : 04-09-2026
+
+- changes : bracket-match boxes now show a prominent "Terrain: N" chip
+  before a score is entered, which disappears once the match is completed;
+  removed the "upcoming" status label per team on the summary view; removed
+  the separate round-name element on the summary header in favor of showing
+  "Round X of Y" (or the knockout stage name) directly on the round clock
+  label.
+- impact files : `page-summary.css`, `summary.js`, `summary.html`.
+- fix : fixed bracket-match boxes overlapping in rounds where the terrain
+  chip was present.
+
+### bracket tree: sticky round titles, responsive column width, name tooltips
+date : 08-09-2026
+
+- changes : round titles now stick to the top of the bracket view
+  independently of the horizontal scroll instead of scrolling away with the
+  matches; each round column is now sized to the longest registered team
+  name instead of a fixed width, with a full-name tooltip for any name that
+  still needs to truncate.
+- impact files : `page-summary.css`, `summary.js`.
+- fix : none.
+
+### champion box relocated + responsive bracket layout
+date : 11-09-2026
+
+- changes : moved the champion announcement out of the bracket's title row
+  into its own block above the tree, and made the bracket column layout
+  responsive to viewport width so it degrades better on narrower screens.
+- impact files : `page-summary.css`, `page-tournament.css`, `style.css`,
+  `summary.js`, `summary.html`.
+- fix : none.
+
+### round label consistency, fixed-height match-cards, sticky footer with QR code
+date : 12-09-2026
+
+- changes : the operator and summary pages now derive knockout round labels
+  (Round of N / Quarterfinal / Semifinal / Final) the same way in both
+  places instead of drifting apart; knockout match-cards with an
+  already-decided pairing (i.e. every round after the first) now render the
+  two team names as two fixed lines instead of one wrapping line, so every
+  match-card in a round keeps the same height regardless of name length;
+  added a sticky footer to the summary screen with a QR code and link to
+  the project's repository plus the live round countdown, mirroring the
+  equivalent footer on race_lap_software's scoreboard.
+- impact files : `render.js`, `summary.js`, `page-tournament.css`,
+  `assets/qr-repo.png`, `summary.html`.
+- fix : fixed the knockout round label falling back to the generic
+  "Round of N" wording even for the Quarterfinal/Semifinal/Final rounds,
+  because of a casing mismatch against the stored round name.
+
+### bracket auto-scroll to the current round
+date : 12-09-2026 to 15-09-2026
+
+- changes : the bracket view now auto-scrolls horizontally to keep the
+  current round visible as the tournament progresses, clamped so it never
+  scrolls past the last column; clock placeholders now read "waiting"
+  instead of "--:--", and the summary header shows an explicit "Setup"
+  label before phase 1 is generated.
+- impact files : `summary.js`, `timer.js`.
+- fix : fixed the auto-scroll position being silently reset every second
+  (the bracket is fully rebuilt on every live refresh), so it never
+  actually reached later rounds; fixed the scroll offset being computed
+  relative to the wrong ancestor element, which made it overshoot straight
+  to the far right and hide whichever round was actually current.

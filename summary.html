@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tournament Summary</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/logo_charneux.svg">
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/page-summary.css">
 </head>
@@ -16,9 +17,8 @@
                 <p id="summary-meta" class="summary-brand-meta text-mono">-</p>
             </div>
             <div class="summary-clock-wrap">
-                <p class="summary-clock-label text-display">Round</p>
-                <p id="summary-round-name" class="summary-round-name text-display">-</p>
-                <p id="summary-round-clock" class="summary-clock-value text-mono">--:--</p>
+                <p id="summary-clock-label" class="summary-clock-label text-display">Round</p>
+                <p id="summary-round-clock" class="summary-clock-value text-mono js-round-clock">--:--</p>
             </div>
             <div class="summary-clock-wrap">
                 <p class="summary-clock-label text-display">Stage</p>
@@ -54,9 +54,16 @@
 
         <section id="view-knockout" class="summary-card summary-card--bracket" aria-labelledby="knockout-title" hidden>
             <h2 id="knockout-title">Knockout</h2>
+            <div id="summary-champion"></div>
             <div id="summary-bracket"></div>
         </section>
     </main>
+
+    <footer class="summary-footer">
+        <img class="summary-footer-qr" src="./assets/qr-repo.png" alt="scan to open the project repository">
+        <span class="summary-footer-credit text-mono">github.com/webertom6/tournament_software</span>
+        <span class="summary-footer-remaining text-mono">Round: <strong class="js-round-clock">--:--</strong></span>
+    </footer>
 
     <script src="./js/rules.js"></script>
     <script src="./js/bracket.js"></script>

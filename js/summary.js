@@ -35,30 +35,19 @@
 
     function renderMatchScoreLine(match) {
         if (match.status !== "completed") {
-            return '<p class="muted">Status: upcoming</p>';
+            return "";
         }
         const home = Number.isFinite(match.homeGoals) ? match.homeGoals : 0;
         const away = Number.isFinite(match.awayGoals) ? match.awayGoals : 0;
         return '<p>Score: <strong class="text-mono">' + home + " - " + away + '</strong></p>';
     }
 
-    function renderMatchTimerLine(roundStartedAt, match, matchDurationSeconds, pauseDurationSeconds) {
-        const timer = window.TournamentTimer;
-        if (match.finalElapsedMs !== null && match.finalElapsedMs !== undefined) {
-            return '<p class="muted">Time: <span class="text-mono">' + esc(timer.formatDuration(match.finalElapsedMs)) + '</span> (final)</p>';
-        }
-        if (!roundStartedAt) {
+    // terrain only matters before the score is in - once saved, the score is the only thing worth a glance
+    function renderTerrainLine(state, match) {
+        if (match.status === "completed") {
             return "";
         }
-        const now = Date.now();
-        const elapsed = timer.computeElapsedMs(roundStartedAt, match, now);
-        const remaining = Number(matchDurationSeconds) * 1000 - elapsed;
-        if (match.pausedAt) {
-            const breakRemaining = timer.computeBreakRemainingMs(match, pauseDurationSeconds, now);
-            return '<p class="muted">Time left: <span class="text-mono">' + esc(timer.formatCountdown(remaining)) +
-                '</span> - Paused (break <span class="text-mono">' + esc(timer.formatDuration(breakRemaining)) + '</span>)</p>';
-        }
-        return '<p class="muted">Time left: <span class="text-mono">' + esc(timer.formatCountdown(remaining)) + '</span></p>';
+        return '<p class="summary-terrain"> Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>';
     }
 
     function getStageLabel(state) {
@@ -108,6 +97,15 @@
         return maxRound;
     }
 
+    function getPhase1TotalRounds(state) {
+        const matches = (state.phase1 && state.phase1.matches) || [];
+        let maxRound = 0;
+        matches.forEach((match) => {
+            maxRound = Math.max(maxRound, match.roundIndex);
+        });
+        return maxRound + 1;
+    }
+
     function getCurrentKnockoutRoundIndex(state) {
         const rounds = (state.knockout && state.knockout.rounds) || [];
         for (let roundIndex = 0; roundIndex < rounds.length; roundIndex += 1) {
@@ -121,14 +119,32 @@
         return Math.max(0, rounds.length - 1);
     }
 
+    // bracket.js only names the last 3 rounds (Quarterfinal/Semifinal/Final); earlier
+    // rounds keep a generic stored name, so derive "Round of N" from the round's own match count
+    function getKnockoutRoundLabel(round) {
+        if (!round) {
+            return "-";
+        }
+        if (round.name === "Quarterfinal" || round.name === "Semifinal" || round.name === "Final") {
+            return round.name;
+        }
+        return "Round of " + (round.matches.length * 2);
+    }
+
     // only one round is ever live at a time, so the header shows a single round-level
     // clock even though matches carry their own pause state for scheduling flexibility
     function getCurrentRoundInfo(state, stage) {
+        if (stage === "setup") {
+            return {
+                label: "Setup",
+                startedAt: null
+            };
+        }
         if (stage === "phase1") {
             const currentRoundIndex = getCurrentPhase1RoundIndex(state);
             const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
             return {
-                name: "Round " + (currentRoundIndex + 1),
+                label: "Round " + (currentRoundIndex + 1) + "/" + getPhase1TotalRounds(state),
                 startedAt: roundTimer ? roundTimer.startedAt : null
             };
         }
@@ -136,27 +152,29 @@
             const rounds = (state.knockout && state.knockout.rounds) || [];
             const round = rounds[getCurrentKnockoutRoundIndex(state)];
             return {
-                name: round ? round.name : "-",
+                label: getKnockoutRoundLabel(round),
                 startedAt: round ? round.startedAt : null
             };
         }
-        return { name: "-", startedAt: null };
+        return { label: "-", startedAt: null };
     }
 
     function renderHeader(state) {
         const stage = getStageKey(state);
         document.getElementById("summary-stage-pill").textContent = getStageLabel(state);
 
-        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { name: "-", startedAt: null };
-        document.getElementById("summary-round-name").textContent = roundInfo.name;
+        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { label: "-", startedAt: null };
+        document.getElementById("summary-clock-label").textContent = roundInfo.label;
 
         const matchDurationSeconds = state ? (state.config || {}).matchDurationSeconds : null;
-        let clockText = "--:--";
+        let clockText = "waiting";
         if (roundInfo.startedAt && Number.isFinite(Number(matchDurationSeconds))) {
             const remaining = Number(matchDurationSeconds) * 1000 - (Date.now() - roundInfo.startedAt);
             clockText = window.TournamentTimer.formatCountdown(remaining);
         }
-        document.getElementById("summary-round-clock").textContent = clockText;
+        document.querySelectorAll(".js-round-clock").forEach(function (el) {
+            el.textContent = clockText;
+        });
 
         const teamCount = state ? (state.teams || []).length : 0;
         const terrainCount = state ? (state.terrains || []).length : 0;
@@ -254,9 +272,6 @@
             const isCurrent = !isCompleted && roundIndex === currentRoundIndex;
             const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
             const statusLabel = isCompleted ? "Completed" : (isCurrent ? "In progress" : "Upcoming");
-            const roundTimer = (state.phase1.roundTimers || {})[String(roundIndex)];
-            const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
-
             roundBlocks.push('' +
                 '<section class="summary-round-block summary-round-block--' + statusKey + '">' +
                 '<div class="summary-round-block-head">' +
@@ -271,8 +286,7 @@
                         '<article class="summary-match">' +
                         '<p><strong>' + esc(home) + " vs " + esc(away) + '</strong></p>' +
                         renderMatchScoreLine(match) +
-                        renderMatchTimerLine(roundStartedAt, match, (state.config || {}).matchDurationSeconds, (state.config || {}).pauseDurationSeconds) +
-                        '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+                        renderTerrainLine(state, match) +
                         '</article>';
                 }).join("") +
                 '</div>' +
@@ -302,13 +316,53 @@
         const scoreLine = match.status === "completed" ?
             '<p class="text-mono">' + (Number.isFinite(match.homeGoals) ? match.homeGoals : 0) + " - " + (Number.isFinite(match.awayGoals) ? match.awayGoals : 0) + '</p>' :
             '<p class="muted">vs</p>';
-        return '<p class="bracket-team">' + esc(home) + '</p>' +
+        return '<p class="bracket-team" title="' + esc(home) + '">' + esc(home) + '</p>' +
             scoreLine +
-            '<p class="bracket-team">' + esc(away) + '</p>' +
-            '<p class="muted">' + esc(getTerrainName(state, match.terrainId)) + '</p>';
+            '<p class="bracket-team" title="' + esc(away) + '">' + esc(away) + '</p>' +
+            renderTerrainLine(state, match);
     }
 
-    const BRACKET_ROW_HEIGHT = 120;
+    // measured worst-case (pre-score, terrain chip shown) match-box height + a visible
+    // gap, per breakpoint - must stay taller than the actual rendered box or boxes
+    // touch/overlap in the densest round (row-doubling math itself is unaffected by
+    // this value, it only scales the container's total pixel height)
+    function getBracketRowHeight() {
+        return window.matchMedia("(min-width: 2560px)").matches ? 190 : 145;
+    }
+
+    // sized so every bracket-match column fits the longest registered team name without
+    // truncating - measured via canvas instead of the DOM so it doesn't depend on layout
+    let bracketMeasureCanvas = null;
+    function measureLongestTeamNameWidth(state) {
+        if (!bracketMeasureCanvas) {
+            bracketMeasureCanvas = document.createElement("canvas");
+        }
+        const ctx = bracketMeasureCanvas.getContext("2d");
+        ctx.font = "600 1.05rem Barlow, system-ui, sans-serif";
+        let max = 0;
+        (state.teams || []).forEach((team) => {
+            const width = ctx.measureText(team.name || "").width;
+            if (width > max) {
+                max = width;
+            }
+        });
+        return max;
+    }
+
+    function getBracketColumnWidth(state) {
+        const MATCH_CARD_PADDING = 22; // .bracket-match padding, both sides
+        const MIN_WIDTH = 200;
+        return Math.max(MIN_WIDTH, Math.ceil(measureLongestTeamNameWidth(state)) + MATCH_CARD_PADDING);
+    }
+
+    function renderChampion(state) {
+        const target = document.getElementById("summary-champion");
+        if (state && state.knockout && state.knockout.championTeamId) {
+            target.innerHTML = '<div class="bracket-champion text-display">Champion: ' + esc(getTeamName(state, state.knockout.championTeamId)) + '</div>';
+        } else {
+            target.innerHTML = "";
+        }
+    }
 
     function renderBracket(state) {
         const target = document.getElementById("summary-bracket");
@@ -324,8 +378,11 @@
         }
 
         const leafCount = rounds[0].matches.length;
-        const bodyHeight = leafCount * BRACKET_ROW_HEIGHT;
+        const bodyHeight = leafCount * getBracketRowHeight();
         const currentRoundIndex = getCurrentKnockoutRoundIndex(state);
+        const columnWidth = getBracketColumnWidth(state);
+        const TREE_GAP = 40; // px, matches .bracket-tree's 2.5rem gap
+        const titleColumnWidth = columnWidth + TREE_GAP;
 
         // match k in round R is centered at (k + 0.5) * 2^R / leafCount, so a pair's
         // midpoint always lands exactly on the next round's slot - standard bracket row-doubling math
@@ -352,23 +409,17 @@
                 }
             }
 
-            return '<div class="bracket-round' + (isCurrent ? " bracket-round--current" : "") + '" data-round-index="' + roundIndex + '">' +
-                '<h3 class="bracket-round-title text-display">' + esc(round.name) + '</h3>' +
+            return '<div class="bracket-round' + (isCurrent ? " bracket-round--current" : "") + '" data-round-index="' + roundIndex + '" style="width:' + columnWidth + 'px">' +
                 '<div class="bracket-round-body" style="height:' + bodyHeight + 'px">' +
                 matchesHtml + connectorsHtml +
                 '</div>' +
                 '</div>';
         });
 
-        let championHtml = "";
-        if (state.knockout.championTeamId) {
-            championHtml = '<div class="bracket-round bracket-champion-col">' +
-                '<h3 class="bracket-round-title text-display">Champion</h3>' +
-                '<div class="bracket-round-body" style="height:' + bodyHeight + 'px">' +
-                '<div class="bracket-champion text-display">' + esc(getTeamName(state, state.knockout.championTeamId)) + '</div>' +
-                '</div>' +
-                '</div>';
-        }
+        // titles live in their own row, outside the horizontally-scrolling container, so
+        // they can be position:sticky to the viewport (sticky breaks once nested inside an
+        // overflow-x:auto ancestor) - kept in horizontal sync with the columns below via scroll mirroring
+        const titleColumns = rounds.map((round) => '<div class="bracket-title-col text-display" style="width:' + titleColumnWidth + 'px">' + esc(getKnockoutRoundLabel(round)) + '</div>');
 
         let thirdPlaceHtml = "";
         const thirdPlace = state.knockout.thirdPlace;
@@ -379,15 +430,38 @@
                 '</div>';
         }
 
-        target.innerHTML = '<div class="bracket-scroll"><div class="bracket-tree">' +
-            roundColumns.join("") + championHtml +
+        target.innerHTML =
+            '<div class="bracket-titles-sticky"><div class="bracket-titles-inner" id="bracket-titles-inner">' +
+            titleColumns.join("") +
+            '</div></div>' +
+            '<div class="bracket-scroll" id="bracket-scroll">' +
+            '<div class="bracket-tree">' +
+            roundColumns.join("") +
             '</div></div>' + thirdPlaceHtml;
 
-        if (lastScrolledKnockoutRound !== currentRoundIndex) {
-            lastScrolledKnockoutRound = currentRoundIndex;
-            const columnEl = target.querySelector('.bracket-round[data-round-index="' + currentRoundIndex + '"]');
-            if (columnEl) {
-                columnEl.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+        const scrollEl = document.getElementById("bracket-scroll");
+        const titlesInner = document.getElementById("bracket-titles-inner");
+        scrollEl.addEventListener("scroll", () => {
+            titlesInner.style.transform = "translateX(" + (-scrollEl.scrollLeft) + "px)";
+        });
+
+        const isNewCurrentRound = lastScrolledKnockoutRound !== currentRoundIndex;
+        lastScrolledKnockoutRound = currentRoundIndex;
+        const columnEl = target.querySelector('.bracket-round[data-round-index="' + currentRoundIndex + '"]');
+        if (columnEl) {
+            // the whole bracket is rebuilt on every 1s re-render (fresh scrollLeft=0 node each
+            // time), so the scroll position must be re-applied every tick, not just on round change
+            const maxScrollLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+            // offsetLeft is relative to the nearest POSITIONED ancestor, which here is nothing
+            // closer than <body> (neither .bracket-scroll nor .bracket-tree are positioned), so
+            // it's the wrong reference frame and way overshoots; measure via bounding rects
+            // relative to the scroll container itself instead
+            const columnOffset = columnEl.getBoundingClientRect().left - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
+            const desiredScrollLeft = Math.min(Math.max(0, columnOffset), maxScrollLeft);
+            if (isNewCurrentRound) {
+                scrollEl.scrollTo({ left: desiredScrollLeft, behavior: "smooth" });
+            } else {
+                scrollEl.scrollLeft = desiredScrollLeft;
             }
         }
     }
@@ -482,6 +556,7 @@
             renderStandings(state);
             renderPhase1(state);
         } else if (stage === "knockout") {
+            renderChampion(state);
             renderBracket(state);
         }
         const timestamp = new Date().toLocaleString();

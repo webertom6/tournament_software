@@ -20,12 +20,16 @@
         return next;
     }
 
+    function setToggleButtonState(button, isOn, label) {
+        button.textContent = label + ": " + (isOn ? "ON" : "OFF");
+        button.classList.toggle("toggle-on", isOn);
+        button.classList.toggle("toggle-off", !isOn);
+    }
+
     function updateSummaryControlButtons() {
         const prefs = getSummaryPrefs();
-        document.getElementById("btn-toggle-summary-standings").textContent =
-            prefs.standingsHidden ? "Show summary standings" : "Hide summary standings";
-        document.getElementById("btn-toggle-summary-scroll").textContent =
-            prefs.autoScrollActive ? "Stop summary auto-scroll" : "Start summary auto-scroll";
+        setToggleButtonState(document.getElementById("btn-toggle-summary-standings"), !prefs.standingsHidden, "Standings");
+        setToggleButtonState(document.getElementById("btn-toggle-summary-scroll"), prefs.autoScrollActive, "Auto-scroll");
     }
 
     function esc(value) {
@@ -35,6 +39,113 @@
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#39;");
+    }
+
+    const OPERATOR_UI_PREFS_KEY = "tournament_software_operator_ui_prefs_v1";
+    const COLLAPSIBLE_SECTION_IDS = ["setup", "phase1", "standings", "knockout", "audit"];
+
+    function getOperatorUiPrefs() {
+        try {
+            const raw = localStorage.getItem(OPERATOR_UI_PREFS_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return {
+                sections: (parsed.sections && typeof parsed.sections === "object") ? parsed.sections : {},
+                rounds: (parsed.rounds && typeof parsed.rounds === "object") ? parsed.rounds : {}
+            };
+        } catch (error) {
+            return { sections: {}, rounds: {} };
+        }
+    }
+
+    function setSectionOverride(sectionId, isOpen) {
+        const prefs = getOperatorUiPrefs();
+        prefs.sections[sectionId] = isOpen;
+        localStorage.setItem(OPERATOR_UI_PREFS_KEY, JSON.stringify(prefs));
+    }
+
+    function setRoundOverride(roundKey, isOpen) {
+        const prefs = getOperatorUiPrefs();
+        prefs.rounds[roundKey] = isOpen;
+        localStorage.setItem(OPERATOR_UI_PREFS_KEY, JSON.stringify(prefs));
+    }
+
+    function isRoundOpen(roundKey, defaultOpen) {
+        const override = getOperatorUiPrefs().rounds[roundKey];
+        return typeof override === "boolean" ? override : defaultOpen;
+    }
+
+    // default open/closed tracks whichever phase the operator is actively working on
+    function getDefaultSectionOpen(sectionId, state) {
+        const phase1Generated = Boolean(state && state.phase1 && state.phase1.generated);
+        const knockoutGenerated = Boolean(state && state.knockout && state.knockout.generated);
+        if (sectionId === "setup") {
+            return !phase1Generated;
+        }
+        if (sectionId === "phase1") {
+            return phase1Generated && !knockoutGenerated;
+        }
+        if (sectionId === "knockout") {
+            return knockoutGenerated;
+        }
+        return false;
+    }
+
+    const PROGRESS_STEPS = [
+        { key: "setup", label: "Setup", targetSection: "setup" },
+        { key: "phase1", label: "Group Matches", targetSection: "phase1" },
+        { key: "knockout", label: "Knockout", targetSection: "knockout" },
+        { key: "champion", label: "Champion", targetSection: "knockout" }
+    ];
+
+    function getCurrentWorkflowStep(state) {
+        if (state && state.knockout && state.knockout.championTeamId) {
+            return "champion";
+        }
+        if (state && state.knockout && state.knockout.generated) {
+            return "knockout";
+        }
+        if (state && state.phase1 && state.phase1.generated) {
+            return "phase1";
+        }
+        return "setup";
+    }
+
+
+    function applyCollapsibleSections(state) {
+        const prefs = getOperatorUiPrefs();
+        COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
+            const details = document.getElementById("section-" + sectionId);
+            if (!details) {
+                return;
+            }
+            const override = prefs.sections[sectionId];
+            details.open = typeof override === "boolean" ? override : getDefaultSectionOpen(sectionId, state);
+        });
+    }
+
+    function setAllSectionsOpen(isOpen) {
+        COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
+            setSectionOverride(sectionId, isOpen);
+            const details = document.getElementById("section-" + sectionId);
+            if (details) {
+                details.open = isOpen;
+            }
+        });
+    }
+
+    function bindCollapsibleSections() {
+        COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
+            const details = document.getElementById("section-" + sectionId);
+            if (!details) {
+                return;
+            }
+            const summary = details.querySelector(":scope > summary");
+            summary.addEventListener("click", () => {
+                setSectionOverride(sectionId, !details.open);
+            });
+        });
+        document.getElementById("btn-expand-all").addEventListener("click", () => setAllSectionsOpen(true));
+        document.getElementById("btn-collapse-all").addEventListener("click", () => setAllSectionsOpen(false));
     }
 
     function renderTeams(state) {
@@ -56,7 +167,7 @@
     function renderTerrains(state) {
         const target = document.getElementById("terrains-list");
         if (!state.terrains.length) {
-            target.innerHTML = '<p class="muted">No terrains yet, matches will still be generated</p>';
+            target.innerHTML = '<p class="muted">No terrains yet - a round can then hold any number of simultaneous matches; add terrains to cap each round at one match per terrain</p>';
             return;
         }
 
@@ -82,6 +193,14 @@
             options.push('<option value="' + esc(team.id) + '"' + selected + '>' + esc(team.name) + '</option>');
         });
         return '<select data-role="' + role + '" data-match-id="' + esc(matchId) + '" aria-label="' + role + '">' + options.join("") + '</select>';
+    }
+
+    function renderMatchTeamsStatic(home, away) {
+        return '' +
+            '<div class="match-teams-static">' +
+            '<span class="team-line" title="' + esc(home) + '">' + esc(home) + '</span>' +
+            '<span class="team-line" title="' + esc(away) + '"><span class="vs-label">vs</span> ' + esc(away) + '</span>' +
+            '</div>';
     }
 
     function renderRoundTimerControls(startedAt, stoppedAt, startAction, stopAction, roundKey) {
@@ -202,6 +321,41 @@
         return Array.from(map.entries()).sort((a, b) => Number(a[0]) - Number(b[0]));
     }
 
+    // first round with an unfinished match is "current"; if every round is done, keep the last one open
+    function getCurrentPhase1RoundIndex(rounds) {
+        for (let i = 0; i < rounds.length; i += 1) {
+            if (rounds[i][1].some((match) => match.status !== "completed")) {
+                return Number(rounds[i][0]);
+            }
+        }
+        return rounds.length ? Number(rounds[rounds.length - 1][0]) : 0;
+    }
+
+    function getCurrentKnockoutRoundIndex(rounds) {
+        for (let i = 0; i < rounds.length; i += 1) {
+            const hasPlayable = rounds[i].matches.some((match) => match.homeTeamId && match.awayTeamId && match.status !== "completed");
+            if (hasPlayable) {
+                return i;
+            }
+        }
+        return Math.max(0, rounds.length - 1);
+    }
+
+    // bracket.js only names the last 3 rounds (Quarterfinal/Semifinal/Final); earlier
+    // rounds keep a generic stored name, so derive "Round of N" from the round's own match count
+    // (mirrors js/summary.js's getKnockoutRoundLabel so both pages label rounds the same way)
+    function getKnockoutRoundLabel(round) {
+        if (round.name === "Quarterfinal" || round.name === "Semifinal" || round.name === "Final") {
+            return round.name;
+        }
+        return "Round of " + (round.matches.length * 2);
+    }
+
+    function renderRoundStatusPill(statusKey) {
+        const label = statusKey === "completed" ? "Completed" : (statusKey === "current" ? "In progress" : "Upcoming");
+        return '<span class="status-pill ' + statusKey + '">' + label + '</span>';
+    }
+
     function renderPhase1(state) {
         const summary = document.getElementById("phase1-summary");
         const target = document.getElementById("phase1-matches");
@@ -217,18 +371,28 @@
             '<p class="muted">Configured phase 1 matches per team: <strong>' + state.config.phase1MatchesPerTeam + "</strong></p>";
 
         const rounds = groupPhase1ByRound(state.phase1.matches);
-        target.innerHTML = '<div class="round-grid">' + rounds.map((entry) => {
+        const currentRoundIndex = getCurrentPhase1RoundIndex(rounds);
+        target.innerHTML = '<div class="round-stack">' + rounds.map((entry) => {
             const roundIndex = Number(entry[0]);
             const matches = entry[1];
             const roundTimer = state.phase1.roundTimers[String(roundIndex)] || null;
             const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
             const roundStoppedAt = roundTimer ? roundTimer.stoppedAt : null;
+            const isCompleted = matches.every((match) => match.status === "completed");
+            const isCurrent = !isCompleted && roundIndex === currentRoundIndex;
+            const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
+            const roundKey = "phase1:" + roundIndex;
+            const isOpen = isRoundOpen(roundKey, isCurrent);
             return '' +
-                '<div class="round-card">' +
-                '<div class="round-head">' +
+                '<details class="round-card round-card--' + statusKey + '"' + (isOpen ? " open" : "") + '>' +
+                '<summary class="round-summary" data-action="round-toggle" data-round-key="' + esc(roundKey) + '">' +
                 '<h3>Round ' + (roundIndex + 1) + '</h3>' +
+                renderRoundStatusPill(statusKey) +
+                '<span class="chevron" aria-hidden="true"></span>' +
+                '</summary>' +
+                '<div class="round-body">' +
                 renderRoundTimerControls(roundStartedAt, roundStoppedAt, "phase1-start-round", "phase1-stop-round", String(roundIndex)) +
-                '</div>' +
+                '<div class="match-row-scroller">' +
                 matches.map((match) => {
                     return '' +
                         '<div class="match-card">' +
@@ -250,7 +414,9 @@
                         '</div>' +
                         '</div>';
                 }).join("") +
-                '</div>';
+                '</div>' +
+                '</div>' +
+                '</details>';
         }).join("") + '</div>';
     }
 
@@ -306,13 +472,23 @@
 
         summary.innerHTML = '<p>Seeding policy: <strong>' + esc(state.config.seedingPolicy) + "</strong></p>";
 
-        roundsTarget.innerHTML = '<div class="round-grid">' + state.knockout.rounds.map((round) => {
+        const currentKnockoutRoundIndex = getCurrentKnockoutRoundIndex(state.knockout.rounds);
+        roundsTarget.innerHTML = '<div class="round-stack">' + state.knockout.rounds.map((round, roundIndex) => {
+            const isCompleted = round.matches.every((match) => match.status === "completed");
+            const isCurrent = !isCompleted && roundIndex === currentKnockoutRoundIndex;
+            const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
+            const roundKey = "knockout:" + round.id;
+            const isOpen = isRoundOpen(roundKey, isCurrent);
             return '' +
-                '<div class="round-card">' +
-                '<div class="round-head">' +
-                '<h3>' + esc(round.name) + '</h3>' +
+                '<details class="round-card round-card--' + statusKey + '"' + (isOpen ? " open" : "") + '>' +
+                '<summary class="round-summary" data-action="round-toggle" data-round-key="' + esc(roundKey) + '">' +
+                '<h3>' + esc(getKnockoutRoundLabel(round)) + '</h3>' +
+                renderRoundStatusPill(statusKey) +
+                '<span class="chevron" aria-hidden="true"></span>' +
+                '</summary>' +
+                '<div class="round-body">' +
                 renderRoundTimerControls(round.startedAt, round.stoppedAt, "ko-start-round", "ko-stop-round", round.id) +
-                '</div>' +
+                '<div class="match-row-scroller">' +
                 round.matches.map((match) => {
                     const isFirstRound = !match.homeSourceMatchId && !match.awaySourceMatchId;
                     const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
@@ -323,7 +499,7 @@
                         '<span class="vs-label">vs</span>' +
                         buildTeamSelect(state, "ko-away-team", match.id, match.awayTeamId, match.homeTeamId, true) +
                         '</div>' :
-                        '<div class="match-head"><span>' + esc(home) + " vs " + esc(away) + '</span></div>';
+                        renderMatchTeamsStatic(home, away);
                     return '' +
                         '<div class="match-card">' +
                         '<div class="match-head">' +
@@ -340,7 +516,9 @@
                         '</div>' +
                         '</div>';
                 }).join("") +
-                '</div>';
+                '</div>' +
+                '</div>' +
+                '</details>';
         }).join("") + '</div>';
 
         if (state.knockout.thirdPlace) {
@@ -355,9 +533,9 @@
                 '</div>' +
                 '<div class="match-card">' +
                 '<div class="match-head">' +
-                '<span>' + esc(home) + " vs " + esc(away) + '</span>' +
                 '<span class="status-pill ' + esc(tp.status) + '">' + esc(tp.status) + '</span>' +
                 '</div>' +
+                renderMatchTeamsStatic(home, away) +
                 '<p class="muted">Terrain: ' + esc(getTerrainName(state, tp.terrainId)) + '</p>' +
                 renderMatchTimerBlock(tp.startedAt, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                 '<div class="match-row">' +
@@ -392,6 +570,29 @@
                 '<div>' + esc(entry.message) + '</div>' +
                 '</article>';
         }).join("") + '</div>';
+    }
+
+    function renderProgressBar(state) {
+        const target = document.getElementById("progress-bar");
+        const currentStep = getCurrentWorkflowStep(state);
+        target.innerHTML = PROGRESS_STEPS.map((step) => {
+            const isCurrent = step.key === currentStep;
+            return '<button type="button" class="progress-step' + (isCurrent ? " progress-step--current" : "") + '" data-action="progress-jump" data-target-section="' + esc(step.targetSection) + '">' + esc(step.label) + '</button>';
+        }).join("");
+    }
+
+    function renderOverview(state) {
+        const target = document.getElementById("config-overview");
+        const config = state.config;
+        const seedingLabel = config.seedingPolicy === "random" ? "Randomized" : "Ranking order";
+        target.innerHTML = '<div class="overview-grid">' +
+            '<div><span class="text-label">Win / draw / loss</span><strong>' + config.POINT_VICTORY_PHASE1 + " / " + config.POINT_DRAW_PHASE1 + " / " + config.POINT_LOSS_PHASE1 + '</strong></div>' +
+            '<div><span class="text-label">Phase 1 matches per team</span><strong>' + config.phase1MatchesPerTeam + '</strong></div>' +
+            '<div><span class="text-label">Qualified for knockout</span><strong>' + config.qualifiedCount + '</strong></div>' +
+            '<div><span class="text-label">Seeding</span><strong>' + esc(seedingLabel) + '</strong></div>' +
+            '<div><span class="text-label">Third place match</span><strong>' + (config.thirdPlaceMatch ? "Yes" : "No") + '</strong></div>' +
+            '<div><span class="text-label">Match / pause duration</span><strong>' + Math.round(config.matchDurationSeconds / 60) + " min / " + Math.round(config.pauseDurationSeconds / 60) + ' min</strong></div>' +
+            '</div>';
     }
 
     function syncConfigForm(state) {
@@ -447,6 +648,7 @@
 
     function bindEvents() {
         updateSummaryControlButtons();
+        bindCollapsibleSections();
 
         document.getElementById("form-add-team").addEventListener("submit", (event) => {
             event.preventDefault();
@@ -573,6 +775,25 @@
                 return;
             }
 
+            if (action === "round-toggle") {
+                const details = target.closest("details.round-card");
+                if (details) {
+                    setRoundOverride(target.getAttribute("data-round-key"), !details.open);
+                }
+                return;
+            }
+
+            if (action === "progress-jump") {
+                const sectionId = target.getAttribute("data-target-section");
+                setSectionOverride(sectionId, true);
+                const details = document.getElementById("section-" + sectionId);
+                if (details) {
+                    details.open = true;
+                    details.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+                return;
+            }
+
             try {
                 if (action === "team-remove") {
                     window.TournamentActions.removeTeam(target.getAttribute("data-team-id"));
@@ -649,6 +870,8 @@
 
     function renderApp(state) {
         syncConfigForm(state);
+        renderProgressBar(state);
+        renderOverview(state);
         renderTeams(state);
         renderTerrains(state);
         renderPhase1(state);
@@ -656,6 +879,7 @@
         renderKnockout(state);
         renderAudit(state);
         applyStageGating(state);
+        applyCollapsibleSections(state);
     }
 
     window.TournamentRender = {

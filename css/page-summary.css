@@ -47,13 +47,6 @@
     opacity: 0.8;
 }
 
-.summary-round-name {
-    margin: 0 0 0.15rem;
-    font-size: 1.4rem;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
 .summary-clock-value {
     margin: 0;
     font-size: 4rem;
@@ -100,6 +93,39 @@
     margin: 1.2rem auto 2rem;
     display: grid;
     gap: 1rem;
+    padding-bottom: 48px;
+}
+
+.summary-footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 48px;
+    padding: 0 16px;
+    background: var(--navy);
+    color: #fff;
+}
+
+.summary-footer-qr {
+    width: 32px;
+    height: 32px;
+    background: #fff;
+    padding: 2px;
+}
+
+.summary-footer-credit {
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.summary-footer-remaining {
+    margin-left: auto;
+    font-size: 15px;
 }
 
 .summary-card {
@@ -227,6 +253,19 @@
     font-weight: 600;
 }
 
+.summary-terrain {
+    display: inline-block;
+    margin: 0.3rem 0 0;
+    padding: 0.2rem 0.6rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--brand);
+    border: 1px solid var(--brand);
+    background: #eaf1ff;
+}
+
 .summary-empty {
     color: var(--muted);
 }
@@ -305,13 +344,59 @@
     font-weight: 600;
 }
 
+/* min-width:0 (not overflow:hidden) lets this grid item shrink to the track width instead
+   of growing to the bracket tree's content size; overflow:hidden here previously did the
+   same job but also broke position:sticky for .bracket-titles-sticky further down */
 .summary-card--bracket {
-    overflow: hidden;
+    min-width: 0;
 }
 
 .bracket-scroll {
+    display: flex;
+    justify-content: safe center;
     overflow-x: auto;
     padding-bottom: 0.5rem;
+}
+
+/* sits outside .bracket-scroll so it can stick to the viewport - position:sticky breaks
+   once nested inside an overflow-x:auto ancestor, so titles live in their own row instead
+   and are kept in horizontal sync with the columns below via JS scroll mirroring */
+.bracket-titles-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    display: flex;
+    justify-content: safe center;
+    overflow: hidden;
+    background: #ffffff;
+    color: #fff;
+}
+
+.bracket-titles-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    padding: 0.5rem 0.5rem 0;
+    background: #00399c;
+    color: #fff;
+}
+
+/* width is set inline per-render (js/summary.js) to match one round-column's full
+   period (longest team name + the .bracket-tree's 2.5rem gap), so touching title-cols
+   line up with their match column below and their shared edge reads as a single
+   divider instead of two borders with a gap between; min-width is just a floor */
+.bracket-title-col {
+    min-width: 240px;
+    box-sizing: border-box;
+    flex: none;
+    text-align: center;
+    padding: 0.3rem 0;
+    font-size: 1rem;
+    border-right: 1px solid #e7e8ea;
+}
+
+.bracket-title-col:first-child {
+    border-left: 1px solid #e7e8ea;
 }
 
 .bracket-tree {
@@ -321,16 +406,12 @@
     padding: 0.5rem 0.5rem 1rem;
 }
 
+/* width is set inline per-render (js/summary.js), sized to the longest registered
+   team name so .bracket-team never needs to truncate; min-width is just a floor */
 .bracket-round {
     display: flex;
     flex-direction: column;
     min-width: 200px;
-}
-
-.bracket-round-title {
-    text-align: center;
-    margin: 0 0 0.5rem;
-    font-size: 1rem;
 }
 
 .bracket-round--current .bracket-match {
@@ -382,6 +463,9 @@
     margin: 0.1rem 0;
     font-size: 1.05rem;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .bracket-match p.text-mono,
@@ -398,23 +482,20 @@
     color: var(--text);
 }
 
-.bracket-champion-col {
-    justify-content: center;
-}
-
-.bracket-champion-col .bracket-round-body {
-    display: flex;
-    align-items: center;
+.bracket-match .summary-terrain {
+    margin: 0.1rem 0;
+    padding: 0.1rem 0.4rem;
+    font-size: 1rem;
 }
 
 .bracket-champion {
     border: 2px solid var(--purple);
     color: var(--purple);
     padding: 0.8rem 1rem;
+    margin-bottom: 0.8rem;
     text-align: center;
     font-size: 1.3rem;
     font-weight: 700;
-    width: 100%;
 }
 
 .bracket-third-place {
@@ -461,10 +542,6 @@
         font-size: 2rem;
     }
 
-    .summary-round-name {
-        font-size: 1.8rem;
-    }
-
     .summary-clock-value,
     .summary-stage-pill {
         font-size: 4.5rem;
@@ -491,6 +568,10 @@
         font-size: 1.8rem;
     }
 
+    .summary-terrain {
+        font-size: 2.1rem;
+    }
+
     .summary-round-block-head h3 {
         font-size: 2.1rem;
     }
@@ -509,7 +590,7 @@
         font-size: 1.6rem;
     }
 
-    .bracket-round-title {
+    .bracket-title-col {
         font-size: 1.6rem;
     }
 

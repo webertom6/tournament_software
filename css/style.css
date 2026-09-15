@@ -93,6 +93,18 @@ button.secondary {
     color: var(--text);
 }
 
+button.secondary.toggle-on {
+    background: var(--ok);
+    border-color: var(--ok);
+    color: #fff;
+}
+
+button.secondary.toggle-off {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
+
 button.important {
     background: var(--red);
     border-color: var(--red);
@@ -113,6 +125,13 @@ button.timer-action {
     background: rgba(180, 83, 9, 0.12);
     border-color: rgba(180, 83, 9, 0.4);
     color: var(--warn);
+}
+
+/* keep the pause/resume row the same height regardless of which button (or none) is shown */
+.match-timer button {
+    min-height: 0;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.7rem;
 }
 
 button:disabled {
@@ -158,6 +177,10 @@ td {
     vertical-align: middle;
 }
 
+tbody tr:hover {
+    background: #eef1f6;
+}
+
 th {
     color: var(--muted);
     font-weight: 600;
@@ -195,4 +218,16 @@ th {
     color: var(--warn);
     border-color: #f0ddb6;
     background: #fffbeb;
+}
+
+.status-pill.current {
+    color: #fff;
+    border-color: var(--brand);
+    background: var(--brand);
+}
+
+.status-pill.upcoming {
+    color: var(--muted);
+    border-color: var(--border);
+    background: #f5f7fa;
 }
