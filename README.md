@@ -39,6 +39,12 @@ Both files work offline, no install and no server needed
   completed
 - Run the knockout bracket round by round, with a third place match if
   enabled, up to the champion
+- The public summary screen shows a live bracket tree with the current
+  round highlighted, and a footer with a QR code and link back to this
+  repository plus the live round countdown
+- Collapsible sections and a sticky progress bar (Setup > Group Matches >
+  Knockout > Champion) make it quick to jump between phases on the
+  operator screen
 - Save the whole tournament to a file, or load one back
 - Reset everything, or only reset the phases while keeping teams, terrains
   and rules
