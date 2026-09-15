@@ -20,7 +20,7 @@
 
     function formatDuration(ms) {
         if (ms === null || ms === undefined || !Number.isFinite(ms)) {
-            return "--:--";
+            return "waiting";
         }
         const sign = ms < 0 ? "-" : "";
         const totalSeconds = Math.floor(Math.abs(ms) / 1000);
@@ -34,7 +34,7 @@
     // remaining time counting down to the configured match duration; goes negative (shown as "+overtime") past it
     function formatCountdown(remainingMs) {
         if (remainingMs === null || remainingMs === undefined || !Number.isFinite(remainingMs)) {
-            return "--:--";
+            return "waiting";
         }
         if (remainingMs < 0) {
             return "+" + formatDuration(-remainingMs);

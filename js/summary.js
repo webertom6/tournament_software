@@ -134,6 +134,12 @@
     // only one round is ever live at a time, so the header shows a single round-level
     // clock even though matches carry their own pause state for scheduling flexibility
     function getCurrentRoundInfo(state, stage) {
+        if (stage === "setup") {
+            return {
+                label: "Setup",
+                startedAt: null
+            };
+        }
         if (stage === "phase1") {
             const currentRoundIndex = getCurrentPhase1RoundIndex(state);
             const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
@@ -161,7 +167,7 @@
         document.getElementById("summary-clock-label").textContent = roundInfo.label;
 
         const matchDurationSeconds = state ? (state.config || {}).matchDurationSeconds : null;
-        let clockText = "--:--";
+        let clockText = "waiting";
         if (roundInfo.startedAt && Number.isFinite(Number(matchDurationSeconds))) {
             const remaining = Number(matchDurationSeconds) * 1000 - (Date.now() - roundInfo.startedAt);
             clockText = window.TournamentTimer.formatCountdown(remaining);
