@@ -237,12 +237,13 @@
                 const homeWinner = homeSrc ? getWinnerId(homeSrc) : null;
                 const awayWinner = awaySrc ? getWinnerId(awaySrc) : null;
 
+                // a missing winner here just means the feeder match isn't completed yet, not a
+                // genuine bracket bye (byes only ever happen in round 0) - must not auto-complete
                 if (match.homeTeamId !== homeWinner || match.awayTeamId !== awayWinner) {
                     match.homeTeamId = homeWinner;
                     match.awayTeamId = awayWinner;
                     clearMatchResult(match);
                 }
-                autoCompleteBye(match);
             });
         }
     }
@@ -274,12 +275,13 @@
             const homeLoser = homeSrc ? getLoserId(homeSrc) : null;
             const awayLoser = awaySrc ? getLoserId(awaySrc) : null;
 
+            // same reasoning as propagateRoundWinners: a missing loser just means one semifinal
+            // hasn't finished yet, not a bye - must not auto-complete
             if (third.homeTeamId !== homeLoser || third.awayTeamId !== awayLoser) {
                 third.homeTeamId = homeLoser;
                 third.awayTeamId = awayLoser;
                 clearMatchResult(third);
             }
-            autoCompleteBye(third);
         }
     }
 
