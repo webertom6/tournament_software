@@ -215,8 +215,9 @@
         const canPauseRound = Boolean(opts.pauseAction && opts.resumeAction);
 
         if (!startedAt) {
+            const disabledAttr = opts.isUpcoming ? ' disabled title="Finish or reach the current round first"' : '';
             return '<div class="round-timer-controls">' +
-                '<button type="button" data-action="' + esc(opts.startAction) + '" data-round-key="' + esc(opts.roundKey) + '">Start round timer</button>' +
+                '<button type="button" data-action="' + esc(opts.startAction) + '" data-round-key="' + esc(opts.roundKey) + '"' + disabledAttr + '>Start round timer</button>' +
                 '</div>';
         }
 
@@ -248,7 +249,7 @@
             '<span class="muted">Round timer:</span> ' +
             '<span class="round-clock' + (liveRemaining < 0 ? " overtime" : "") + '" data-role="round-clock" ' + clockAttrs + '>' + esc(timer.formatCountdown(liveRemaining)) + '</span>' +
             pauseButtonHtml +
-            '<button type="button" class="timer-action" data-action="' + esc(opts.stopAction) + '" data-round-key="' + esc(opts.roundKey) + '">Stop round timer</button>' +
+            '<button type="button" class="danger" data-action="' + esc(opts.stopAction) + '" data-round-key="' + esc(opts.roundKey) + '">Stop round timer</button>' +
             '</div>';
     }
 
@@ -450,7 +451,8 @@
                     pauseAction: "phase1-pause-round",
                     resumeAction: "phase1-resume-round",
                     roundKey: String(roundIndex),
-                    matchDurationSeconds: state.config.matchDurationSeconds
+                    matchDurationSeconds: state.config.matchDurationSeconds,
+                    isUpcoming: statusKey === "upcoming"
                 }) +
                 '<div class="match-row-scroller">' +
                 matches.map((match) => {
@@ -553,7 +555,8 @@
                     pauseAction: "ko-pause-round",
                     resumeAction: "ko-resume-round",
                     roundKey: round.id,
-                    matchDurationSeconds: state.config.matchDurationSeconds
+                    matchDurationSeconds: state.config.matchDurationSeconds,
+                    isUpcoming: statusKey === "upcoming"
                 }) +
                 '<div class="match-row-scroller">' +
                 round.matches.map((match) => {
