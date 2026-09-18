@@ -137,7 +137,9 @@
         if (stage === "setup") {
             return {
                 label: "Setup",
-                startedAt: null
+                startedAt: null,
+                pausedAt: null,
+                pausedTotalMs: 0
             };
         }
         if (stage === "phase1") {
@@ -145,7 +147,9 @@
             const roundTimer = (state.phase1.roundTimers || {})[String(currentRoundIndex)];
             return {
                 label: "Round " + (currentRoundIndex + 1) + "/" + getPhase1TotalRounds(state),
-                startedAt: roundTimer ? roundTimer.startedAt : null
+                startedAt: roundTimer ? roundTimer.startedAt : null,
+                pausedAt: roundTimer ? (roundTimer.pausedAt || null) : null,
+                pausedTotalMs: roundTimer ? (roundTimer.pausedTotalMs || 0) : 0
             };
         }
         if (stage === "knockout") {
@@ -153,23 +157,28 @@
             const round = rounds[getCurrentKnockoutRoundIndex(state)];
             return {
                 label: getKnockoutRoundLabel(round),
-                startedAt: round ? round.startedAt : null
+                startedAt: round ? round.startedAt : null,
+                pausedAt: round ? (round.pausedAt || null) : null,
+                pausedTotalMs: round ? (round.pausedTotalMs || 0) : 0
             };
         }
-        return { label: "-", startedAt: null };
+        return { label: "-", startedAt: null, pausedAt: null, pausedTotalMs: 0 };
     }
 
     function renderHeader(state) {
         const stage = getStageKey(state);
         document.getElementById("summary-stage-pill").textContent = getStageLabel(state);
 
-        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { label: "-", startedAt: null };
+        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { label: "-", startedAt: null, pausedAt: null, pausedTotalMs: 0 };
         document.getElementById("summary-clock-label").textContent = roundInfo.label;
 
         const matchDurationSeconds = state ? (state.config || {}).matchDurationSeconds : null;
         let clockText = "waiting";
         if (roundInfo.startedAt && Number.isFinite(Number(matchDurationSeconds))) {
-            const remaining = Number(matchDurationSeconds) * 1000 - (Date.now() - roundInfo.startedAt);
+            // same formula as the operator page's round countdown (js/timer.js) - never reimplement
+            // this inline, that's how the two pages drifted apart before (round-label casing bug)
+            const elapsed = window.TournamentTimer.computeRoundElapsedMs(roundInfo.startedAt, roundInfo.pausedAt, roundInfo.pausedTotalMs, Date.now());
+            const remaining = Number(matchDurationSeconds) * 1000 - elapsed;
             clockText = window.TournamentTimer.formatCountdown(remaining);
         }
         document.querySelectorAll(".js-round-clock").forEach(function (el) {

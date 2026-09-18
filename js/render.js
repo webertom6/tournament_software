@@ -203,30 +203,63 @@
             '</div>';
     }
 
-    function renderRoundTimerControls(startedAt, stoppedAt, startAction, stopAction, roundKey) {
+    // round: {startedAt, stoppedAt, pausedAt, pausedTotalMs}; opts.pauseAction/resumeAction are
+    // omitted for third place (it has no separate round-pause layer, see getRoundTimerInfo)
+    function renderRoundTimerControls(round, opts) {
+        const timer = window.TournamentTimer;
+        const startedAt = round.startedAt;
+        const stoppedAt = round.stoppedAt;
+        const pausedAt = round.pausedAt;
+        const pausedTotalMs = round.pausedTotalMs || 0;
+        const durationMs = Number(opts.matchDurationSeconds) * 1000;
+        const canPauseRound = Boolean(opts.pauseAction && opts.resumeAction);
+
         if (!startedAt) {
             return '<div class="round-timer-controls">' +
-                '<button type="button" data-action="' + esc(startAction) + '" data-round-key="' + esc(roundKey) + '">Start round timer</button>' +
+                '<button type="button" data-action="' + esc(opts.startAction) + '" data-round-key="' + esc(opts.roundKey) + '">Start round timer</button>' +
                 '</div>';
         }
+
         if (stoppedAt) {
+            const stoppedElapsed = timer.computeRoundElapsedMs(startedAt, null, pausedTotalMs, stoppedAt);
             return '<div class="round-timer-controls">' +
                 '<span class="muted">Round timer stopped at:</span> ' +
-                '<span class="round-clock" data-role="round-clock">' + esc(window.TournamentTimer.formatDuration(stoppedAt - startedAt)) + '</span>' +
+                '<span class="round-clock" data-role="round-clock">' + esc(timer.formatDuration(stoppedElapsed)) + '</span>' +
                 '</div>';
         }
+
+        if (canPauseRound && pausedAt) {
+            const frozenElapsed = timer.computeRoundElapsedMs(startedAt, pausedAt, pausedTotalMs, Date.now());
+            const remaining = durationMs - frozenElapsed;
+            return '<div class="round-timer-controls">' +
+                '<span class="muted">Round timer paused:</span> ' +
+                '<span class="round-clock' + (remaining < 0 ? " overtime" : "") + '" data-role="round-clock">' + esc(timer.formatCountdown(remaining)) + '</span>' +
+                '<button type="button" class="timer-action" data-action="' + esc(opts.resumeAction) + '" data-round-key="' + esc(opts.roundKey) + '">Resume round timer</button>' +
+                '</div>';
+        }
+
+        const liveElapsed = timer.computeRoundElapsedMs(startedAt, null, pausedTotalMs, Date.now());
+        const liveRemaining = durationMs - liveElapsed;
+        const clockAttrs = 'data-started-at="' + startedAt + '" data-paused-total-ms="' + pausedTotalMs + '" data-match-duration-ms="' + durationMs + '"';
+        const pauseButtonHtml = canPauseRound ?
+            '<button type="button" class="timer-action" data-action="' + esc(opts.pauseAction) + '" data-round-key="' + esc(opts.roundKey) + '">Pause round timer</button>' :
+            '';
         return '<div class="round-timer-controls">' +
             '<span class="muted">Round timer:</span> ' +
-            '<span class="round-clock" data-role="round-clock" data-started-at="' + startedAt + '">' +
-            esc(window.TournamentTimer.formatDuration(Date.now() - startedAt)) +
-            '</span>' +
-            '<button type="button" class="timer-action" data-action="' + esc(stopAction) + '" data-round-key="' + esc(roundKey) + '">Stop round timer</button>' +
+            '<span class="round-clock' + (liveRemaining < 0 ? " overtime" : "") + '" data-role="round-clock" ' + clockAttrs + '>' + esc(timer.formatCountdown(liveRemaining)) + '</span>' +
+            pauseButtonHtml +
+            '<button type="button" class="timer-action" data-action="' + esc(opts.stopAction) + '" data-round-key="' + esc(opts.roundKey) + '">Stop round timer</button>' +
             '</div>';
     }
 
-    function renderMatchTimerBlock(roundStartedAt, match, matchDurationSeconds, pauseDurationSeconds) {
+    // round: {startedAt, pausedAt, pausedTotalMs} - the round-level pause layer (see js/timer.js);
+    // for third place, callers pass pausedAt:null/pausedTotalMs:0 (no separate round layer there)
+    function renderMatchTimerBlock(round, match, matchDurationSeconds, pauseDurationSeconds) {
         const timer = window.TournamentTimer;
         const now = Date.now();
+        const roundStartedAt = round.startedAt;
+        const roundPausedAt = round.pausedAt || null;
+        const roundPausedTotalMs = round.pausedTotalMs || 0;
 
         if (match.finalElapsedMs !== null && match.finalElapsedMs !== undefined) {
             return '<div class="match-timer">' +
@@ -243,12 +276,24 @@
         const matchDurationMs = Number(matchDurationSeconds) * 1000;
         const pausedTotalMs = match.pausedTotalMs || 0;
         const pausedAttr = match.pausedAt ? ' data-paused-at="' + match.pausedAt + '"' : '';
+        const roundPausedAttr = roundPausedAt ? ' data-round-paused-at="' + roundPausedAt + '"' : '';
         const clockAttrs = 'data-started-at="' + roundStartedAt + '" data-paused-total-ms="' + pausedTotalMs +
-            '" data-match-duration-ms="' + matchDurationMs + '"' + pausedAttr;
-        const elapsed = timer.computeElapsedMs(roundStartedAt, match, now);
+            '" data-round-paused-total-ms="' + roundPausedTotalMs +
+            '" data-match-duration-ms="' + matchDurationMs + '"' + pausedAttr + roundPausedAttr;
+        const elapsed = timer.computeElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, match, now);
         const remaining = matchDurationMs - elapsed;
         const overtimeClass = remaining < 0 ? " overtime" : "";
         const clockHtml = '<span class="match-clock' + overtimeClass + '" data-role="match-clock" ' + clockAttrs + '>' + esc(timer.formatCountdown(remaining)) + '</span>';
+
+        // the round timer is a separate outer pause layer; while it's paused, per-match
+        // pause/resume is blocked (see actions.js guards) to avoid double-counting pause time,
+        // so just show the frozen clock instead of a button that would error if clicked
+        if (roundPausedAt) {
+            return '<div class="match-timer">' +
+                clockHtml +
+                '<span class="muted">Round paused</span>' +
+                '</div>';
+        }
 
         if (match.pausedAt) {
             const breakRemaining = timer.computeBreakRemainingMs(match, pauseDurationSeconds, now);
@@ -280,9 +325,12 @@
                 return;
             }
             const pausedTotalMs = Number(el.getAttribute("data-paused-total-ms") || 0);
+            const roundPausedTotalMs = Number(el.getAttribute("data-round-paused-total-ms") || 0);
             const pausedAtRaw = el.getAttribute("data-paused-at");
-            const activeEnd = pausedAtRaw ? Number(pausedAtRaw) : now;
-            const elapsed = Math.max(0, activeEnd - startedAt - pausedTotalMs);
+            const roundPausedAtRaw = el.getAttribute("data-round-paused-at");
+            const roundActiveEnd = roundPausedAtRaw ? Number(roundPausedAtRaw) : now;
+            const activeEnd = pausedAtRaw ? Number(pausedAtRaw) : roundActiveEnd;
+            const elapsed = Math.max(0, activeEnd - startedAt - pausedTotalMs - roundPausedTotalMs);
             const matchDurationMs = Number(el.getAttribute("data-match-duration-ms") || 0);
             const remaining = matchDurationMs - elapsed;
             el.classList.toggle("overtime", remaining < 0);
@@ -300,7 +348,12 @@
                 return;
             }
             const startedAt = Number(el.getAttribute("data-started-at"));
-            el.textContent = timer.formatDuration(now - startedAt);
+            const pausedTotalMs = Number(el.getAttribute("data-paused-total-ms") || 0);
+            const durationMs = Number(el.getAttribute("data-match-duration-ms") || 0);
+            const elapsed = Math.max(0, now - startedAt - pausedTotalMs);
+            const remaining = durationMs - elapsed;
+            el.classList.toggle("overtime", remaining < 0);
+            el.textContent = timer.formatCountdown(remaining);
         });
     }
 
@@ -376,8 +429,8 @@
             const roundIndex = Number(entry[0]);
             const matches = entry[1];
             const roundTimer = state.phase1.roundTimers[String(roundIndex)] || null;
-            const roundStartedAt = roundTimer ? roundTimer.startedAt : null;
-            const roundStoppedAt = roundTimer ? roundTimer.stoppedAt : null;
+            const roundTimerSafe = roundTimer || { startedAt: null, stoppedAt: null, pausedAt: null, pausedTotalMs: 0 };
+            const roundStartedAt = roundTimerSafe.startedAt;
             const isCompleted = matches.every((match) => match.status === "completed");
             const isCurrent = !isCompleted && roundIndex === currentRoundIndex;
             const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");
@@ -391,7 +444,14 @@
                 '<span class="chevron" aria-hidden="true"></span>' +
                 '</summary>' +
                 '<div class="round-body">' +
-                renderRoundTimerControls(roundStartedAt, roundStoppedAt, "phase1-start-round", "phase1-stop-round", String(roundIndex)) +
+                renderRoundTimerControls(roundTimerSafe, {
+                    startAction: "phase1-start-round",
+                    stopAction: "phase1-stop-round",
+                    pauseAction: "phase1-pause-round",
+                    resumeAction: "phase1-resume-round",
+                    roundKey: String(roundIndex),
+                    matchDurationSeconds: state.config.matchDurationSeconds
+                }) +
                 '<div class="match-row-scroller">' +
                 matches.map((match) => {
                     return '' +
@@ -405,7 +465,7 @@
                         '<span class="vs-label">vs</span>' +
                         buildTeamSelect(state, "phase1-away-team", match.id, match.awayTeamId, match.homeTeamId, false) +
                         '</div>' +
-                        renderMatchTimerBlock(roundStartedAt, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
+                        renderMatchTimerBlock(roundTimerSafe, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                         '<div class="match-row">' +
                         '<input type="number" min="0" step="1" data-role="phase1-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
                         '<input type="number" min="0" step="1" data-role="phase1-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
@@ -487,7 +547,14 @@
                 '<span class="chevron" aria-hidden="true"></span>' +
                 '</summary>' +
                 '<div class="round-body">' +
-                renderRoundTimerControls(round.startedAt, round.stoppedAt, "ko-start-round", "ko-stop-round", round.id) +
+                renderRoundTimerControls(round, {
+                    startAction: "ko-start-round",
+                    stopAction: "ko-stop-round",
+                    pauseAction: "ko-pause-round",
+                    resumeAction: "ko-resume-round",
+                    roundKey: round.id,
+                    matchDurationSeconds: state.config.matchDurationSeconds
+                }) +
                 '<div class="match-row-scroller">' +
                 round.matches.map((match) => {
                     const isFirstRound = !match.homeSourceMatchId && !match.awaySourceMatchId;
@@ -507,7 +574,7 @@
                         '</div>' +
                         teamsHtml +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
-                        renderMatchTimerBlock(round.startedAt, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
+                        renderMatchTimerBlock(round, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                         '<div class="match-row">' +
                         '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
                         '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
@@ -529,7 +596,10 @@
                 '<div class="round-card">' +
                 '<div class="round-head">' +
                 '<h3>Third place</h3>' +
-                renderRoundTimerControls(tp.startedAt, tp.stoppedAt, "ko-start-round", "ko-stop-round", "thirdPlace") +
+                renderRoundTimerControls(
+                    { startedAt: tp.startedAt, stoppedAt: tp.stoppedAt, pausedAt: null, pausedTotalMs: 0 },
+                    { startAction: "ko-start-round", stopAction: "ko-stop-round", roundKey: "thirdPlace", matchDurationSeconds: state.config.matchDurationSeconds }
+                ) +
                 '</div>' +
                 '<div class="match-card">' +
                 '<div class="match-head">' +
@@ -537,7 +607,7 @@
                 '</div>' +
                 renderMatchTeamsStatic(home, away) +
                 '<p class="muted">Terrain: ' + esc(getTerrainName(state, tp.terrainId)) + '</p>' +
-                renderMatchTimerBlock(tp.startedAt, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
+                renderMatchTimerBlock({ startedAt: tp.startedAt, pausedAt: null, pausedTotalMs: 0 }, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                 '<div class="match-row">' +
                 '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.homeGoals) ? tp.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
                 '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.awayGoals) ? tp.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
@@ -851,6 +921,26 @@
 
                 if (action === "ko-stop-round") {
                     window.TournamentActions.stopKnockoutRoundTimer(target.getAttribute("data-round-key"));
+                    return;
+                }
+
+                if (action === "phase1-pause-round") {
+                    window.TournamentActions.pausePhase1RoundTimer(Number(target.getAttribute("data-round-key")));
+                    return;
+                }
+
+                if (action === "phase1-resume-round") {
+                    window.TournamentActions.resumePhase1RoundTimer(Number(target.getAttribute("data-round-key")));
+                    return;
+                }
+
+                if (action === "ko-pause-round") {
+                    window.TournamentActions.pauseKnockoutRoundTimer(target.getAttribute("data-round-key"));
+                    return;
+                }
+
+                if (action === "ko-resume-round") {
+                    window.TournamentActions.resumeKnockoutRoundTimer(target.getAttribute("data-round-key"));
                     return;
                 }
 

@@ -1,11 +1,24 @@
 (function () {
-    // elapsed = time since round start, minus whatever this match has been paused for
-    function computeElapsedMs(roundStartedAt, match, atTime) {
+    // round-level elapsed: time since round start, minus whatever the round itself has
+    // been paused for; freezes at roundPausedAt while the round is currently paused
+    function computeRoundElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, atTime) {
         if (!roundStartedAt) {
             return null;
         }
-        const pausedTotal = match.pausedTotalMs || 0;
-        const activeEnd = match.pausedAt || atTime;
+        const activeEnd = roundPausedAt || atTime;
+        return Math.max(0, activeEnd - roundStartedAt - (roundPausedTotalMs || 0));
+    }
+
+    // match-level elapsed: same as the round's, further frozen at the match's own
+    // pausedAt if it's individually paused (round-level pause always takes priority,
+    // since nothing progresses for anyone while the whole round is paused)
+    function computeElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, match, atTime) {
+        if (!roundStartedAt) {
+            return null;
+        }
+        const roundActiveEnd = roundPausedAt || atTime;
+        const activeEnd = match.pausedAt || roundActiveEnd;
+        const pausedTotal = (roundPausedTotalMs || 0) + (match.pausedTotalMs || 0);
         return Math.max(0, activeEnd - roundStartedAt - pausedTotal);
     }
 
@@ -43,9 +56,11 @@
     }
 
     window.TournamentTimer = {
+        computeRoundElapsedMs: computeRoundElapsedMs,
         computeElapsedMs: computeElapsedMs,
         computeBreakRemainingMs: computeBreakRemainingMs,
         formatDuration: formatDuration,
         formatCountdown: formatCountdown
     };
 })();
+

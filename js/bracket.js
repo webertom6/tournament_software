@@ -87,6 +87,8 @@
                 name: getRoundName(roundIndex, totalRounds),
                 startedAt: null,
                 stoppedAt: null,
+                pausedAt: null,
+                pausedTotalMs: 0,
                 matches: []
             };
 
