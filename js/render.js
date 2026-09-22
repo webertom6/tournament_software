@@ -203,6 +203,13 @@
             '</div>';
     }
 
+    // <select>/<option> text isn't reachable by the browser's find-in-page (Ctrl+F);
+    // this mirrors only the currently assigned team names as small real text (not
+    // clipped-hidden) so a Ctrl+F match is actually visible, not just jumped-to
+    function buildSearchableTeamNames(home, away) {
+        return '<p class="match-search-label">' + esc(home) + ' vs ' + esc(away) + '</p>';
+    }
+
     // round: {startedAt, stoppedAt, pausedAt, pausedTotalMs}; opts.pauseAction/resumeAction are
     // omitted for third place (it has no separate round-pause layer, see getRoundTimerInfo)
     function renderRoundTimerControls(round, opts) {
@@ -462,6 +469,10 @@
                         '<span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span>' +
                         '</div>' +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+                        buildSearchableTeamNames(
+                            match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD",
+                            match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD"
+                        ) +
                         '<div class="match-teams">' +
                         buildTeamSelect(state, "phase1-home-team", match.id, match.homeTeamId, match.awayTeamId, false) +
                         '<span class="vs-label">vs</span>' +
@@ -564,6 +575,7 @@
                     const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
                     const away = match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD";
                     const teamsHtml = isFirstRound ?
+                        buildSearchableTeamNames(home, away) +
                         '<div class="match-teams">' +
                         buildTeamSelect(state, "ko-home-team", match.id, match.homeTeamId, match.awayTeamId, true) +
                         '<span class="vs-label">vs</span>' +
