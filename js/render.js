@@ -123,6 +123,19 @@
         });
     }
 
+    // every round-level <details class="round-card"> currently in the DOM, regardless of
+    // which section it lives in - used so "expand/collapse all" and "jump to current round"
+    // share one enumeration instead of drifting apart
+    function forEachRoundCard(callback) {
+        document.querySelectorAll("details.round-card").forEach((details) => {
+            const summary = details.querySelector(":scope > summary[data-round-key]");
+            const roundKey = summary ? summary.getAttribute("data-round-key") : null;
+            if (roundKey) {
+                callback(details, roundKey);
+            }
+        });
+    }
+
     function setAllSectionsOpen(isOpen) {
         COLLAPSIBLE_SECTION_IDS.forEach((sectionId) => {
             setSectionOverride(sectionId, isOpen);
@@ -130,6 +143,10 @@
             if (details) {
                 details.open = isOpen;
             }
+        });
+        forEachRoundCard((details, roundKey) => {
+            setRoundOverride(roundKey, isOpen);
+            details.open = isOpen;
         });
     }
 
@@ -433,6 +450,27 @@
         return Math.max(0, rounds.length - 1);
     }
 
+    // reuses the exact same "which round is current" logic renderPhase1/renderKnockout use for
+    // their own auto-expand, so "jump to current round" can never disagree with what auto-expands
+    function getCurrentRoundKeyForSection(sectionId, state) {
+        if (sectionId === "phase1") {
+            if (!state.phase1.generated || !state.phase1.matches.length) {
+                return null;
+            }
+            const rounds = groupPhase1ByRound(state.phase1.matches);
+            return "phase1:" + getCurrentPhase1RoundIndex(rounds);
+        }
+        if (sectionId === "knockout") {
+            if (!state.knockout.generated || !state.knockout.rounds.length) {
+                return null;
+            }
+            const currentRoundIndex = getCurrentKnockoutRoundIndex(state.knockout.rounds);
+            const round = state.knockout.rounds[currentRoundIndex];
+            return round ? "knockout:" + round.id : null;
+        }
+        return null;
+    }
+
     // bracket.js only names the last 3 rounds (Quarterfinal/Semifinal/Final); earlier
     // rounds keep a generic stored name, so derive "Round of N" from the round's own match count
     // (mirrors js/summary.js's getKnockoutRoundLabel so both pages label rounds the same way)
@@ -676,10 +714,11 @@
     function renderProgressBar(state) {
         const target = document.getElementById("progress-bar");
         const currentStep = getCurrentWorkflowStep(state);
-        target.innerHTML = PROGRESS_STEPS.map((step) => {
+        const stepsHtml = PROGRESS_STEPS.map((step) => {
             const isCurrent = step.key === currentStep;
             return '<button type="button" class="progress-step' + (isCurrent ? " progress-step--current" : "") + '" data-action="progress-jump" data-target-section="' + esc(step.targetSection) + '">' + esc(step.label) + '</button>';
         }).join("");
+        target.innerHTML = '<button type="button" class="progress-back-to-top" data-action="scroll-top" title="Back to top of page" aria-label="Back to top of page"><img src="assets/chevron-double-up.svg" alt=""></button>' + stepsHtml;
     }
 
     function renderOverview(state) {
@@ -899,12 +938,33 @@
 
             if (action === "progress-jump") {
                 const sectionId = target.getAttribute("data-target-section");
+                // collapse everything first so jumping to a step always leaves a clean,
+                // focused view instead of piling on top of whatever was already open
+                setAllSectionsOpen(false);
                 setSectionOverride(sectionId, true);
-                const details = document.getElementById("section-" + sectionId);
-                if (details) {
-                    details.open = true;
-                    details.scrollIntoView({ behavior: "smooth", block: "start" });
+                const sectionDetails = document.getElementById("section-" + sectionId);
+                if (sectionDetails) {
+                    sectionDetails.open = true;
                 }
+                let scrollTarget = sectionDetails;
+                const roundKey = getCurrentRoundKeyForSection(sectionId, window.TournamentState.getState());
+                if (roundKey) {
+                    setRoundOverride(roundKey, true);
+                    const roundSummary = document.querySelector('summary[data-round-key="' + roundKey + '"]');
+                    const roundDetails = roundSummary ? roundSummary.closest("details.round-card") : null;
+                    if (roundDetails) {
+                        roundDetails.open = true;
+                        scrollTarget = roundDetails;
+                    }
+                }
+                if (scrollTarget) {
+                    scrollTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+                return;
+            }
+
+            if (action === "scroll-top") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
                 return;
             }
 
