@@ -198,7 +198,7 @@ th {
 .match-search-label {
     /* if search-in-page is used, this text will be visible */
     margin: 0 0 0.2rem;
-    font-size: 0.7rem;
+    font-size: 1px;
     color: var(--muted);
     /* uncomment the following block to hide the text visually but keep it searchable */
     /* position: absolute;

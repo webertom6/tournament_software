@@ -729,6 +729,7 @@
 
         document.getElementById("btn-generate-phase1").disabled = setupLocked;
         document.getElementById("btn-start-knockout").disabled = !state.phase1.generated || !phase1AllCompleted || state.knockout.generated;
+        document.getElementById("btn-back-to-phase1").disabled = !state.knockout.generated;
     }
 
     function bindEvents() {
@@ -787,6 +788,18 @@
         document.getElementById("btn-start-knockout").addEventListener("click", () => {
             try {
                 window.TournamentActions.startKnockout();
+            } catch (error) {
+                handleError(error);
+            }
+        });
+
+        document.getElementById("btn-back-to-phase1").addEventListener("click", () => {
+            const ok = confirm("Clear the knockout bracket and go back to phase 1? Phase 1 scores are kept.");
+            if (!ok) {
+                return;
+            }
+            try {
+                window.TournamentActions.backToPhase1();
             } catch (error) {
                 handleError(error);
             }

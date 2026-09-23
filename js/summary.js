@@ -138,6 +138,7 @@
             return {
                 label: "Setup",
                 startedAt: null,
+                stoppedAt: null,
                 pausedAt: null,
                 pausedTotalMs: 0
             };
@@ -148,6 +149,7 @@
             return {
                 label: "Round " + (currentRoundIndex + 1) + "/" + getPhase1TotalRounds(state),
                 startedAt: roundTimer ? roundTimer.startedAt : null,
+                stoppedAt: roundTimer ? (roundTimer.stoppedAt || null) : null,
                 pausedAt: roundTimer ? (roundTimer.pausedAt || null) : null,
                 pausedTotalMs: roundTimer ? (roundTimer.pausedTotalMs || 0) : 0
             };
@@ -158,18 +160,19 @@
             return {
                 label: getKnockoutRoundLabel(round),
                 startedAt: round ? round.startedAt : null,
+                stoppedAt: round ? (round.stoppedAt || null) : null,
                 pausedAt: round ? (round.pausedAt || null) : null,
                 pausedTotalMs: round ? (round.pausedTotalMs || 0) : 0
             };
         }
-        return { label: "-", startedAt: null, pausedAt: null, pausedTotalMs: 0 };
+        return { label: "-", startedAt: null, stoppedAt: null, pausedAt: null, pausedTotalMs: 0 };
     }
 
     function renderHeader(state) {
         const stage = getStageKey(state);
         document.getElementById("summary-stage-pill").textContent = getStageLabel(state);
 
-        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { label: "-", startedAt: null, pausedAt: null, pausedTotalMs: 0 };
+        const roundInfo = state ? getCurrentRoundInfo(state, stage) : { label: "-", startedAt: null, stoppedAt: null, pausedAt: null, pausedTotalMs: 0 };
         document.getElementById("summary-clock-label").textContent = roundInfo.label;
 
         const matchDurationSeconds = state ? (state.config || {}).matchDurationSeconds : null;
@@ -177,7 +180,10 @@
         if (roundInfo.startedAt && Number.isFinite(Number(matchDurationSeconds))) {
             // same formula as the operator page's round countdown (js/timer.js) - never reimplement
             // this inline, that's how the two pages drifted apart before (round-label casing bug)
-            const elapsed = window.TournamentTimer.computeRoundElapsedMs(roundInfo.startedAt, roundInfo.pausedAt, roundInfo.pausedTotalMs, Date.now());
+            // a stopped round timer must freeze at stoppedAt, not keep computing against Date.now()
+            // forever (that produced a nonsensical, ever-growing overtime for long-finished rounds)
+            const atTime = roundInfo.stoppedAt || Date.now();
+            const elapsed = window.TournamentTimer.computeRoundElapsedMs(roundInfo.startedAt, roundInfo.pausedAt, roundInfo.pausedTotalMs, atTime);
             const remaining = Number(matchDurationSeconds) * 1000 - elapsed;
             clockText = window.TournamentTimer.formatCountdown(remaining);
         }

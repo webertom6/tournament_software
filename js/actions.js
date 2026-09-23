@@ -275,6 +275,18 @@
         }, "Reset phase 1 and knockout while preserving teams and terrains");
     }
 
+    // lighter than resetPhases: only clears the knockout bracket, keeps every
+    // phase 1 match/score/round timer as-is so scores or team assignments can be
+    // corrected before generating the knockout again
+    function backToPhase1() {
+        window.TournamentState.update((state) => {
+            if (!state.knockout.generated) {
+                throw new Error("Knockout is not generated");
+            }
+            clearKnockoutState(state);
+        }, "Reverted to phase 1, keeping phase 1 scores");
+    }
+
     function startKnockout() {
         window.TournamentState.update((state) => {
             if (!state.phase1.generated) {
@@ -590,6 +602,7 @@
         applyPhase1Score: applyPhase1Score,
         reopenPhase1Match: reopenPhase1Match,
         resetPhases: resetPhases,
+        backToPhase1: backToPhase1,
         startKnockout: startKnockout,
         applyKnockoutScore: applyKnockoutScore,
         reopenKnockoutMatch: reopenKnockoutMatch,
