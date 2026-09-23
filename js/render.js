@@ -688,7 +688,7 @@
         const seedingLabel = config.seedingPolicy === "random" ? "Randomized" : "Ranking order";
         target.innerHTML = '<div class="overview-grid">' +
             '<div><span class="text-label">Win / draw / loss</span><strong>' + config.POINT_VICTORY_PHASE1 + " / " + config.POINT_DRAW_PHASE1 + " / " + config.POINT_LOSS_PHASE1 + '</strong></div>' +
-            '<div><span class="text-label">Phase 1 matches per team</span><strong>' + config.phase1MatchesPerTeam + '</strong></div>' +
+            '<div><span class="text-label">Group matches per team</span><strong>' + config.phase1MatchesPerTeam + '</strong></div>' +
             '<div><span class="text-label">Qualified for knockout</span><strong>' + config.qualifiedCount + '</strong></div>' +
             '<div><span class="text-label">Seeding</span><strong>' + esc(seedingLabel) + '</strong></div>' +
             '<div><span class="text-label">Third place match</span><strong>' + (config.thirdPlaceMatch ? "Yes" : "No") + '</strong></div>' +
