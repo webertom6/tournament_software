@@ -11,12 +11,13 @@
 
     // match-level elapsed: same as the round's, further frozen at the match's own
     // pausedAt if it's individually paused (round-level pause always takes priority,
-    // since nothing progresses for anyone while the whole round is paused)
-    function computeElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, match, atTime) {
+    // since nothing progresses for anyone while the whole round is paused); a stopped
+    // round freezes everyone at stoppedAt, same idea as computeRoundElapsedMs
+    function computeElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, roundStoppedAt, match, atTime) {
         if (!roundStartedAt) {
             return null;
         }
-        const roundActiveEnd = roundPausedAt || atTime;
+        const roundActiveEnd = roundStoppedAt || roundPausedAt || atTime;
         const activeEnd = match.pausedAt || roundActiveEnd;
         const pausedTotal = (roundPausedTotalMs || 0) + (match.pausedTotalMs || 0);
         return Math.max(0, activeEnd - roundStartedAt - pausedTotal);

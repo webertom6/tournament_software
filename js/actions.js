@@ -237,6 +237,7 @@
                 roundInfo.startedAt,
                 roundInfo.pausedAt,
                 roundInfo.pausedTotalMs,
+                roundInfo.stoppedAt,
                 match,
                 Date.now()
             );
@@ -253,8 +254,6 @@
             if (!match) {
                 throw new Error("Phase 1 match not found");
             }
-            match.homeGoals = null;
-            match.awayGoals = null;
             match.status = "scheduled";
             // clear the frozen snapshot so the live clock takes back over (continues from
             // real elapsed time, possibly already in overtime) instead of staying stuck
@@ -368,6 +367,7 @@
                 roundInfo.startedAt,
                 roundInfo.pausedAt,
                 roundInfo.pausedTotalMs,
+                roundInfo.stoppedAt,
                 match,
                 Date.now()
             );
@@ -382,8 +382,6 @@
             if (!match) {
                 throw new Error("Knockout match not found");
             }
-            match.homeGoals = null;
-            match.awayGoals = null;
             match.status = "scheduled";
             // see reopenPhase1Match: let the live clock take back over instead of staying frozen
             match.finalElapsedMs = null;

@@ -180,7 +180,22 @@
         }).join("") + '</div>';
     }
 
-    function buildTeamSelect(state, role, matchId, currentTeamId, otherTeamId, allowEmpty) {
+    // a completed match is fully locked (score + team) until Reopen is clicked; a
+    // not-yet-completed match can't be reopened (nothing to reopen), guiding the
+    // operator through Reopen -> edit -> Save instead of editing in place
+    function buildScoreRow(match, homeRole, awayRole, saveAction, reopenAction) {
+        const isCompleted = match.status === "completed";
+        const lockedAttr = isCompleted ? ' disabled' : '';
+        const reopenAttr = isCompleted ? '' : ' disabled title="Only a completed match can be reopened"';
+        return '<div class="match-row">' +
+            '<input type="number" min="0" step="1" data-role="' + homeRole + '" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals"' + lockedAttr + '>' +
+            '<input type="number" min="0" step="1" data-role="' + awayRole + '" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals"' + lockedAttr + '>' +
+            '<button type="button" data-action="' + esc(saveAction) + '" data-match-id="' + esc(match.id) + '"' + lockedAttr + '>Save score</button>' +
+            '<button type="button" class="reopen" data-action="' + esc(reopenAction) + '" data-match-id="' + esc(match.id) + '"' + reopenAttr + '>Reopen</button>' +
+            '</div>';
+    }
+
+    function buildTeamSelect(state, role, matchId, currentTeamId, otherTeamId, allowEmpty, isLocked) {
         const options = [];
         if (allowEmpty) {
             options.push('<option value=""' + (!currentTeamId ? ' selected' : '') + '>BYE / none</option>');
@@ -192,7 +207,11 @@
             const selected = team.id === currentTeamId ? ' selected' : '';
             options.push('<option value="' + esc(team.id) + '"' + selected + '>' + esc(team.name) + '</option>');
         });
-        return '<select data-role="' + role + '" data-match-id="' + esc(matchId) + '" aria-label="' + role + '">' + options.join("") + '</select>';
+        // locked once a match is completed, so a team swap can't silently go unnoticed -
+        // reopening the match (which keeps the score, see reopenPhase1Match/reopenKnockoutMatch)
+        // unlocks it again
+        const lockedAttr = isLocked ? ' disabled title="Reopen the match to change teams"' : '';
+        return '<select data-role="' + role + '" data-match-id="' + esc(matchId) + '" aria-label="' + role + '"' + lockedAttr + '>' + options.join("") + '</select>';
     }
 
     function renderMatchTeamsStatic(home, away) {
@@ -260,14 +279,16 @@
             '</div>';
     }
 
-    // round: {startedAt, pausedAt, pausedTotalMs} - the round-level pause layer (see js/timer.js);
-    // for third place, callers pass pausedAt:null/pausedTotalMs:0 (no separate round layer there)
+    // round: {startedAt, pausedAt, pausedTotalMs, stoppedAt} - the round-level pause layer
+    // (see js/timer.js); for third place, callers pass pausedAt:null/pausedTotalMs:0 (no
+    // separate round layer there) but DO pass its own stoppedAt
     function renderMatchTimerBlock(round, match, matchDurationSeconds, pauseDurationSeconds) {
         const timer = window.TournamentTimer;
         const now = Date.now();
         const roundStartedAt = round.startedAt;
         const roundPausedAt = round.pausedAt || null;
         const roundPausedTotalMs = round.pausedTotalMs || 0;
+        const roundStoppedAt = round.stoppedAt || null;
 
         if (match.finalElapsedMs !== null && match.finalElapsedMs !== undefined) {
             return '<div class="match-timer">' +
@@ -285,17 +306,26 @@
         const pausedTotalMs = match.pausedTotalMs || 0;
         const pausedAttr = match.pausedAt ? ' data-paused-at="' + match.pausedAt + '"' : '';
         const roundPausedAttr = roundPausedAt ? ' data-round-paused-at="' + roundPausedAt + '"' : '';
+        const roundStoppedAttr = roundStoppedAt ? ' data-round-stopped-at="' + roundStoppedAt + '"' : '';
         const clockAttrs = 'data-started-at="' + roundStartedAt + '" data-paused-total-ms="' + pausedTotalMs +
             '" data-round-paused-total-ms="' + roundPausedTotalMs +
-            '" data-match-duration-ms="' + matchDurationMs + '"' + pausedAttr + roundPausedAttr;
-        const elapsed = timer.computeElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, match, now);
+            '" data-match-duration-ms="' + matchDurationMs + '"' + pausedAttr + roundPausedAttr + roundStoppedAttr;
+        const elapsed = timer.computeElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, roundStoppedAt, match, now);
         const remaining = matchDurationMs - elapsed;
         const overtimeClass = remaining < 0 ? " overtime" : "";
         const clockHtml = '<span class="match-clock' + overtimeClass + '" data-role="match-clock" ' + clockAttrs + '>' + esc(timer.formatCountdown(remaining)) + '</span>';
 
-        // the round timer is a separate outer pause layer; while it's paused, per-match
-        // pause/resume is blocked (see actions.js guards) to avoid double-counting pause time,
-        // so just show the frozen clock instead of a button that would error if clicked
+        // a stopped round freezes everyone's clock for good (no resume possible); a paused
+        // round freezes it temporarily. Either way, per-match pause/resume is blocked (see
+        // actions.js guards) to avoid double-counting time, so just show the frozen clock
+        // instead of a button that would error if clicked
+        if (roundStoppedAt) {
+            return '<div class="match-timer">' +
+                clockHtml +
+                '<span class="muted">Round timer stopped</span>' +
+                '</div>';
+        }
+
         if (roundPausedAt) {
             return '<div class="match-timer">' +
                 clockHtml +
@@ -336,7 +366,8 @@
             const roundPausedTotalMs = Number(el.getAttribute("data-round-paused-total-ms") || 0);
             const pausedAtRaw = el.getAttribute("data-paused-at");
             const roundPausedAtRaw = el.getAttribute("data-round-paused-at");
-            const roundActiveEnd = roundPausedAtRaw ? Number(roundPausedAtRaw) : now;
+            const roundStoppedAtRaw = el.getAttribute("data-round-stopped-at");
+            const roundActiveEnd = roundStoppedAtRaw ? Number(roundStoppedAtRaw) : (roundPausedAtRaw ? Number(roundPausedAtRaw) : now);
             const activeEnd = pausedAtRaw ? Number(pausedAtRaw) : roundActiveEnd;
             const elapsed = Math.max(0, activeEnd - startedAt - pausedTotalMs - roundPausedTotalMs);
             const matchDurationMs = Number(el.getAttribute("data-match-duration-ms") || 0);
@@ -474,17 +505,12 @@
                             match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD"
                         ) +
                         '<div class="match-teams">' +
-                        buildTeamSelect(state, "phase1-home-team", match.id, match.homeTeamId, match.awayTeamId, false) +
+                        buildTeamSelect(state, "phase1-home-team", match.id, match.homeTeamId, match.awayTeamId, false, match.status === "completed") +
                         '<span class="vs-label">vs</span>' +
-                        buildTeamSelect(state, "phase1-away-team", match.id, match.awayTeamId, match.homeTeamId, false) +
+                        buildTeamSelect(state, "phase1-away-team", match.id, match.awayTeamId, match.homeTeamId, false, match.status === "completed") +
                         '</div>' +
                         renderMatchTimerBlock(roundTimerSafe, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
-                        '<div class="match-row">' +
-                        '<input type="number" min="0" step="1" data-role="phase1-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
-                        '<input type="number" min="0" step="1" data-role="phase1-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
-                        '<button type="button" data-action="phase1-save" data-match-id="' + esc(match.id) + '">Save score</button>' +
-                        '<button type="button" class="reopen" data-action="phase1-reopen" data-match-id="' + esc(match.id) + '">Reopen</button>' +
-                        '</div>' +
+                        buildScoreRow(match, "phase1-home", "phase1-away", "phase1-save", "phase1-reopen") +
                         '</div>';
                 }).join("") +
                 '</div>' +
@@ -512,7 +538,7 @@
                 return '' +
                     "<tr>" +
                     "<td>" + row.rank + "</td>" +
-                    "<td>" + esc(row.teamName) + (isQualified ? ' <span class="status-pill completed">Q</span>' : "") + "</td>" +
+                    "<td>" + (isQualified ? '<span class="status-pill completed">Q</span> ' : "") + esc(row.teamName) + "</td>" +
                     "<td>" + row.played + "</td>" +
                     "<td>" + row.wins + "</td>" +
                     "<td>" + row.draws + "</td>" +
@@ -577,9 +603,9 @@
                     const teamsHtml = isFirstRound ?
                         buildSearchableTeamNames(home, away) +
                         '<div class="match-teams">' +
-                        buildTeamSelect(state, "ko-home-team", match.id, match.homeTeamId, match.awayTeamId, true) +
+                        buildTeamSelect(state, "ko-home-team", match.id, match.homeTeamId, match.awayTeamId, true, match.status === "completed") +
                         '<span class="vs-label">vs</span>' +
-                        buildTeamSelect(state, "ko-away-team", match.id, match.awayTeamId, match.homeTeamId, true) +
+                        buildTeamSelect(state, "ko-away-team", match.id, match.awayTeamId, match.homeTeamId, true, match.status === "completed") +
                         '</div>' :
                         renderMatchTeamsStatic(home, away);
                     return '' +
@@ -590,12 +616,7 @@
                         teamsHtml +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
                         renderMatchTimerBlock(round, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
-                        '<div class="match-row">' +
-                        '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
-                        '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
-                        '<button type="button" data-action="ko-save" data-match-id="' + esc(match.id) + '">Save score</button>' +
-                        '<button type="button" class="reopen" data-action="ko-reopen" data-match-id="' + esc(match.id) + '">Reopen</button>' +
-                        '</div>' +
+                        buildScoreRow(match, "ko-home", "ko-away", "ko-save", "ko-reopen") +
                         '</div>';
                 }).join("") +
                 '</div>' +
@@ -622,13 +643,8 @@
                 '</div>' +
                 renderMatchTeamsStatic(home, away) +
                 '<p class="muted">Terrain: ' + esc(getTerrainName(state, tp.terrainId)) + '</p>' +
-                renderMatchTimerBlock({ startedAt: tp.startedAt, pausedAt: null, pausedTotalMs: 0 }, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
-                '<div class="match-row">' +
-                '<input type="number" min="0" step="1" data-role="ko-home" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.homeGoals) ? tp.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals">' +
-                '<input type="number" min="0" step="1" data-role="ko-away" data-match-id="' + esc(tp.id) + '" value="' + (Number.isFinite(tp.awayGoals) ? tp.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals">' +
-                '<button type="button" data-action="ko-save" data-match-id="' + esc(tp.id) + '">Save score</button>' +
-                '<button type="button" class="reopen" data-action="ko-reopen" data-match-id="' + esc(tp.id) + '">Reopen</button>' +
-                '</div>' +
+                renderMatchTimerBlock({ startedAt: tp.startedAt, pausedAt: null, pausedTotalMs: 0, stoppedAt: tp.stoppedAt }, tp, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
+                buildScoreRow(tp, "ko-home", "ko-away", "ko-save", "ko-reopen") +
                 '</div>' +
                 '</div>';
         } else {
