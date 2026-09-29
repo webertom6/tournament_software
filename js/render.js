@@ -481,6 +481,200 @@
         return "Round of " + (round.matches.length * 2);
     }
 
+    // physical page dimensions in millimeters - not all of these are native CSS @page
+    // size keywords (only A3/A4/A5 are), so every size is spelled out explicitly here
+    const PAPER_SIZES_MM = {
+        A0: [841, 1189],
+        A1: [594, 841],
+        A2: [420, 594],
+        A3: [297, 420],
+        A4: [210, 297],
+        A5: [148, 210]
+    };
+
+    // one content shape per print kind, decoupled from HTML so "what to show" stays a
+    // single decision point even though each kind renders very differently on paper
+    function pluralize(count, singular) {
+        return count + " " + singular + (count === 1 ? "" : "s");
+    }
+
+    function getExportModel(kind, state) {
+        const generatedAt = new Date().toLocaleString();
+        const meta = pluralize(state.teams.length, "team") + " - " + pluralize(state.terrains.length, "terrain") + " - Generated " + generatedAt;
+
+        if (kind === "standings") {
+            return { type: "standings", title: "Standings", meta: meta, standings: window.TournamentRules.buildStandings(state) };
+        }
+
+        const step = getCurrentWorkflowStep(state);
+
+        if (step === "phase1" && state.phase1.generated && state.phase1.matches.length) {
+            const rounds = groupPhase1ByRound(state.phase1.matches);
+            const roundIndex = getCurrentPhase1RoundIndex(rounds);
+            const roundEntry = rounds.find((entry) => Number(entry[0]) === roundIndex);
+            const matches = roundEntry ? roundEntry[1] : [];
+            const isCompleted = matches.length > 0 && matches.every((match) => match.status === "completed");
+            return {
+                type: "phase1",
+                title: "Phase 1 - Round " + (roundIndex + 1),
+                meta: meta,
+                statusKey: isCompleted ? "completed" : "current",
+                statusLabel: isCompleted ? "Completed" : "In progress",
+                matches: matches
+            };
+        }
+
+        if ((step === "knockout" || step === "champion") && state.knockout.generated && state.knockout.rounds.length) {
+            return {
+                type: "knockout",
+                title: "Knockout Bracket",
+                meta: meta,
+                statusKey: step === "champion" ? "completed" : "current",
+                statusLabel: step === "champion" ? "Champion decided" : "In progress",
+                rounds: state.knockout.rounds,
+                thirdPlace: state.config.thirdPlaceMatch ? state.knockout.thirdPlace : null
+            };
+        }
+
+        // setup stage, or a later stage with nothing generated yet - fall back to the team list
+        return { type: "teams", title: "Registered Teams", meta: meta, teams: state.teams };
+    }
+
+    function buildExportHeaderHtml(model) {
+        const statusHtml = model.statusKey ?
+            '<span class="print-status-pill ' + model.statusKey + '">' + esc(model.statusLabel) + '</span>' : "";
+        return '' +
+            '<div class="print-banner">' +
+            '<div>' +
+            '<p class="print-brand-small">Tournament Software</p>' +
+            '<h1 class="print-title">' + esc(model.title) + '</h1>' +
+            '<p class="print-meta">' + esc(model.meta) + '</p>' +
+            '</div>' +
+            statusHtml +
+            '</div>';
+    }
+
+    function buildTeamsPrintHtml(model) {
+        if (!model.teams.length) {
+            return '<p class="print-empty">No teams registered yet</p>';
+        }
+        return '<div class="print-chip-grid">' +
+            model.teams.map((team) => '<span class="print-chip">' + esc(team.name) + '</span>').join("") +
+            '</div>';
+    }
+
+    // one real match card (known teams, optional score) - phase 1 always has both teams
+    // assigned upfront, and this is also reused for round 1 of the knockout bracket
+    function buildMatchCardHtml(state, match) {
+        const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
+        const away = match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD";
+        const scoreHtml = (Number.isFinite(match.homeGoals) && Number.isFinite(match.awayGoals)) ?
+            '<p class="print-match-score">' + match.homeGoals + " - " + match.awayGoals + '</p>' : "";
+        return '' +
+            '<article class="print-match">' +
+            '<p class="print-match-teams">' + esc(home) + ' <span class="print-vs">vs</span> ' + esc(away) + '</p>' +
+            scoreHtml +
+            '<p class="print-match-terrain">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+            '</article>';
+    }
+
+    // knockout rounds past round 1 have unknown teams on paper (the printout is made once,
+    // ahead of time) - a blank line to write the winner's name on is more useful than "TBD",
+    // the assigned terrain is kept since that IS already fixed at generation time
+    function buildBlankMatchCardHtml(state, match) {
+        return '' +
+            '<article class="print-match print-match--blank">' +
+            '<p class="print-match-teams print-match-teams--blank">' +
+            '<span class="print-blank-line"></span><span class="print-vs">vs</span><span class="print-blank-line"></span>' +
+            '</p>' +
+            '<p class="print-match-terrain">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
+            '</article>';
+    }
+
+    function buildPhase1PrintHtml(state, model) {
+        if (!model.matches.length) {
+            return '<p class="print-empty">No matches yet</p>';
+        }
+        return '<div class="print-match-grid">' +
+            model.matches.map((match) => buildMatchCardHtml(state, match)).join("") +
+            '</div>';
+    }
+
+    function buildKnockoutPrintHtml(state, model) {
+        const roundsHtml = model.rounds.map((round, roundIndex) => {
+            const cards = round.matches.map((match) => (roundIndex === 0 ? buildMatchCardHtml(state, match) : buildBlankMatchCardHtml(state, match))).join("");
+            return '' +
+                '<section class="print-bracket-round">' +
+                '<h2>' + esc(getKnockoutRoundLabel(round)) + '</h2>' +
+                '<div class="print-match-grid">' + cards + '</div>' +
+                '</section>';
+        }).join("");
+        const thirdPlaceHtml = model.thirdPlace ?
+            '<section class="print-bracket-round">' +
+            '<h2>Third place</h2>' +
+            '<div class="print-match-grid">' + buildBlankMatchCardHtml(state, model.thirdPlace) + '</div>' +
+            '</section>' : "";
+        return '<div class="print-bracket">' + roundsHtml + thirdPlaceHtml + '</div>';
+    }
+
+    function buildStandingsPrintHtml(model) {
+        if (!model.standings.length) {
+            return '<p class="print-empty">No standings yet</p>';
+        }
+        return '<table class="print-table">' +
+            '<thead><tr><th>#</th><th>Team</th><th>P</th><th>GD</th><th>Best</th><th>Pts</th></tr></thead>' +
+            '<tbody>' +
+            model.standings.map((row) => '' +
+                '<tr>' +
+                '<td>' + row.rank + '</td>' +
+                '<td>' + esc(row.teamName) + '</td>' +
+                '<td>' + row.played + '</td>' +
+                '<td>' + row.gd + '</td>' +
+                '<td>' + row.bestScore + '</td>' +
+                '<td>' + row.points + '</td>' +
+                '</tr>').join("") +
+            '</tbody></table>';
+    }
+
+    // deliberately plain: white page, navy text, thin rules, no live strip/timer/full-color
+    // banner - this is meant to be read on paper by a table with no screen, not glanced at
+    // from across a room like summary.html, so it favors low ink use over scoreboard drama
+    function buildExportHtml(model, state) {
+        let contentHtml;
+        if (model.type === "standings") {
+            contentHtml = buildStandingsPrintHtml(model);
+        } else if (model.type === "phase1") {
+            contentHtml = buildPhase1PrintHtml(state, model);
+        } else if (model.type === "knockout") {
+            contentHtml = buildKnockoutPrintHtml(state, model);
+        } else {
+            contentHtml = buildTeamsPrintHtml(model);
+        }
+        return '<div class="print-page">' + buildExportHeaderHtml(model) + contentHtml + '</div>';
+    }
+
+    function setPrintPageSize(paperKey) {
+        const size = PAPER_SIZES_MM[paperKey] || PAPER_SIZES_MM.A4;
+        let styleTag = document.getElementById("print-page-size-style");
+        if (!styleTag) {
+            styleTag = document.createElement("style");
+            styleTag.id = "print-page-size-style";
+            document.head.appendChild(styleTag);
+        }
+        styleTag.textContent = "@page { size: " + size[0] + "mm " + size[1] + "mm; margin: 10mm; }";
+    }
+
+    function generateExport() {
+        const state = window.TournamentState.getState();
+        const kind = document.getElementById("export-print-content").value;
+        const paperKey = document.getElementById("export-print-paper").value;
+        const model = getExportModel(kind, state);
+
+        document.getElementById("print-root").innerHTML = buildExportHtml(model, state);
+        setPrintPageSize(paperKey);
+        window.print();
+    }
+
     function renderRoundStatusPill(statusKey) {
         const label = statusKey === "completed" ? "Completed" : (statusKey === "current" ? "In progress" : "Upcoming");
         return '<span class="status-pill ' + statusKey + '">' + label + '</span>';
@@ -888,6 +1082,19 @@
 
         document.getElementById("btn-export-state").addEventListener("click", () => {
             window.TournamentActions.exportStateToDownload();
+        });
+
+        document.getElementById("btn-export-print").addEventListener("click", () => {
+            const panel = document.getElementById("export-print-panel");
+            panel.hidden = !panel.hidden;
+        });
+
+        document.getElementById("btn-export-print-generate").addEventListener("click", () => {
+            try {
+                generateExport();
+            } catch (error) {
+                handleError(error);
+            }
         });
 
         const importInput = document.getElementById("import-state-input");

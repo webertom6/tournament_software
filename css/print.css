@@ -1,0 +1,186 @@
+/* print-only output: same family as page-summary.css (navy text, condensed display
+   headings, thin hairline rules) but no live strip/timer/full-color banner - this is
+   read on paper by a table with no screen, so it favors low ink use over screen drama */
+
+#print-root {
+    display: none;
+}
+
+@media print {
+    body > *:not(#print-root) {
+        display: none !important;
+    }
+
+    #print-root {
+        display: block !important;
+    }
+}
+
+.print-page {
+    padding: 10mm;
+    background: #fff;
+    color: var(--text);
+    font-family: var(--font-body);
+}
+
+.print-banner {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 2px solid var(--navy);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.print-brand-small {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+}
+
+.print-title {
+    margin: 0.15rem 0 0;
+    font-family: var(--font-display);
+    color: var(--navy);
+    font-weight: 800;
+    font-size: 2.6rem;
+    line-height: 0.95;
+    text-transform: uppercase;
+}
+
+.print-meta {
+    margin: 0.3rem 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.print-status-pill {
+    flex: none;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+}
+
+.print-status-pill.current {
+    color: #fff;
+    background: var(--brand);
+    border-color: var(--brand);
+}
+
+.print-status-pill.completed {
+    color: var(--ok);
+    border-color: #b9e8cb;
+    background: #f0fff4;
+}
+
+.print-empty {
+    color: var(--muted);
+}
+
+.print-chip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.print-chip {
+    border: 1px solid var(--navy);
+    color: var(--navy);
+    padding: 0.35rem 0.75rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.print-bracket-round {
+    margin-bottom: 1.2rem;
+}
+
+.print-bracket-round h2 {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-display);
+    color: var(--navy);
+    font-size: 1.3rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.25rem;
+}
+
+.print-match-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.6rem;
+}
+
+.print-match {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.65rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.print-match-teams {
+    margin: 0;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.print-vs {
+    color: var(--muted);
+    font-weight: 400;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+.print-match-score {
+    margin: 0.2rem 0 0;
+    font-family: var(--font-mono);
+    font-weight: 700;
+}
+
+.print-match-terrain {
+    margin: 0.2rem 0 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.print-match--blank .print-match-teams--blank {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.print-blank-line {
+    flex: 1 1 0;
+    display: inline-block;
+    height: 1.1em;
+    border-bottom: 1px solid var(--navy);
+}
+
+.print-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.print-table th,
+.print-table td {
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.5rem;
+    text-align: left;
+    font-size: 0.85rem;
+}
+
+.print-table th {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    color: var(--navy);
+    background: #fff;
+}

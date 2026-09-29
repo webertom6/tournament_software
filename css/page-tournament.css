@@ -110,6 +110,10 @@
     margin-bottom: 0.8rem;
 }
 
+.export-print-panel {
+    margin-bottom: 0.8rem;
+}
+
 .progress-bar {
     position: sticky;
     top: 0;

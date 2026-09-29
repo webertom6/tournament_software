@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="./assets/logo_charneux.svg">
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/page-tournament.css">
+    <link rel="stylesheet" href="./css/print.css">
 </head>
 <body>
     <header class="app-header">
@@ -33,9 +34,34 @@
             <button id="btn-toggle-summary-scroll" type="button" class="secondary toggle-off">Auto-scroll: OFF</button>
             <button id="btn-export-state" type="button">Export state</button>
             <button id="btn-import-state" type="button">Import state</button>
+            <button id="btn-export-print" type="button" class="secondary">Export / Print</button>
             <button id="btn-reset-state" type="button" class="danger">Reset all</button>
             <button id="btn-expand-all" type="button" class="secondary">Expand all</button>
             <button id="btn-collapse-all" type="button" class="secondary">Collapse all</button>
+        </div>
+
+        <div class="panel export-print-panel" id="export-print-panel" hidden>
+            <div class="grid-4">
+                <label>
+                    Content
+                    <select id="export-print-content">
+                        <option value="phase">Current phase</option>
+                        <option value="standings">Standings table</option>
+                    </select>
+                </label>
+                <label>
+                    Paper size
+                    <select id="export-print-paper">
+                        <option value="A0">A0</option>
+                        <option value="A1">A1</option>
+                        <option value="A2">A2</option>
+                        <option value="A3">A3</option>
+                        <option value="A4" selected>A4</option>
+                        <option value="A5">A5</option>
+                    </select>
+                </label>
+                <button id="btn-export-print-generate" type="button">Print</button>
+            </div>
         </div>
 
         <div class="card overview-card" id="overview-card">
@@ -175,6 +201,8 @@
             </div>
         </details>
     </main>
+
+    <div id="print-root" aria-hidden="true"></div>
 
     <input id="import-state-input" type="file" accept="application/json" hidden>
 
