@@ -510,17 +510,14 @@
 
         if (step === "phase1" && state.phase1.generated && state.phase1.matches.length) {
             const rounds = groupPhase1ByRound(state.phase1.matches);
-            const roundIndex = getCurrentPhase1RoundIndex(rounds);
-            const roundEntry = rounds.find((entry) => Number(entry[0]) === roundIndex);
-            const matches = roundEntry ? roundEntry[1] : [];
-            const isCompleted = matches.length > 0 && matches.every((match) => match.status === "completed");
+            const isCompleted = state.phase1.matches.every((match) => match.status === "completed");
             return {
                 type: "phase1",
-                title: "Phase 1 - Round " + (roundIndex + 1),
+                title: "Phase 1 - Group Matches",
                 meta: meta,
                 statusKey: isCompleted ? "completed" : "current",
                 statusLabel: isCompleted ? "Completed" : "In progress",
-                matches: matches
+                rounds: rounds
             };
         }
 
@@ -563,56 +560,61 @@
             '</div>';
     }
 
-    // one real match card (known teams, optional score) - phase 1 always has both teams
-    // assigned upfront, and this is also reused for round 1 of the knockout bracket
-    function buildMatchCardHtml(state, match) {
-        const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
-        const away = match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD";
-        const scoreHtml = (Number.isFinite(match.homeGoals) && Number.isFinite(match.awayGoals)) ?
-            '<p class="print-match-score">' + match.homeGoals + " - " + match.awayGoals + '</p>' : "";
-        return '' +
-            '<article class="print-match">' +
-            '<p class="print-match-teams">' + esc(home) + ' <span class="print-vs">vs</span> ' + esc(away) + '</p>' +
-            scoreHtml +
-            '<p class="print-match-terrain">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
-            '</article>';
+    // shows the real score when recorded, otherwise a blank line to fill in by hand -
+    // shared by every match card so "pending result" always looks the same on paper
+    function buildScoreLineHtml(match) {
+        if (Number.isFinite(match.homeGoals) && Number.isFinite(match.awayGoals)) {
+            return '<p class="print-match-score">' + match.homeGoals + " - " + match.awayGoals + '</p>';
+        }
+        return '<p class="print-match-score print-match-score--blank"><span class="print-blank-score"></span> - <span class="print-blank-score"></span></p>';
     }
 
-    // knockout rounds past round 1 have unknown teams on paper (the printout is made once,
-    // ahead of time) - a blank line to write the winner's name on is more useful than "TBD",
-    // the assigned terrain is kept since that IS already fixed at generation time
-    function buildBlankMatchCardHtml(state, match) {
+    // teamsKnown is true for phase 1 (teams always assigned upfront) and knockout round 1
+    // (seeded from qualifiers); later knockout rounds pass false since the printout is made
+    // once ahead of time - blank writing lines beat "TBD" there. The terrain is always known
+    // (fixed at generation time) so it's always printed even when the teams aren't yet
+    function buildMatchCardHtml(state, match, teamsKnown) {
+        const teamsHtml = teamsKnown ?
+            esc(match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD") +
+            ' <span class="print-vs">vs</span> ' +
+            esc(match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD") :
+            '<span class="print-blank-line"></span><span class="print-vs">vs</span><span class="print-blank-line"></span>';
         return '' +
-            '<article class="print-match print-match--blank">' +
-            '<p class="print-match-teams print-match-teams--blank">' +
-            '<span class="print-blank-line"></span><span class="print-vs">vs</span><span class="print-blank-line"></span>' +
-            '</p>' +
+            '<article class="print-match' + (teamsKnown ? '' : ' print-match--blank') + '">' +
+            '<p class="print-match-teams' + (teamsKnown ? '' : ' print-match-teams--blank') + '">' + teamsHtml + '</p>' +
+            buildScoreLineHtml(match) +
             '<p class="print-match-terrain">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
             '</article>';
     }
 
     function buildPhase1PrintHtml(state, model) {
-        if (!model.matches.length) {
+        if (!model.rounds.length) {
             return '<p class="print-empty">No matches yet</p>';
         }
-        return '<div class="print-match-grid">' +
-            model.matches.map((match) => buildMatchCardHtml(state, match)).join("") +
-            '</div>';
+        return '<div class="print-bracket">' + model.rounds.map((entry) => {
+            const roundIndex = Number(entry[0]);
+            const cards = entry[1].map((match) => buildMatchCardHtml(state, match, true)).join("");
+            return '' +
+                '<section class="print-round-section">' +
+                '<h2>Round ' + (roundIndex + 1) + '</h2>' +
+                '<div class="print-match-grid">' + cards + '</div>' +
+                '</section>';
+        }).join("") + '</div>';
     }
 
     function buildKnockoutPrintHtml(state, model) {
         const roundsHtml = model.rounds.map((round, roundIndex) => {
-            const cards = round.matches.map((match) => (roundIndex === 0 ? buildMatchCardHtml(state, match) : buildBlankMatchCardHtml(state, match))).join("");
+            const cards = round.matches.map((match) => buildMatchCardHtml(state, match, roundIndex === 0)).join("");
             return '' +
-                '<section class="print-bracket-round">' +
+                '<section class="print-round-section">' +
                 '<h2>' + esc(getKnockoutRoundLabel(round)) + '</h2>' +
                 '<div class="print-match-grid">' + cards + '</div>' +
                 '</section>';
         }).join("");
         const thirdPlaceHtml = model.thirdPlace ?
-            '<section class="print-bracket-round">' +
+            '<section class="print-round-section">' +
             '<h2>Third place</h2>' +
-            '<div class="print-match-grid">' + buildBlankMatchCardHtml(state, model.thirdPlace) + '</div>' +
+            '<div class="print-match-grid">' + buildMatchCardHtml(state, model.thirdPlace, false) + '</div>' +
             '</section>' : "";
         return '<div class="print-bracket">' + roundsHtml + thirdPlaceHtml + '</div>';
     }

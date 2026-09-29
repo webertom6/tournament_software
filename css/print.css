@@ -100,11 +100,11 @@
     letter-spacing: 0.03em;
 }
 
-.print-bracket-round {
+.print-round-section {
     margin-bottom: 1.2rem;
 }
 
-.print-bracket-round h2 {
+.print-round-section h2 {
     margin: 0 0 0.5rem;
     font-family: var(--font-display);
     color: var(--navy);
@@ -112,6 +112,8 @@
     text-transform: uppercase;
     border-bottom: 1px solid var(--border);
     padding-bottom: 0.25rem;
+    break-after: avoid;
+    page-break-after: avoid;
 }
 
 .print-match-grid {
@@ -162,6 +164,20 @@
     flex: 1 1 0;
     display: inline-block;
     height: 1.1em;
+    border-bottom: 1px solid var(--navy);
+}
+
+.print-match-score--blank {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    font-family: var(--font-mono);
+}
+
+.print-blank-score {
+    display: inline-block;
+    width: 1.6em;
+    height: 1em;
     border-bottom: 1px solid var(--navy);
 }
 
