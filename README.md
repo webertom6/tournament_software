@@ -7,6 +7,9 @@ is installed and nothing needs an internet connection. It was built for and
 used at one real event; the logic behind it is solid but the look and feel is
 still a bit rough and will keep improving.
 
+The application embeds its own interface fonts and other runtime assets, so
+the operator and summary pages keep their intended appearance offline.
+
 ## Getting it
 
 1. On the GitHub page, click the green "Code" button, then "Download ZIP"
@@ -30,7 +33,7 @@ Both files work offline, no install and no server needed
 - **Auto-generate the group stage schedule**, matches spread across terrains and
   rounds
 - Enter scores match by match, standings update by themselves (ranked by
-  points, then total score, then best score)
+  points, then goal average, goals conceded and team name)
 - Start one shared timer per round for every match in it, pause/resume a
   single match if it gets interrupted, see an overtime indicator if a match
   runs past its duration
@@ -46,6 +49,7 @@ Both files work offline, no install and no server needed
   Knockout > Champion) make it quick to jump between phases on the
   operator screen
 - Save the whole tournament to a file, or load one back
+- Print full standings or phase match sheets on A3, A4 or A5 paper
 - Reset everything, or only reset the phases while keeping teams, terrains
   and rules
 - Remote-control the public screen: show/hide its standings table, start or

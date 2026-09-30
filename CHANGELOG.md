@@ -268,3 +268,69 @@ date : 12-09-2026 to 15-09-2026
   actually reached later rounds; fixed the scroll offset being computed
   relative to the wrong ancestor element, which made it overshoot straight
   to the far right and hide whichever round was actually current.
+
+# fix/backend_crowned_timer_f
+## context
+Improves tournament reporting and maintenance: standings now use clear
+football statistics and consistent highlighting, operator printouts include
+the same information as the live tables, the project has a comprehensive
+automated regression suite, and all required fonts are embedded for fully
+offline use.
+
+## changes
+
+### printable standings and match sheets
+date : 30-09-2026
+
+- changes : added an Export / Print panel for full standings or phase match
+  sheets, with selectable A3, A4 and A5 paper sizes; completed matches print
+  their saved scores while pending matches leave blank score cells for
+  handwritten results.
+- impact files : `index.html`, `render.js`, `page-tournament.css`,
+  `print.css`.
+- fix : phase 1 printouts now include every match without orphaned round
+  headings, and dense tables fit the selected paper format more reliably.
+
+### standings statistics, tie-breaks and highlights
+date : 30-09-2026
+
+- changes : renamed goals for to GT (Goal Total), renamed goals against to
+  GC (Goal Conceded), added GA (Goal Average = GT / matches played), and
+  aligned operator, summary and print tables on the full column set
+  `# Team P W D L GT GC GA GD Last Best Pts`; qualification now sorts by
+  points, GA, GC, then team name; qualified rank/team cells use a light
+  green background and each meaningful best statistic uses a purple
+  background, both preserved in black-and-white printing; numeric columns
+  are centered while team names remain left-aligned.
+- impact files : `rules.js`, `render.js`, `summary.js`, `style.css`,
+  `print.css`, `HOW.md`, `DESIGN.md`.
+- fix : corrected confusing goals terminology, stale tie-break behavior,
+  incomplete printed standings columns, space-consuming qualification
+  markers, and left-aligned numeric standings cells.
+
+### automated regression test suite
+date : 01-10-2026
+
+- changes : added 53 dependency-free Node tests covering public contracts,
+  state and imports, timers, standings, scheduling, brackets, actions,
+  operator and summary page behavior, plus a complete deterministic
+  50-team / 20-terrain tournament; tests load the unchanged production
+  scripts in isolated browser-like VM contexts and compare them with
+  handwritten contracts and independent oracles; added an exhaustive test
+  reference in `tests/README.md`.
+- impact files : new `tests/` directory, `README.md`,
+  `.github/copilot-instructions.md`.
+- fix : development now has one repeatable command that exits nonzero on a
+  regression and identifies the failing behavior.
+
+### embedded offline fonts
+date : 01-10-2026
+
+- changes : replaced the Google Fonts import with local Barlow, Barlow
+  Condensed and Roboto Mono files for only the weights used by the design;
+  included the OFL licenses and strengthened the offline contract test so
+  remote CSS assets fail.
+- impact files : `style.css`, new `assets/fonts/`, contract tests and test
+  documentation.
+- fix : the intended typography now works without an internet connection
+  when either page is opened directly through `file://`.
