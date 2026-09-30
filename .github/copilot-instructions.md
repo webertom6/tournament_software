@@ -8,10 +8,17 @@ This project is a vanilla HTML/CSS/JS app with no package manager, build step, o
 - Admin UI: `http://localhost:8080/index.html`
 - Teams summary UI: `http://localhost:8080/summary.html`
 
-No formal lint/test runner is configured.
+Regression tests use Node built-ins with isolated VM/browser-like sandboxes; no dependencies or package manager are needed.
+
+- Full regression suite: `node --test --test-concurrency=1 "tests/*.test.js"`
+- Focused file: `node --test tests/02-timer.test.js`
+- Read the final pass/fail counts and assertion locations; a clean run has no failed, cancelled, skipped, or todo tests.
+
+No formal lint runner is configured.
 
 - Single-file JS syntax check: `node --check .\js\actions.js`
 - Full JS syntax sweep: `Get-ChildItem .\js\*.js | ForEach-Object { node --check $_.FullName }`
+- JS and test syntax sweep: `Get-ChildItem .\js\*.js, .\tests\*.js | ForEach-Object { node --check $_.FullName }`
 
 ## High-level architecture
 

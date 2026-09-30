@@ -84,3 +84,37 @@ Both files work offline, no install and no server needed
 - **Import state**: loads a previously exported file, replacing whatever is
   currently open.
 - **Reset all**: wipes everything and starts from a blank tournament.
+
+## Automated regression tests
+
+The tests run the real JavaScript in fresh, isolated browser-like Node VM
+sandboxes. They use only Node built-ins: no install, dependencies, server or
+package manager is needed. From the repository root, run:
+
+```sh
+node --test --test-concurrency=1 "tests/*.test.js"
+```
+
+The files run in order: 00 contracts, 01 state, 02 timer, 03 rules,
+04 scheduler, 05 bracket, 06 actions, 07 operator page, 08 summary page,
+09 full tournament flow. Run one file by replacing the wildcard with its
+filename.
+
+Coverage includes persistence/import/export, validation and reset guards,
+standings and tie-breaks, schedule constraints, seeded brackets and BYEs,
+score corrections, timer pauses, page events, print content and read-only
+live summary behavior. The full flow exercises 50 teams and a 20-team
+knockout, including a corrected quarterfinal and replay from a backup.
+Expected results come from handwritten contracts and score tables,
+independent standings and invariant checkers, and known seeded outcomes;
+they are not snapshots copied from the implementation.
+
+The minimal DOM, clock, storage and dialogs are fakes. Tests do not check
+real-browser layout, CSS, actual downloads/printers, device compatibility,
+or every malformed legacy file. Known unsupported edge cases are not
+asserted as desired behavior. Tests never write tournament files.
+
+Read the final pass/fail counts: a clean run has zero failures, cancelled,
+skipped and todo tests. A failure names its case and shows the assertion,
+expected/actual values and location. Rerun that file to investigate; change
+production behavior only after confirming the intended tournament rule.
