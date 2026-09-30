@@ -181,6 +181,11 @@ tbody tr:hover {
     background: #eef1f6;
 }
 
+.stat-best {
+    color: var(--purple);
+    font-weight: 600;
+}
+
 th {
     color: var(--muted);
     font-weight: 600;

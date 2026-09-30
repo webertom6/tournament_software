@@ -197,10 +197,10 @@
     }
 
     function getStandingsColumnCount(teamCount) {
-        if (teamCount > 40) {
+        if (teamCount > 80) {
             return 3;
         }
-        if (teamCount > 15) {
+        if (teamCount > 30) {
             return 2;
         }
         return 1;
@@ -218,21 +218,31 @@
         return chunks;
     }
 
-    function renderStandingsTable(rows, qualifiedCount, topBest) {
+    function renderStandingsTable(rows, qualifiedCount, bestValues) {
         return '<table>' +
-            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>GD</th><th>Best</th><th>Pts</th></tr></thead>" +
+            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GT</th><th>GC</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>" +
             "<tbody>" +
             rows.map((row) => {
                 const isQualified = row.rank <= qualifiedCount;
-                const bestClass = row.bestScore > 0 && row.bestScore === topBest ? "text-mono best-score-top" : "text-mono";
+                const cell = (value, key, classes) => {
+                    const isBest = bestValues[key] !== null && row[key] === bestValues[key];
+                    return '<td class="' + classes + (isBest ? " stat-best" : "") + '">' + value + "</td>";
+                };
                 return '' +
                     "<tr>" +
                     '<td class="rank text-mono">' + row.rank + "</td>" +
                     "<td>" + esc(row.teamName) + (isQualified ? ' <span class="status-pill completed">Q</span>' : "") + "</td>" +
                     "<td>" + row.played + "</td>" +
-                    "<td>" + row.gd + "</td>" +
-                    '<td class="' + bestClass + '">' + row.bestScore + "</td>" +
-                    '<td class="text-mono"><strong>' + row.points + "</strong></td>" +
+                    cell(row.wins, "wins", "text-mono") +
+                    '<td class="text-mono">' + row.draws + "</td>" +
+                    cell(row.losses, "losses", "text-mono") +
+                    cell(row.gt, "gt", "text-mono") +
+                    cell(row.gc, "gc", "text-mono") +
+                    cell(row.ga.toFixed(2), "ga", "text-mono") +
+                    cell(row.gd, "gd", "text-mono") +
+                    cell(row.lastScore === null ? "-" : row.lastScore, "lastScore", "text-mono") +
+                    cell(row.bestScore, "bestScore", "text-mono") +
+                    '<td class="text-mono' + (bestValues.points !== null && row.points === bestValues.points ? " stat-best" : "") + '"><strong>' + row.points + "</strong></td>" +
                     "</tr>";
             }).join("") +
             "</tbody></table>";
@@ -252,12 +262,12 @@
         }
 
         const qualifiedCount = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
-        const topBest = Math.max(0, ...standings.map((row) => row.bestScore));
+        const bestValues = window.TournamentRules.getStandingsBestValues(standings);
         const columnCount = getStandingsColumnCount(standings.length);
         const columns = chunkStandings(standings, columnCount);
 
         target.innerHTML = '<div class="standings-columns">' +
-            columns.map((rows) => '<div class="table-wrap">' + renderStandingsTable(rows, qualifiedCount, topBest) + '</div>').join("") +
+            columns.map((rows) => '<div class="table-wrap">' + renderStandingsTable(rows, qualifiedCount, bestValues) + '</div>').join("") +
             '</div>';
     }
 

@@ -503,7 +503,14 @@
         const meta = pluralize(state.teams.length, "team") + " - " + pluralize(state.terrains.length, "terrain") + " - Generated " + generatedAt;
 
         if (kind === "standings") {
-            return { type: "standings", title: "Standings", meta: meta, standings: window.TournamentRules.buildStandings(state) };
+            const standings = window.TournamentRules.buildStandings(state);
+            return {
+                type: "standings",
+                title: "Standings",
+                meta: meta,
+                standings: standings,
+                qualifiedCount: window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount)
+            };
         }
 
         const step = getCurrentWorkflowStep(state);
@@ -624,14 +631,21 @@
             return '<p class="print-empty">No standings yet</p>';
         }
         return '<table class="print-table">' +
-            '<thead><tr><th>#</th><th>Team</th><th>P</th><th>GD</th><th>Best</th><th>Pts</th></tr></thead>' +
+            '<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GT</th><th>GC</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>' +
             '<tbody>' +
             model.standings.map((row) => '' +
                 '<tr>' +
                 '<td>' + row.rank + '</td>' +
-                '<td>' + esc(row.teamName) + '</td>' +
+                '<td>' + esc(row.teamName) + (row.rank <= model.qualifiedCount ? ' <span class="print-qualified">Q</span>' : '') + '</td>' +
                 '<td>' + row.played + '</td>' +
+                '<td>' + row.wins + '</td>' +
+                '<td>' + row.draws + '</td>' +
+                '<td>' + row.losses + '</td>' +
+                '<td>' + row.gt + '</td>' +
+                '<td>' + row.gc + '</td>' +
+                '<td>' + row.ga.toFixed(2) + '</td>' +
                 '<td>' + row.gd + '</td>' +
+                '<td>' + (row.lastScore === null ? "-" : row.lastScore) + '</td>' +
                 '<td>' + row.bestScore + '</td>' +
                 '<td>' + row.points + '</td>' +
                 '</tr>').join("") +
@@ -762,27 +776,34 @@
         }
 
         const normalizedQualified = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
+        const bestValues = window.TournamentRules.getStandingsBestValues(standings);
         target.innerHTML =
             '<p class="muted">Qualified for knockout: top ' + normalizedQualified + " teams</p>" +
             "<table>" +
-            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>" +
+            "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GT</th><th>GC</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>" +
             "<tbody>" +
             standings.map((row, index) => {
                 const isQualified = index < normalizedQualified;
+                // value is what gets printed, key is the raw field the best-value check reads
+                const cell = (value, key) => {
+                    const isBest = bestValues[key] !== null && row[key] === bestValues[key];
+                    return "<td" + (isBest ? ' class="stat-best"' : "") + ">" + value + "</td>";
+                };
                 return '' +
                     "<tr>" +
                     "<td>" + row.rank + "</td>" +
                     "<td>" + (isQualified ? '<span class="status-pill completed">Q</span> ' : "") + esc(row.teamName) + "</td>" +
                     "<td>" + row.played + "</td>" +
-                    "<td>" + row.wins + "</td>" +
+                    cell(row.wins, "wins") +
                     "<td>" + row.draws + "</td>" +
-                    "<td>" + row.losses + "</td>" +
-                    "<td>" + row.gf + "</td>" +
-                    "<td>" + row.ga + "</td>" +
-                    "<td>" + row.gd + "</td>" +
-                    "<td>" + (row.lastScore === null ? "-" : row.lastScore) + "</td>" +
-                    "<td>" + row.bestScore + "</td>" +
-                    "<td><strong>" + row.points + "</strong></td>" +
+                    cell(row.losses, "losses") +
+                    cell(row.gt, "gt") +
+                    cell(row.gc, "gc") +
+                    cell(row.ga.toFixed(2), "ga") +
+                    cell(row.gd, "gd") +
+                    cell(row.lastScore === null ? "-" : row.lastScore, "lastScore") +
+                    cell(row.bestScore, "bestScore") +
+                    cell("<strong>" + row.points + "</strong>", "points") +
                     "</tr>";
             }).join("") +
             "</tbody>" +
