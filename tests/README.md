@@ -86,8 +86,8 @@ Inside:
 - rejects module scripts, remote page assets and network-loading JavaScript
 - checks assets referenced by production JavaScript exist
 
-Limitation: Existing optional remote font imports in CSS are not treated as a
-failure because the application remains usable without them.
+Limitation: Embedded data URLs remain allowed, but every HTTP or
+protocol-relative CSS asset is rejected.
 
 ## 01 - State
 

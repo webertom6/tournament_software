@@ -44,8 +44,8 @@ test("contracts: file protocol safe scripts, links and referenced assets", () =>
         for (const [, ref] of source.matchAll(/["']((?:\.\/)?assets\/[^"']+)["']/g)) assert.ok(fs.existsSync(path.join(ROOT, ref)));
         if (file.endsWith(".css")) {
             for (const [, ref] of source.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)) {
-                // Optional web-font imports have offline system-font fallbacks.
-                if (/^(?:data:|https?:|\/\/)/.test(ref)) continue;
+                assert.doesNotMatch(ref, /^(?:https?:|\/\/)/);
+                if (ref.startsWith("data:")) continue;
                 assert.ok(fs.existsSync(path.resolve(ROOT, "css", ref)), ref);
             }
         }
