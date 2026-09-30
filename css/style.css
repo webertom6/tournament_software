@@ -16,6 +16,8 @@
     --danger: #b91c1c;
     --red: #e11d22;
     --purple: #8b35ff;
+    --qualified-bg: #d3f3de;
+    --best-bg: #dcc8ff;
 }
 
 * {
@@ -181,9 +183,42 @@ tbody tr:hover {
     background: #eef1f6;
 }
 
+/* numbers centered in their cells, team names stay left-aligned for scanning
+   table.x selector outranks print.css's .print-table td, which loads later */
+table.standings-table th,
+table.standings-table td {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+table.standings-table th:nth-child(2),
+table.standings-table td:nth-child(2) {
+    text-align: left;
+}
+
+/* standings cell shading: backgrounds rather than text color so the signal survives a
+   B&W printout - the two tints sit at clearly different grey levels (green ~83% luminance,
+   purple ~64%) so qualified cells and best-stat cells stay distinguishable without color */
+.standings-qualified {
+    background: var(--qualified-bg);
+}
+
 .stat-best {
-    color: var(--purple);
-    font-weight: 600;
+    background: var(--best-bg);
+    font-weight: 700;
+}
+
+.standings-qualified,
+.stat-best {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* screen tables have no vertical rules, so neighbouring best cells would fuse into one
+   slab - a surface-colored side border keeps each award readable as its own cell */
+table:not(.print-table) .stat-best {
+    border-left: 2px solid var(--surface);
+    border-right: 2px solid var(--surface);
 }
 
 th {

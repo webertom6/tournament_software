@@ -135,6 +135,13 @@ ranking/bracket emphasis. Neither is used as general decoration. Danger red
 and warnings, kept visually distinct from the brighter alert red used for
 urgent-but-routine actions.
 
+**The Standings Shading Rule.** In standings tables the green and purple
+roles are carried by cell backgrounds, not text color: qualified-bg
+(#d3f3de) shades the rank and team cells of the top N qualified teams,
+best-bg (#dcc8ff) plus bold shades each column's best value. Both print
+(`print-color-adjust: exact`) and sit at distinct grey levels so they stay
+distinguishable on a black-and-white printer.
+
 ## 3. Typography
 
 **Display Font:** Barlow Condensed (with sans-serif fallback)

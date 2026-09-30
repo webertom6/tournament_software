@@ -200,9 +200,3 @@
     color: var(--navy);
     background: #fff;
 }
-
-.print-qualified {
-    color: var(--navy);
-    font-size: 0.7rem;
-    font-weight: 700;
-}

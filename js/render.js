@@ -509,7 +509,8 @@
                 title: "Standings",
                 meta: meta,
                 standings: standings,
-                qualifiedCount: window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount)
+                qualifiedCount: window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount),
+                bestValues: window.TournamentRules.getStandingsBestValues(standings)
             };
         }
 
@@ -630,25 +631,34 @@
         if (!model.standings.length) {
             return '<p class="print-empty">No standings yet</p>';
         }
-        return '<table class="print-table">' +
+        return '<table class="print-table standings-table">' +
             '<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GT</th><th>GC</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>' +
             '<tbody>' +
-            model.standings.map((row) => '' +
-                '<tr>' +
-                '<td>' + row.rank + '</td>' +
-                '<td>' + esc(row.teamName) + (row.rank <= model.qualifiedCount ? ' <span class="print-qualified">Q</span>' : '') + '</td>' +
-                '<td>' + row.played + '</td>' +
-                '<td>' + row.wins + '</td>' +
-                '<td>' + row.draws + '</td>' +
-                '<td>' + row.losses + '</td>' +
-                '<td>' + row.gt + '</td>' +
-                '<td>' + row.gc + '</td>' +
-                '<td>' + row.ga.toFixed(2) + '</td>' +
-                '<td>' + row.gd + '</td>' +
-                '<td>' + (row.lastScore === null ? "-" : row.lastScore) + '</td>' +
-                '<td>' + row.bestScore + '</td>' +
-                '<td>' + row.points + '</td>' +
-                '</tr>').join("") +
+            model.standings.map((row) => {
+                const qualifiedAttr = row.rank <= model.qualifiedCount ? ' class="standings-qualified"' : "";
+                // shading is the one exception to the low-ink rule: it is what makes the
+                // qualified cut and the best stats readable on a B&W printout
+                const cell = (value, key) => {
+                    const isBest = model.bestValues[key] !== null && row[key] === model.bestValues[key];
+                    return '<td' + (isBest ? ' class="stat-best"' : "") + '>' + value + '</td>';
+                };
+                return '' +
+                    '<tr>' +
+                    '<td' + qualifiedAttr + '>' + row.rank + '</td>' +
+                    '<td' + qualifiedAttr + '>' + esc(row.teamName) + '</td>' +
+                    '<td>' + row.played + '</td>' +
+                    cell(row.wins, "wins") +
+                    '<td>' + row.draws + '</td>' +
+                    cell(row.losses, "losses") +
+                    cell(row.gt, "gt") +
+                    cell(row.gc, "gc") +
+                    cell(row.ga.toFixed(2), "ga") +
+                    cell(row.gd, "gd") +
+                    cell(row.lastScore === null ? "-" : row.lastScore, "lastScore") +
+                    cell(row.bestScore, "bestScore") +
+                    cell(row.points, "points") +
+                    '</tr>';
+            }).join("") +
             '</tbody></table>';
     }
 
@@ -779,11 +789,12 @@
         const bestValues = window.TournamentRules.getStandingsBestValues(standings);
         target.innerHTML =
             '<p class="muted">Qualified for knockout: top ' + normalizedQualified + " teams</p>" +
-            "<table>" +
+            '<table class="standings-table">' +
             "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GT</th><th>GC</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>" +
             "<tbody>" +
             standings.map((row, index) => {
                 const isQualified = index < normalizedQualified;
+                const qualifiedAttr = isQualified ? ' class="standings-qualified"' : "";
                 // value is what gets printed, key is the raw field the best-value check reads
                 const cell = (value, key) => {
                     const isBest = bestValues[key] !== null && row[key] === bestValues[key];
@@ -791,8 +802,8 @@
                 };
                 return '' +
                     "<tr>" +
-                    "<td>" + row.rank + "</td>" +
-                    "<td>" + (isQualified ? '<span class="status-pill completed">Q</span> ' : "") + esc(row.teamName) + "</td>" +
+                    "<td" + qualifiedAttr + ">" + row.rank + "</td>" +
+                    "<td" + qualifiedAttr + ">" + esc(row.teamName) + "</td>" +
                     "<td>" + row.played + "</td>" +
                     cell(row.wins, "wins") +
                     "<td>" + row.draws + "</td>" +

@@ -54,7 +54,9 @@ Columns:
 - Best: highest single-match score
 - Pts: total points from wins/draws/losses
 
-Best values for each info stat are highlighted in purple on the operator and summary tables
+Top N qualified teams: rank and team cells shaded light green
+Best value of each stat: cell shaded purple and bold
+Both shadings are also printed, and stay readable on a B&W printer (two different grey levels)
 
 ## Decision making for qualification
 1. Points descending

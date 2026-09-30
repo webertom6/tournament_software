@@ -219,7 +219,7 @@
     }
 
     function renderStandingsTable(rows, qualifiedCount, bestValues) {
-        return '<table>' +
+        return '<table class="standings-table">' +
             "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GT</th><th>GC</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>" +
             "<tbody>" +
             rows.map((row) => {
@@ -230,8 +230,8 @@
                 };
                 return '' +
                     "<tr>" +
-                    '<td class="rank text-mono">' + row.rank + "</td>" +
-                    "<td>" + esc(row.teamName) + (isQualified ? ' <span class="status-pill completed">Q</span>' : "") + "</td>" +
+                    '<td class="rank text-mono' + (isQualified ? " standings-qualified" : "") + '">' + row.rank + "</td>" +
+                    "<td" + (isQualified ? ' class="standings-qualified"' : "") + ">" + esc(row.teamName) + "</td>" +
                     "<td>" + row.played + "</td>" +
                     cell(row.wins, "wins", "text-mono") +
                     '<td class="text-mono">' + row.draws + "</td>" +
