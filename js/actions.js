@@ -7,10 +7,6 @@
         return state.teams.find((team) => team.id === id);
     }
 
-    function findTerrain(state, id) {
-        return state.terrains.find((terrain) => terrain.id === id);
-    }
-
     function clearKnockoutState(state) {
         state.knockout.generated = false;
         state.knockout.rounds = [];
@@ -195,10 +191,6 @@
             }
         }
         return { startedAt: null, pausedAt: null, pausedTotalMs: 0, stoppedAt: null };
-    }
-
-    function getRoundStartedAt(state, matchId) {
-        return getRoundTimerInfo(state, matchId).startedAt;
     }
 
     function findAnyMatch(state, matchId) {

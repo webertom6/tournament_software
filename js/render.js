@@ -725,9 +725,7 @@
         target.innerHTML = '<div class="round-stack">' + rounds.map((entry) => {
             const roundIndex = Number(entry[0]);
             const matches = entry[1];
-            const roundTimer = state.phase1.roundTimers[String(roundIndex)] || null;
-            const roundTimerSafe = roundTimer || { startedAt: null, stoppedAt: null, pausedAt: null, pausedTotalMs: 0 };
-            const roundStartedAt = roundTimerSafe.startedAt;
+            const roundTimerSafe = state.phase1.roundTimers[String(roundIndex)] || { startedAt: null, stoppedAt: null, pausedAt: null, pausedTotalMs: 0 };
             const isCompleted = matches.every((match) => match.status === "completed");
             const isCurrent = !isCompleted && roundIndex === currentRoundIndex;
             const statusKey = isCompleted ? "completed" : (isCurrent ? "current" : "upcoming");

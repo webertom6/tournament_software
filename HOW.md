@@ -7,7 +7,7 @@ Show standings : show the standings table or the matches
 Expand/Collapse all : expand or collapse all container on the page
 
 # Import/Export state
-Export a .json file with the current state so it can be retrieved at this exact point
+Export a .json file with the current state so it can be resumed at this exact point
 
 # print
 Print the full standings columns or the current phase matches. Saved scores are printed; unsaved scores are blank to fill by hand. Paper size A3/A4/A5 is selectable
@@ -67,4 +67,4 @@ Both shadings are also printed, and stay readable on a B&W printer (two differen
 Best and Last are informational only and are not tie-breaks
 
 # Audit log
-Actions by the operator/user are printed there as a trace of decisions
+Actions by the operator/user are printed there as a trace of every decisions
