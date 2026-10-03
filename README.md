@@ -1,8 +1,8 @@
 # Tournament Software
 
 ```
-___________                                                                ___________
-\__    ___/_____  ___ __ ________  _____  ______    ______   _____   _____ \__    ___/
+___________                                                                ____________
+\__    ___/_____  ___ __ ________  _____  ______    ______   _____   _____ \__     ___/
   |    |  /  _  \|   |  \\__  __ \/      \\__   \  /      \ / ___ \ /      \  |    |  
   |    | |  (_) ||   |   / |  | \/|    |  \ / __ \_|  Y Y  \\  ___/ |    |  \ |    |  
   |____|  \_____/|______/  |__|   |____|__/(______/|__|_|__/ \_____>|____|__/ |____|  
@@ -16,6 +16,15 @@ is installed and **no needs an internet connection**
 The application embeds its own interface fonts and other runtime assets, so
 the operator and summary pages keep their intended appearance offline
 
+For the essentials, see [HOW.md](HOW.md): setup, match controls, public display and saving
+
+<p align="center">
+  <a href="imgs/visu_operator_phase1.png"><img src="imgs/visu_operator_phase1.png" width="250" height="320" alt="Operator group matches with completed scores, a running round and individual pause controls"></a>
+  <a href="imgs/visu_operator_setup.png"><img src="imgs/visu_summary_phase1.png" width="500" height="320" alt="Public summary showing completed, current and upcoming group rounds, scores, terrains and the live countdown"></a>
+  &nbsp;&nbsp;
+</p>
+<p align="center"><em>The public screen (right) keeps players informed while the operator manages the tournament in a separate tab (left) - click either image for the full-size view</em></p>
+
 ## How to get app and launch it
 
 1. On the GitHub page, click the green "Code" button, then "Download ZIP"
@@ -27,6 +36,45 @@ the operator and summary pages keep their intended appearance offline
    the read-only screen for players and public, it updates itself
 
 Both files work offline, no install and no server needed
+
+## Visualize quickly the app and use it
+
+### 1 - Set up, then run the group matches
+
+Register teams and terrains, save the rules, then generate the schedule.
+During play, the operator controls round timers, enters scores and reopens
+matches for corrections
+
+<p align="center">
+  <a href="imgs/visu_operator_setup.png"><img src="imgs/visu_operator_setup.png" height="320" width="300" alt="Operator setup with registered teams, terrains, scoring rules and knockout qualification"></a>
+  &nbsp;&nbsp;
+  <a href="imgs/visu_operator_phase1.png"><img src="imgs/visu_operator_phase1.png" height="320" width="300" alt="Operator group matches with completed scores, a running round and individual pause controls"></a>
+</p>
+<p align="center"><em>Setup (left) and match controls (right) - click either image for the full-size view</em></p>
+
+### 2 - Follow the standings
+
+Saved scores update the rankings automatically. Green rank and team cells
+mark the qualifiers; purple cells highlight the best statistics. Large
+standings split into columns on the public screen
+
+<p align="center">
+  <a href="imgs/visu_summary_standings_tables.png"><img src="imgs/visu_summary_standings_tables.png" width="800" alt="Public standings for 46 teams split into two tables, with green qualification cells and purple best-statistic cells"></a>
+</p>
+<p align="center"><em>The public standings view - the same columns and highlights are available in printed standings</em></p>
+
+### 3 - Play the knockout through to the champion
+
+Once every group match is completed, generate the knockout bracket.
+Winners advance as scores are saved, and the public screen announces the
+champion after the final
+
+<p align="center">
+  <a href="imgs/visu_summary_ko_r1.png"><img src="imgs/visu_summary_ko_r1.png" height="360" alt="Public 16-team knockout bracket at the opening round, with later participants still to be decided"></a>
+  &nbsp;&nbsp;
+  <a href="imgs/visu_summary_ko_champion.png"><img src="imgs/visu_summary_ko_champion.png" height="360" alt="Completed knockout bracket with saved scores and Team 1 announced as champion"></a>
+</p>
+<p align="center"><em>Opening round (left) and completed tournament (right) - click either image to inspect the bracket</em></p>
 
 ## What to do in the app
 
