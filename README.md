@@ -7,6 +7,9 @@ is installed and nothing needs an internet connection. It was built for and
 used at one real event; the logic behind it is solid but the look and feel is
 still a bit rough and will keep improving.
 
+The application embeds its own interface fonts and other runtime assets, so
+the operator and summary pages keep their intended appearance offline.
+
 ## Getting it
 
 1. On the GitHub page, click the green "Code" button, then "Download ZIP"
@@ -30,7 +33,7 @@ Both files work offline, no install and no server needed
 - **Auto-generate the group stage schedule**, matches spread across terrains and
   rounds
 - Enter scores match by match, standings update by themselves (ranked by
-  points, then total score, then best score)
+  points, then goal average, goals conceded and team name)
 - Start one shared timer per round for every match in it, pause/resume a
   single match if it gets interrupted, see an overtime indicator if a match
   runs past its duration
@@ -39,7 +42,14 @@ Both files work offline, no install and no server needed
   completed
 - Run the knockout bracket round by round, with a third place match if
   enabled, up to the champion
+- The public summary screen shows a live bracket tree with the current
+  round highlighted, and a footer with a QR code and link back to this
+  repository plus the live round countdown
+- Collapsible sections and a sticky progress bar (Setup > Group Matches >
+  Knockout > Champion) make it quick to jump between phases on the
+  operator screen
 - Save the whole tournament to a file, or load one back
+- Print full standings or phase match sheets on A3, A4 or A5 paper
 - Reset everything, or only reset the phases while keeping teams, terrains
   and rules
 - Remote-control the public screen: show/hide its standings table, start or
@@ -78,3 +88,37 @@ Both files work offline, no install and no server needed
 - **Import state**: loads a previously exported file, replacing whatever is
   currently open.
 - **Reset all**: wipes everything and starts from a blank tournament.
+
+## Automated regression tests
+
+The tests run the real JavaScript in fresh, isolated browser-like Node VM
+sandboxes. They use only Node built-ins: no install, dependencies, server or
+package manager is needed. From the repository root, run:
+
+```sh
+node --test --test-concurrency=1 "tests/*.test.js"
+```
+
+The files run in order: 00 contracts, 01 state, 02 timer, 03 rules,
+04 scheduler, 05 bracket, 06 actions, 07 operator page, 08 summary page,
+09 full tournament flow. Run one file by replacing the wildcard with its
+filename.
+
+Coverage includes persistence/import/export, validation and reset guards,
+standings and tie-breaks, schedule constraints, seeded brackets and BYEs,
+score corrections, timer pauses, page events, print content and read-only
+live summary behavior. The full flow exercises 50 teams and a 20-team
+knockout, including a corrected quarterfinal and replay from a backup.
+Expected results come from handwritten contracts and score tables,
+independent standings and invariant checkers, and known seeded outcomes;
+they are not snapshots copied from the implementation.
+
+The minimal DOM, clock, storage and dialogs are fakes. Tests do not check
+real-browser layout, CSS, actual downloads/printers, device compatibility,
+or every malformed legacy file. Known unsupported edge cases are not
+asserted as desired behavior. Tests never write tournament files.
+
+Read the final pass/fail counts: a clean run has zero failures, cancelled,
+skipped and todo tests. A failure names its case and shows the assertion,
+expected/actual values and location. Rerun that file to investigate; change
+production behavior only after confirming the intended tournament rule.

@@ -41,7 +41,8 @@
                 wins: 0,
                 draws: 0,
                 losses: 0,
-                gf: 0,
+                gt: 0,
+                gc: 0,
                 ga: 0,
                 gd: 0,
                 bestScore: 0,
@@ -63,10 +64,10 @@
 
             home.played += 1;
             away.played += 1;
-            home.gf += match.homeGoals;
-            home.ga += match.awayGoals;
-            away.gf += match.awayGoals;
-            away.ga += match.homeGoals;
+            home.gt += match.homeGoals;
+            home.gc += match.awayGoals;
+            away.gt += match.awayGoals;
+            away.gc += match.homeGoals;
             home.bestScore = Math.max(home.bestScore, match.homeGoals);
             away.bestScore = Math.max(away.bestScore, match.awayGoals);
             home.lastScore = match.homeGoals;
@@ -91,7 +92,8 @@
         }
 
         const standings = Array.from(table.values()).map((row) => {
-            row.gd = row.gf - row.ga;
+            row.ga = row.played > 0 ? row.gt / row.played : 0;
+            row.gd = row.gt - row.gc;
             return row;
         });
 
@@ -99,12 +101,11 @@
             if (b.points !== a.points) {
                 return b.points - a.points;
             }
-            // GD stays computed above for display, but tie-break uses total score then best single-match score
-            if (b.gf !== a.gf) {
-                return b.gf - a.gf;
+            if (Math.abs(b.ga - a.ga) >= 1e-9) {
+                return b.ga - a.ga;
             }
-            if (b.bestScore !== a.bestScore) {
-                return b.bestScore - a.bestScore;
+            if (b.gc !== a.gc) {
+                return a.gc - b.gc;
             }
             return a.teamName.localeCompare(b.teamName);
         });
@@ -116,10 +117,49 @@
         return standings;
     }
 
+    function getStandingsBestValues(standings) {
+        const result = {
+            wins: null,
+            losses: null,
+            gt: null,
+            gc: null,
+            ga: null,
+            gd: null,
+            lastScore: null,
+            bestScore: null,
+            points: null
+        };
+        if (!standings.length || standings.every((row) => row.played === 0)) {
+            return result;
+        }
+
+        const directions = {
+            wins: "max",
+            losses: "min",
+            gt: "max",
+            gc: "min",
+            ga: "max",
+            gd: "max",
+            lastScore: "max",
+            bestScore: "max",
+            points: "max"
+        };
+        Object.keys(directions).forEach((key) => {
+            const values = standings.map((row) => row[key]).filter((value) => key !== "lastScore" || value !== null);
+            const allValues = standings.map((row) => row[key]);
+            if (!values.length || new Set(allValues).size === 1) {
+                return;
+            }
+            result[key] = directions[key] === "min" ? Math.min(...values) : Math.max(...values);
+        });
+        return result;
+    }
+
     window.TournamentRules = {
         getTeamNameById: getTeamNameById,
         getWinnerTeamId: getWinnerTeamId,
         getLoserTeamId: getLoserTeamId,
-        buildStandings: buildStandings
+        buildStandings: buildStandings,
+        getStandingsBestValues: getStandingsBestValues
     };
 })();

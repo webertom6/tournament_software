@@ -1,11 +1,25 @@
 (function () {
-    // elapsed = time since round start, minus whatever this match has been paused for
-    function computeElapsedMs(roundStartedAt, match, atTime) {
+    // round-level elapsed: time since round start, minus whatever the round itself has
+    // been paused for; freezes at roundPausedAt while the round is currently paused
+    function computeRoundElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, atTime) {
         if (!roundStartedAt) {
             return null;
         }
-        const pausedTotal = match.pausedTotalMs || 0;
-        const activeEnd = match.pausedAt || atTime;
+        const activeEnd = roundPausedAt || atTime;
+        return Math.max(0, activeEnd - roundStartedAt - (roundPausedTotalMs || 0));
+    }
+
+    // match-level elapsed: same as the round's, further frozen at the match's own
+    // pausedAt if it's individually paused (round-level pause always takes priority,
+    // since nothing progresses for anyone while the whole round is paused); a stopped
+    // round freezes everyone at stoppedAt, same idea as computeRoundElapsedMs
+    function computeElapsedMs(roundStartedAt, roundPausedAt, roundPausedTotalMs, roundStoppedAt, match, atTime) {
+        if (!roundStartedAt) {
+            return null;
+        }
+        const roundActiveEnd = roundStoppedAt || roundPausedAt || atTime;
+        const activeEnd = match.pausedAt || roundActiveEnd;
+        const pausedTotal = (roundPausedTotalMs || 0) + (match.pausedTotalMs || 0);
         return Math.max(0, activeEnd - roundStartedAt - pausedTotal);
     }
 
@@ -20,7 +34,7 @@
 
     function formatDuration(ms) {
         if (ms === null || ms === undefined || !Number.isFinite(ms)) {
-            return "--:--";
+            return "waiting";
         }
         const sign = ms < 0 ? "-" : "";
         const totalSeconds = Math.floor(Math.abs(ms) / 1000);
@@ -34,7 +48,7 @@
     // remaining time counting down to the configured match duration; goes negative (shown as "+overtime") past it
     function formatCountdown(remainingMs) {
         if (remainingMs === null || remainingMs === undefined || !Number.isFinite(remainingMs)) {
-            return "--:--";
+            return "waiting";
         }
         if (remainingMs < 0) {
             return "+" + formatDuration(-remainingMs);
@@ -43,9 +57,11 @@
     }
 
     window.TournamentTimer = {
+        computeRoundElapsedMs: computeRoundElapsedMs,
         computeElapsedMs: computeElapsedMs,
         computeBreakRemainingMs: computeBreakRemainingMs,
         formatDuration: formatDuration,
         formatCountdown: formatCountdown
     };
 })();
+

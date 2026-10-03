@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tournament Summary</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/logo_charneux.svg">
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/page-summary.css">
 </head>
@@ -15,16 +16,13 @@
                 <h1 class="summary-brand-title text-display">Live Summary</h1>
                 <p id="summary-meta" class="summary-brand-meta text-mono">-</p>
             </div>
-            <div class="summary-stat-wrap">
-                <p class="summary-stat-label text-display">Stage</p>
+            <div class="summary-clock-wrap">
+                <p id="summary-clock-label" class="summary-clock-label text-display">Round</p>
+                <p id="summary-round-clock" class="summary-clock-value text-mono js-round-clock">--:--</p>
+            </div>
+            <div class="summary-clock-wrap">
+                <p class="summary-clock-label text-display">Stage</p>
                 <span id="summary-stage-pill" class="summary-stage-pill text-display">Setup</span>
-            </div>
-            <div class="summary-stat-wrap">
-                <p id="summary-stat-label" class="summary-stat-label text-display">Phase 1</p>
-                <p id="summary-stat-value" class="summary-stat-value text-mono">-</p>
-            </div>
-            <div class="summary-nav-wrap">
-                <a class="summary-nav-link" href="./index.html">Admin page</a>
             </div>
         </div>
         <div class="summary-live-strip">
@@ -42,7 +40,7 @@
         </section>
 
         <section id="view-phase1" class="summary-phase1-layout" hidden>
-            <div class="summary-card" aria-labelledby="phase1-title">
+            <div class="summary-card summary-matches-card" aria-labelledby="phase1-title">
                 <div class="summary-card-head">
                     <h2 id="phase1-title">Phase 1 - current round</h2>
                 </div>
@@ -56,9 +54,16 @@
 
         <section id="view-knockout" class="summary-card summary-card--bracket" aria-labelledby="knockout-title" hidden>
             <h2 id="knockout-title">Knockout</h2>
+            <div id="summary-champion"></div>
             <div id="summary-bracket"></div>
         </section>
     </main>
+
+    <footer class="summary-footer">
+        <img class="summary-footer-qr" src="./assets/qr-repo.png" alt="scan to open the project repository">
+        <span class="summary-footer-credit text-mono">github.com/webertom6/tournament_software</span>
+        <span class="summary-footer-remaining text-mono">Round: <strong class="js-round-clock">--:--</strong></span>
+    </footer>
 
     <script src="./js/rules.js"></script>
     <script src="./js/bracket.js"></script>

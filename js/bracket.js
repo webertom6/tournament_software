@@ -52,7 +52,7 @@
         return seeds;
     }
 
-    function generateKnockoutStructure(qualifiedTeamIds, config, uid) {
+    function generateKnockoutStructure(qualifiedTeamIds, config, uid, terrainIds) {
         const normalizedCount = normalizeQualifiedCount(qualifiedTeamIds.length, config.qualifiedCount);
         const selected = qualifiedTeamIds.slice(0, normalizedCount);
         const seededTeams = buildSeededTeams(selected, config.seedingPolicy);
@@ -68,6 +68,16 @@
 
         const totalRounds = Math.log2(bracketSize);
         const rounds = [];
+        const availableTerrains = Array.isArray(terrainIds) ? terrainIds : [];
+        let terrainIndex = 0;
+        const nextTerrainId = () => {
+            if (!availableTerrains.length) {
+                return null;
+            }
+            const terrainId = availableTerrains[terrainIndex % availableTerrains.length];
+            terrainIndex += 1;
+            return terrainId;
+        };
 
         for (let roundIndex = 0; roundIndex < totalRounds; roundIndex += 1) {
             const matchCount = bracketSize / Math.pow(2, roundIndex + 1);
@@ -77,6 +87,8 @@
                 name: getRoundName(roundIndex, totalRounds),
                 startedAt: null,
                 stoppedAt: null,
+                pausedAt: null,
+                pausedTotalMs: 0,
                 matches: []
             };
 
@@ -88,6 +100,7 @@
                     slotIndex: matchIndex,
                     homeTeamId: null,
                     awayTeamId: null,
+                    terrainId: nextTerrainId(),
                     homeGoals: null,
                     awayGoals: null,
                     status: "scheduled",
@@ -148,6 +161,7 @@
                     awaySourceMatchId: semiRound.matches[1].id,
                     homeTeamId: null,
                     awayTeamId: null,
+                    terrainId: nextTerrainId(),
                     homeGoals: null,
                     awayGoals: null,
                     status: "scheduled",
@@ -225,12 +239,13 @@
                 const homeWinner = homeSrc ? getWinnerId(homeSrc) : null;
                 const awayWinner = awaySrc ? getWinnerId(awaySrc) : null;
 
+                // a missing winner here just means the feeder match isn't completed yet, not a
+                // genuine bracket bye (byes only ever happen in round 0) - must not auto-complete
                 if (match.homeTeamId !== homeWinner || match.awayTeamId !== awayWinner) {
                     match.homeTeamId = homeWinner;
                     match.awayTeamId = awayWinner;
                     clearMatchResult(match);
                 }
-                autoCompleteBye(match);
             });
         }
     }
@@ -262,12 +277,13 @@
             const homeLoser = homeSrc ? getLoserId(homeSrc) : null;
             const awayLoser = awaySrc ? getLoserId(awaySrc) : null;
 
+            // same reasoning as propagateRoundWinners: a missing loser just means one semifinal
+            // hasn't finished yet, not a bye - must not auto-complete
             if (third.homeTeamId !== homeLoser || third.awayTeamId !== awayLoser) {
                 third.homeTeamId = homeLoser;
                 third.awayTeamId = awayLoser;
                 clearMatchResult(third);
             }
-            autoCompleteBye(third);
         }
     }
 

@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-03T00:00:00.000Z",
+  "title": "Design System: Tournament Software",
+  "extensions": {
+    "colorMeta": {
+      "navy": {
+        "role": "secondary",
+        "displayName": "Navy",
+        "canonical": "#061534",
+        "tonalRamp": ["#000826", "#102040", "#283a5c", "#41557a", "#5d7298", "#7a90b7", "#a7bee8", "#e6effe"]
+      },
+      "action-blue": {
+        "role": "primary",
+        "displayName": "Action Blue",
+        "canonical": "#005eff",
+        "tonalRamp": ["#000825", "#021c54", "#063285", "#0247c3", "#1964f2", "#4d8afc", "#9bbefd", "#e6effe"]
+      },
+      "alert-red": {
+        "role": "tertiary",
+        "displayName": "Alert Red",
+        "canonical": "#e11d22",
+        "tonalRamp": ["#1e0101", "#450304", "#700c0d", "#a2030f", "#cd2625", "#fa3e3a", "#fba398", "#ffe9e6"]
+      },
+      "success-green": {
+        "role": "signal",
+        "displayName": "Success Green",
+        "canonical": "#00b33c",
+        "tonalRamp": ["#011002", "#032a0a", "#0c4718", "#086721", "#09892e", "#26ab43", "#50df68", "#c9ffcc"]
+      },
+      "spectrum-purple": {
+        "role": "signal",
+        "displayName": "Spectrum Purple",
+        "canonical": "#8b35ff",
+        "tonalRamp": ["#0f0127", "#2a0457", "#470f8a", "#6807c9", "#862df9", "#9b6ff7", "#c3b0fa", "#efebff"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#04122f",
+        "tonalRamp": ["#000825", "#10213f", "#283a5b", "#425578", "#5d7296", "#7a90b6", "#a8bfe6", "#e7effe"]
+      },
+      "muted-slate": {
+        "role": "neutral",
+        "displayName": "Muted Slate",
+        "canonical": "#5f6f86",
+        "tonalRamp": ["#020b1c", "#152235", "#2d3b50", "#47566c", "#63738a", "#8090a9", "#aebfd9", "#e6effe"]
+      },
+      "grid-line": {
+        "role": "neutral",
+        "displayName": "Grid Line",
+        "canonical": "#d9e6f4",
+        "tonalRamp": ["#040c15", "#19232d", "#313c47", "#4c5762", "#67737f", "#85919d", "#b3bfcd", "#e3f0fe"]
+      },
+      "page-bg": {
+        "role": "neutral",
+        "displayName": "Page Background",
+        "canonical": "#f5f7fa",
+        "tonalRamp": ["#0a0b0d", "#202224", "#393b3d", "#545558", "#707274", "#8d8f92", "#bcbec1", "#edeff1"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#0b0b0b", "#222222", "#3a3a3a", "#555555", "#717171", "#8f8f8f", "#bebebe", "#eeeeee"]
+      },
+      "warn-amber": {
+        "role": "signal",
+        "displayName": "Warn Amber",
+        "canonical": "#b45309",
+        "tonalRamp": ["#170601", "#391702", "#5d2a08", "#873d05", "#b25105", "#d47033", "#fba678", "#ffeadf"]
+      },
+      "danger-red": {
+        "role": "signal",
+        "displayName": "Danger Red",
+        "canonical": "#b91c1c",
+        "tonalRamp": ["#1e0001", "#470002", "#720508", "#9f1415", "#c9302b", "#ed5449", "#fea196", "#fee9e6"]
+      },
+      "qualified-bg": {
+        "role": "signal",
+        "displayName": "Qualified Green",
+        "canonical": "#d3f3de",
+        "tonalRamp": ["#000f06", "#0d2819", "#274131", "#415d4b", "#5d7a67", "#7a9884", "#a8c7b2", "#d8f8e3"]
+      },
+      "best-bg": {
+        "role": "signal",
+        "displayName": "Best Purple",
+        "canonical": "#dcc8ff",
+        "tonalRamp": ["#120026", "#291640", "#42305c", "#5d4a7a", "#796798", "#9784b7", "#c6b2e8", "#f1ebfe"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display (Barlow Condensed)",
+        "purpose": "Section headings, table headings, and public scoreboard title."
+      },
+      "body": {
+        "displayName": "Body (Barlow)",
+        "purpose": "Forms, buttons, helper text, and general interface copy."
+      },
+      "label": {
+        "displayName": "Label (Barlow)",
+        "purpose": "Compact field labels and status captions."
+      },
+      "mono": {
+        "displayName": "Mono (Roboto Mono)",
+        "purpose": "Scores and changing timer values."
+      }
+    },
+    "shadows": [
+      {
+        "name": "current-round-halo",
+        "value": "0 0 0 3px rgba(0, 94, 255, 0.15)",
+        "purpose": "Marks the active round in the operator and public schedule."
+      },
+      {
+        "name": "current-bracket-halo",
+        "value": "0 0 0 2px rgba(0, 94, 255, 0.15)",
+        "purpose": "Marks the active knockout round on the public bracket."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-press",
+        "value": "filter: brightness(0.75); transform: scale(0.97)",
+        "purpose": "Immediate tactile feedback for a pressed button."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "operator-small",
+        "value": "480px"
+      },
+      {
+        "name": "operator-compact",
+        "value": "740px"
+      },
+      {
+        "name": "summary-compact",
+        "value": "900px"
+      },
+      {
+        "name": "wide-display",
+        "value": "2560px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action for an available operator task.",
+      "html": "<button class=\"ds-button-primary\">SAVE CONFIG</button>",
+      "css": ".ds-button-primary { min-height: 42px; padding: 10.4px 16px; border: 1px solid var(--brand); border-radius: 0; background: var(--brand); color: #fff; font: 700 12px Barlow, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; } .ds-button-primary:hover { filter: brightness(0.88); } .ds-button-primary:active { filter: brightness(0.75); transform: scale(0.97); } .ds-button-primary:focus-visible { outline: revert; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Supporting, non-destructive operator action.",
+      "html": "<button class=\"ds-button-secondary\">EXPORT STATE</button>",
+      "css": ".ds-button-secondary { min-height: 42px; padding: 10.4px 16px; border: 1px solid var(--border); border-radius: 0; background: var(--surface); color: var(--text); font: 700 12px Barlow, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; } .ds-button-secondary:hover { filter: brightness(0.88); } .ds-button-secondary:active { filter: brightness(0.75); transform: scale(0.97); } .ds-button-secondary:focus-visible { outline: revert; }"
+    },
+    {
+      "name": "Important Button",
+      "kind": "button",
+      "refersTo": "button-important",
+      "description": "Urgent or destructive operator action.",
+      "html": "<button class=\"ds-button-important\">RESET ALL</button>",
+      "css": ".ds-button-important { min-height: 42px; padding: 10.4px 16px; border: 1px solid var(--red); border-radius: 0; background: var(--red); color: #fff; font: 700 12px Barlow, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; } .ds-button-important:hover { filter: brightness(0.88); } .ds-button-important:active { filter: brightness(0.75); transform: scale(0.97); } .ds-button-important:focus-visible { outline: revert; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": null,
+      "description": "Square, full-width field for team and terrain entry.",
+      "html": "<input class=\"ds-input\" type=\"text\" value=\"North Field\" aria-label=\"Terrain name\">",
+      "css": ".ds-input { width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 0; background: var(--surface); color: var(--text); font: 400 14px Barlow, system-ui, sans-serif; } .ds-input:focus-visible { outline: revert; } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Operator Navigation",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Compact links between the operator and public display.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-active\" href=\"#operator\">OPERATOR</a><a class=\"ds-nav-link\" href=\"#summary\">OPEN SUMMARY</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 8px; } .ds-nav a { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid var(--border); border-radius: 0; color: var(--text); font: 700 11px Barlow, system-ui, sans-serif; letter-spacing: 0.1em; text-decoration: none; } .ds-nav-active { background: var(--navy); border-color: var(--navy) !important; color: #fff !important; } .ds-nav-link { background: var(--surface); } .ds-nav-link:hover { background: var(--bg); } .ds-nav a:focus-visible { outline: revert; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat bordered surface grouping operator content.",
+      "html": "<section class=\"ds-card\"><h2>SETUP</h2><p>Register teams and terrains</p></section>",
+      "css": ".ds-card { padding: 16px; border: 1px solid var(--border); border-radius: 0; background: var(--surface); color: var(--text); } .ds-card h2 { margin: 0 0 12px; color: var(--navy); font: 700 24px 'Barlow Condensed', sans-serif; } .ds-card p { margin: 0; font: 400 16px/1.45 Barlow, system-ui, sans-serif; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "Rectangular, explicit status label for a match or round.",
+      "html": "<span class=\"ds-status-chip\">IN PROGRESS</span>",
+      "css": ".ds-status-chip { display: inline-block; padding: 4px 8px; border: 1px solid var(--brand); border-radius: 0; background: rgba(0, 94, 255, 0.1); color: var(--brand); font: 700 11px Barlow, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Current Round Card",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Operator round container with its state halo and collapsible heading.",
+      "html": "<details class=\"ds-round-card\" open><summary>ROUND 2 <span>IN PROGRESS</span></summary><div>Round matches</div></details>",
+      "css": ".ds-round-card { padding: 12px; border: 1px solid var(--border); border-radius: 0; background: var(--surface); color: var(--text); } .ds-round-card[open] { box-shadow: 0 0 0 3px rgba(0, 94, 255, 0.15); } .ds-round-card summary { display: flex; justify-content: space-between; gap: 12px; color: var(--navy); font: 700 18px 'Barlow Condensed', sans-serif; cursor: pointer; } .ds-round-card summary span { color: var(--brand); font: 700 11px Barlow, system-ui, sans-serif; } .ds-round-card div { padding-top: 12px; }"
+    },
+    {
+      "name": "Standings Signal Cells",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Green backgrounds identify qualifiers; purple identifies best stat values.",
+      "html": "<table class=\"ds-standings\"><tbody><tr><td class=\"ds-qualified\">1</td><td class=\"ds-qualified\">Red Comets</td><td class=\"ds-best\">12</td></tr></tbody></table>",
+      "css": ".ds-standings { border-collapse: collapse; color: var(--text); font: 400 16px Barlow, system-ui, sans-serif; } .ds-standings td { padding: 6px 10px; border-bottom: 1px solid var(--border); print-color-adjust: exact; -webkit-print-color-adjust: exact; } .ds-standings td:first-child { text-align: center; } .ds-standings .ds-qualified { background: var(--qualified-bg); } .ds-standings .ds-best { background: var(--best-bg); font-weight: 700; }"
+    },
+    {
+      "name": "Public Scoreboard Header",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Navy public display header with prominent mono round timer.",
+      "html": "<header class=\"ds-scoreboard\"><strong>TOURNAMENT</strong><span class=\"ds-clock\">08:42</span><span class=\"ds-stage\">GROUP MATCHES</span></header>",
+      "css": ".ds-scoreboard { display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; gap: 16px; padding: 20px; background: var(--navy); color: #fff; } .ds-scoreboard strong { font: 800 56px/0.95 'Barlow Condensed', sans-serif; text-transform: uppercase; } .ds-scoreboard .ds-clock { font: 700 64px/0.95 'Roboto Mono', ui-monospace, monospace; text-align: center; } .ds-scoreboard .ds-stage { justify-self: end; font: 700 18px Barlow, system-ui, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Tournament Control Booth",
+    "overview": "This is a practical event console, not a SaaS dashboard. The operator screen supports one organizer making quick, confident changes under live event pressure. A separate public screen presents the current round, standings, and knockout bracket so they can be read across a room.\n\nThe shared visual identity with race_lap_software is community-built and instrument-like: strong navy structure, square bordered surfaces, condensed headings, and monospace live data. Color is functional, and hierarchy comes from spacing, borders, and restrained status highlights rather than ornament. The app and its fonts are self-contained and work offline.",
+    "keyCharacteristics": [
+      "Dense, scannable operator controls and a large-type public scoreboard",
+      "Barlow Condensed headings, Barlow interface text, and Roboto Mono live values",
+      "Square white surfaces on a pale page, with thin blue-grey borders",
+      "Color reserved for actions, status, qualification, and best-stat signals"
+    ],
+    "rules": [
+      {
+        "name": "The Function-Only Color Rule",
+        "body": "Use color to signal action or state, never as decoration. State is also named in text; color alone does not carry meaning.",
+        "section": "colors"
+      },
+      {
+        "name": "The Standings Shading Rule",
+        "body": "Shade qualified rank/team cells green and best stat cells purple. Keep text readable, and preserve these backgrounds in print so the distinctions remain visible in grayscale.",
+        "section": "colors"
+      },
+      {
+        "name": "The Numbers-Are-Mono Rule",
+        "body": "Render scores and live/changing numbers in Roboto Mono; keep static labels in the Barlow families.",
+        "section": "typography"
+      },
+      {
+        "name": "The State-Halo Rule",
+        "body": "Keep blue halos limited to the current-round state; do not add shadows to ordinary cards or controls.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the palette and font families aligned with the documented tokens.",
+      "Do use Barlow Condensed for display headings and Roboto Mono for live figures.",
+      "Do state ON/OFF and match status in text as well as color.",
+      "Do use green and purple cell backgrounds for qualification and best standings values, and preserve them in print.",
+      "Do reserve blue halos for the current round."
+    ],
+    "donts": [
+      "Don't add gradients, decorative color, ambient card shadows, or rounded dashboard surfaces.",
+      "Don't use color as the only signal for an action or status.",
+      "Don't change the two-screen split: the operator page mutates tournament state; the public summary remains read-only.",
+      "Don't introduce remote fonts or assets; both pages must remain usable offline."
+    ]
+  }
+}

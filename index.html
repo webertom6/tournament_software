@@ -4,28 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tournament Software</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/logo_charneux.svg">
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/page-tournament.css">
+    <link rel="stylesheet" href="./css/print.css">
 </head>
 <body>
     <header class="app-header">
-        <h1>Tournament Software</h1>
-        <p>Client-side manager for team registration, phase 1, and knockout finals</p>
+        <div class="app-header-inner">
+            <div class="app-brand">
+                <div class="app-logo-square" aria-hidden="true"></div>
+                <div>
+                    <p class="app-brand-title text-label">Tournament Software</p>
+                    <p class="app-brand-subtitle">Team registration, Group matches, and Knockout finals</p>
+                </div>
+            </div>
+            <nav class="app-nav">
+                <span class="app-nav-active">Operator</span>
+                <a class="app-nav-link" href="./summary.html">Open Summary</a>
+            </nav>
+        </div>
     </header>
 
     <main class="app-main" id="app-root">
-        <section class="card" aria-labelledby="setup-title">
-            <div class="card-head">
-                <h2 id="setup-title">Setup</h2>
-                <div class="button-row">
-                    <button id="btn-toggle-summary-standings" type="button" class="secondary">Hide summary standings</button>
-                    <button id="btn-toggle-summary-scroll" type="button" class="secondary">Start summary auto-scroll</button>
-                    <button id="btn-export-state" type="button">Export state</button>
-                    <button id="btn-import-state" type="button">Import state</button>
-                    <button id="btn-reset-state" type="button" class="danger">Reset all</button>
-                </div>
-            </div>
+        <div class="progress-bar" id="progress-bar"></div>
 
+        <div class="operator-toolbar">
+            <button id="btn-toggle-summary-standings" type="button" class="secondary toggle-on">Standings: ON</button>
+            <button id="btn-toggle-summary-scroll" type="button" class="secondary toggle-off">Auto-scroll: OFF</button>
+            <button id="btn-export-state" type="button">Export state</button>
+            <button id="btn-import-state" type="button">Import state</button>
+            <button id="btn-export-print" type="button" class="secondary">Export / Print</button>
+            <button id="btn-reset-state" type="button" class="danger">Reset all</button>
+            <button id="btn-expand-all" type="button" class="secondary">Expand all</button>
+            <button id="btn-collapse-all" type="button" class="secondary">Collapse all</button>
+        </div>
+
+        <div class="panel export-print-panel" id="export-print-panel" hidden>
+            <div class="grid-4">
+                <label>
+                    Content
+                    <select id="export-print-content">
+                        <option value="phase">Current phase</option>
+                        <option value="standings">Standings table</option>
+                    </select>
+                </label>
+                <label>
+                    Paper size
+                    <select id="export-print-paper">
+                        <option value="A0">A0</option>
+                        <option value="A1">A1</option>
+                        <option value="A2">A2</option>
+                        <option value="A3">A3</option>
+                        <option value="A4" selected>A4</option>
+                        <option value="A5">A5</option>
+                    </select>
+                </label>
+                <button id="btn-export-print-generate" type="button">Print</button>
+            </div>
+        </div>
+
+        <div class="card overview-card">
+            <h2>Overview</h2>
+            <div id="config-overview"></div>
+            <div class="button-row">
+                <button id="btn-generate-phase1" type="button">Generate phase 1 schedule</button>
+                <button id="btn-start-knockout" type="button">Generate phase 2 knockout</button>
+                <button id="btn-back-to-phase1" type="button">Back to phase 1</button>
+                <button id="btn-reset-phases" type="button">Reset phases</button>
+            </div>
+        </div>
+
+        <details class="card" id="section-setup" data-section="setup">
+            <summary class="card-summary">
+                <h2 id="setup-title">Setup</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div class="grid-2">
                 <div class="panel">
                     <h3>Teams</h3>
@@ -99,38 +154,55 @@
                     </div>
                 </form>
             </div>
-
-            <div class="button-row">
-                <button id="btn-generate-phase1" type="button">Generate phase 1 schedule</button>
-                <button id="btn-start-knockout" type="button">Generate phase 2 knockout</button>
-                <button id="btn-reset-phases" type="button">Reset phases</button>
             </div>
-        </section>
+        </details>
 
-        <section class="card" aria-labelledby="phase1-title">
-            <h2 id="phase1-title">Phase 1 matches</h2>
+        <details class="card" id="section-phase1" data-section="phase1">
+            <summary class="card-summary">
+                <h2 id="phase1-title">Phase 1 matches</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div id="phase1-summary"></div>
             <div id="phase1-matches"></div>
-        </section>
+            </div>
+        </details>
 
-        <section class="card" aria-labelledby="standings-title">
-            <h2 id="standings-title">Standings</h2>
+        <details class="card" id="section-standings" data-section="standings">
+            <summary class="card-summary">
+                <h2 id="standings-title">Standings</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div id="phase1-standings"></div>
-        </section>
+            </div>
+        </details>
 
-        <section class="card" aria-labelledby="knockout-title">
-            <h2 id="knockout-title">Phase 2 knockout</h2>
+        <details class="card" id="section-knockout" data-section="knockout">
+            <summary class="card-summary">
+                <h2 id="knockout-title">Phase 2 knockout</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div id="knockout-summary"></div>
             <div id="knockout-rounds"></div>
             <div id="third-place-block"></div>
             <div id="champion-block"></div>
-        </section>
+            </div>
+        </details>
 
-        <section class="card" aria-labelledby="audit-title">
-            <h2 id="audit-title">Audit and correction history</h2>
+        <details class="card" id="section-audit" data-section="audit">
+            <summary class="card-summary">
+                <h2>Audit and correction history</h2>
+                <span class="chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="card-body">
             <div id="audit-log"></div>
-        </section>
+            </div>
+        </details>
     </main>
+
+    <div id="print-root" aria-hidden="true"></div>
 
     <input id="import-state-input" type="file" accept="application/json" hidden>
 

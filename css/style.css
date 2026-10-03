@@ -1,4 +1,82 @@
-@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Roboto+Mono:wght@500;700&display=swap");
+@font-face {
+    font-family: "Barlow";
+    src: url("../assets/fonts/barlow/Barlow-Regular.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Barlow";
+    src: url("../assets/fonts/barlow/Barlow-Medium.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Barlow";
+    src: url("../assets/fonts/barlow/Barlow-SemiBold.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Barlow";
+    src: url("../assets/fonts/barlow/Barlow-Bold.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Barlow Condensed";
+    src: url("../assets/fonts/barlow-condensed/BarlowCondensed-Medium.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Barlow Condensed";
+    src: url("../assets/fonts/barlow-condensed/BarlowCondensed-SemiBold.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Barlow Condensed";
+    src: url("../assets/fonts/barlow-condensed/BarlowCondensed-Bold.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Barlow Condensed";
+    src: url("../assets/fonts/barlow-condensed/BarlowCondensed-ExtraBold.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Roboto Mono";
+    src: url("../assets/fonts/roboto-mono/RobotoMono-Medium.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Roboto Mono";
+    src: url("../assets/fonts/roboto-mono/RobotoMono-Bold.ttf") format("truetype");
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+}
 
 :root {
     --font-body: "Barlow", system-ui, sans-serif;
@@ -16,6 +94,8 @@
     --danger: #b91c1c;
     --red: #e11d22;
     --purple: #8b35ff;
+    --qualified-bg: #d3f3de;
+    --best-bg: #dcc8ff;
 }
 
 * {
@@ -93,6 +173,18 @@ button.secondary {
     color: var(--text);
 }
 
+button.secondary.toggle-on {
+    background: var(--ok);
+    border-color: var(--ok);
+    color: #fff;
+}
+
+button.secondary.toggle-off {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+}
+
 button.important {
     background: var(--red);
     border-color: var(--red);
@@ -113,6 +205,13 @@ button.timer-action {
     background: rgba(180, 83, 9, 0.12);
     border-color: rgba(180, 83, 9, 0.4);
     color: var(--warn);
+}
+
+/* keep the pause/resume row the same height regardless of which button (or none) is shown */
+.match-timer button {
+    min-height: 0;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.7rem;
 }
 
 button:disabled {
@@ -158,6 +257,48 @@ td {
     vertical-align: middle;
 }
 
+tbody tr:hover {
+    background: #eef1f6;
+}
+
+/* numbers centered in their cells, team names stay left-aligned for scanning
+   table.x selector outranks print.css's .print-table td, which loads later */
+table.standings-table th,
+table.standings-table td {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+table.standings-table th:nth-child(2),
+table.standings-table td:nth-child(2) {
+    text-align: left;
+}
+
+/* standings cell shading: backgrounds rather than text color so the signal survives a
+   B&W printout - the two tints sit at clearly different grey levels (green ~83% luminance,
+   purple ~64%) so qualified cells and best-stat cells stay distinguishable without color */
+.standings-qualified {
+    background: var(--qualified-bg);
+}
+
+.stat-best {
+    background: var(--best-bg);
+    font-weight: 700;
+}
+
+.standings-qualified,
+.stat-best {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* screen tables have no vertical rules, so neighbouring best cells would fuse into one
+   slab - a surface-colored side border keeps each award readable as its own cell */
+table:not(.print-table) .stat-best {
+    border-left: 2px solid var(--surface);
+    border-right: 2px solid var(--surface);
+}
+
 th {
     color: var(--muted);
     font-weight: 600;
@@ -166,6 +307,27 @@ th {
 
 .muted {
     color: var(--muted);
+}
+
+/* real (visible, tiny) text rather than clipped-hidden, so the browser's native
+   Ctrl+F highlight is actually visible - mirrors only the currently selected
+   team names, not the full <select> option list, since <select>/<option>
+   text isn't reachable by find-in-page at all */
+.match-search-label {
+    /* if search-in-page is used, this text will be visible */
+    margin: 0 0 0.2rem;
+    font-size: 1px;
+    color: var(--muted);
+    /* uncomment the following block to hide the text visually but keep it searchable */
+    /* position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0; */
 }
 
 .rank {
@@ -195,4 +357,16 @@ th {
     color: var(--warn);
     border-color: #f0ddb6;
     background: #fffbeb;
+}
+
+.status-pill.current {
+    color: #fff;
+    border-color: var(--brand);
+    background: var(--brand);
+}
+
+.status-pill.upcoming {
+    color: var(--muted);
+    border-color: var(--border);
+    background: #f5f7fa;
 }
