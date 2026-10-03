@@ -63,7 +63,7 @@ test("summary-page: shared storage live events and unrelated key no-op", () => {
     summary.dispatchWindow("storage", { key: STATE_KEY });
     assert.match(summary.el("summary-teams-setup").innerHTML, /Live Team/);
     assert.equal(storage.writes.length, writes);
-    admin.A.addTeam("Live Other"); admin.A.updateConfig({ ...admin.state().config, phase1MatchesPerTeam: 1 });
+    admin.A.addTeam("Live Other"); admin.A.updateConfig({ ...admin.state().config, qualifiedCount: 2, phase1MatchesPerTeam: 1 });
     admin.A.generatePhase1(); summary.dispatchWindow("storage", { key: STATE_KEY });
     assert.equal(summary.el("summary-stage-pill").textContent, "Phase 1");
     assert.match(summary.el("summary-phase1").innerHTML, /In progress/);
@@ -137,20 +137,49 @@ test("summary-page: third place only both known, live bracket progression and sc
     assert.equal(storage.writes.length, writes);
     assert.equal(s.el("bracket-scroll").scrollLeft, 480);
 });
-test("summary-page: compact six-qualifier bracket maps real feeders and bye slot", () => {
+test("summary-page: power-of-two bracket maps real feeders without BYEs", () => {
     const fixture = createSandbox();
-    setup(fixture, 8, 2, { qualifiedCount: 6, thirdPlaceMatch: true });
+    setup(fixture, 8, 2, { qualifiedCount: 8, thirdPlaceMatch: true });
     fixture.A.generatePhase1();
     completePhase1(fixture);
     fixture.A.startKnockout();
 
     const s = createSandbox({ page: "summary", initial: { [STATE_KEY]: fixture.S.exportState() } });
     const bracket = s.el("summary-bracket");
-    assert.equal(bracket.querySelectorAll(".bracket-match").length, 6);
+    assert.equal(bracket.querySelectorAll(".bracket-match").length, 7);
     assert.equal(bracket.querySelectorAll(".bracket-connector").length, 3);
     assert.equal(bracket.querySelectorAll(".bracket-connector-tick").length, 3);
-    assert.equal(bracket.querySelectorAll(".bracket-team").length, 11);
-    assert.match(bracket.innerHTML, /Bye - Waiting for previous round/);
+    assert.equal(bracket.querySelectorAll(".bracket-team").length, 14);
+    assert.doesNotMatch(bracket.innerHTML, /Bye/);
     assert.doesNotMatch(bracket.innerHTML, /bracket-third-place/);
     assert.equal(s.storage.writes.length, 0);
+
+    const invalid = createSandbox();
+    setup(invalid, 10, 2, { qualifiedCount: 10 });
+    invalid.state().phase1.generated = true;
+    const invalidSummary = createSandbox({ page: "summary", initial: { [STATE_KEY]: invalid.S.exportState() } });
+    assert.match(invalidSummary.el("summary-standings").innerHTML, /qualification is invalid/);
+    assert.equal(invalidSummary.storage.writes.length, 0);
+});
+test("summary-page: imported legacy BYE bracket remains readable", () => {
+    const fixture = createSandbox();
+    setup(fixture, 8, 2, { qualifiedCount: 8 });
+    fixture.A.generatePhase1();
+    completePhase1(fixture);
+    fixture.A.startKnockout();
+
+    const state = fixture.state();
+    state.config.qualifiedCount = 6;
+    const [t1, t2, t3, t4, t5, t6] = state.teams.map((team) => team.id);
+    const [first, second, third, fourth] = state.knockout.rounds[0].matches;
+    first.homeTeamId = t1; first.awayTeamId = null; first.isBye = true;
+    second.homeTeamId = t4; second.awayTeamId = t5; second.isBye = false;
+    third.homeTeamId = t2; third.awayTeamId = null; third.isBye = true;
+    fourth.homeTeamId = t3; fourth.awayTeamId = t6; fourth.isBye = false;
+    fixture.B.recomputeKnockout(state);
+
+    const summary = createSandbox({ page: "summary", initial: { [STATE_KEY]: fixture.S.exportState() } });
+    assert.match(summary.el("summary-bracket").innerHTML, /Bye - Advances to next round/);
+    assert.equal(summary.el("summary-bracket").querySelectorAll(".bracket-match").length, 7);
+    assert.equal(summary.storage.writes.length, 0);
 });

@@ -29,12 +29,13 @@ test("actions: setup names, required/duplicate/unknown, lock and reset unlock", 
 });
 test("actions: config coercions and exact boundary errors", () => {
     const s = createSandbox();
+    setup(s, 10, 2, { qualifiedCount: 8 });
     const cases = [
         ["POINT_VICTORY_PHASE1", "POINT_VICTORY_PHASE1 must be >= 0", [-1, "x", Infinity]],
         ["POINT_DRAW_PHASE1", "POINT_DRAW_PHASE1 must be >= 0", [-1, NaN]],
         ["POINT_LOSS_PHASE1", "POINT_LOSS_PHASE1 must be >= 0", [-1, undefined]],
         ["phase1MatchesPerTeam", "Phase 1 matches per team must be an integer >= 1", [0, -1, 1.5, "x"]],
-        ["qualifiedCount", "Qualified count must be >= 2", [1, "x"]],
+        ["qualifiedCount", /Qualified count must be a power of two/, [1, 3, 5, 6, 10, 11, 4.5, "x"]],
         ["matchDurationSeconds", "Match duration must be >= 1 second", [0, "x"]],
         ["pauseDurationSeconds", "Pause duration must be >= 1 second", [0, "x"]]
     ];
@@ -55,7 +56,7 @@ test("actions: config coercions and exact boundary errors", () => {
 test("actions: phase generation/scoring rejection atomicity, substitutions, invalidation and reopen", () => {
     const s = createSandbox();
     expectRejected(s, () => s.A.generatePhase1(), "Need at least 2 teams");
-    setup(s, 3, 1, { phase1MatchesPerTeam: 1 });
+    setup(s, 3, 1, { qualifiedCount: 2, phase1MatchesPerTeam: 1 });
     expectRejected(s, () => s.A.generatePhase1(), "Invalid setup: team count (3) x phase 1 matches per team (1) must be even");
     setup(s); s.A.generatePhase1();
     const m = s.state().phase1.matches[0];
@@ -79,6 +80,17 @@ test("actions: phase generation/scoring rejection atomicity, substitutions, inva
     s.A.applyPhase1Score(m.id, undefined, undefined, 0, 1); s.A.startKnockout();
     s.A.applyPhase1Score(m.id, undefined, undefined, 2, 1);
     assert.deepEqual(plain(s.state().knockout), DEFAULT.knockout);
+});
+test("actions: invalid saved qualification blocks generation until corrected", () => {
+    const s = createSandbox();
+    setup(s, 10, 2, { qualifiedCount: 8 });
+    s.state().config.qualifiedCount = 10;
+    expectRejected(s, () => s.A.generatePhase1(), /power of two/);
+    s.A.updateConfig({ ...s.state().config, qualifiedCount: 8 });
+    s.A.generatePhase1();
+    completePhase1(s);
+    s.state().config.qualifiedCount = 6;
+    expectRejected(s, () => s.A.startKnockout(), /power of two/);
 });
 test("actions: knockout generation requires every score and selects top N", () => {
     const s = createSandbox();
@@ -125,8 +137,11 @@ test("actions: knockout score guards, first-round substitution, winner/champion 
     assert.equal(next.status, "scheduled"); assert.equal(next.homeTeamId, null);
     assert.equal(k.state().knockout.championTeamId, null);
     assert.equal(third.status, "scheduled"); assert.equal(third.homeTeamId, null);
-    const bye = knockoutFixture({ count: 5 });
-    const byeMatch = bye.state().knockout.rounds[0].matches.find((match) => !match.awayTeamId);
+    const bye = knockoutFixture({ count: 4 });
+    const byeMatch = bye.state().knockout.rounds[0].matches[0];
+    byeMatch.awayTeamId = null;
+    byeMatch.isBye = true;
+    bye.B.recomputeKnockout(bye.state());
     bye.A.reopenKnockoutMatch(byeMatch.id);
     assert.equal(byeMatch.status, "completed");
     assert.equal(bye.R.getWinnerTeamId(byeMatch), byeMatch.homeTeamId);

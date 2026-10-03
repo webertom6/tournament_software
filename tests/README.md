@@ -1,6 +1,6 @@
 # Automated test reference
 
-The suite contains 56 tests and loads the production JavaScript files in
+The suite contains 58 tests and loads the production JavaScript files in
 isolated Node VM sandboxes using the same script order as the browser pages.
 
 Run every test from the repository root:
@@ -15,7 +15,7 @@ Run one suite by replacing the wildcard with its file name:
 node --test tests/02-timer.test.js
 ```
 
-A successful run exits with code 0 and ends with 53 passed tests and no failed,
+A successful run exits with code 0 and ends with 58 passed tests and no failed,
 cancelled, skipped or todo tests. A failure exits nonzero and reports the test
 name, assertion location, and expected and actual values.
 
@@ -45,7 +45,7 @@ Inside:
 - declares handwritten default-state, export, header and action contracts
 - computes reference standings with an independent algorithm
 - verifies schedule counts, collisions, terrains and participation
-- verifies bracket sizes, links, qualifiers, BYEs and third-place sources
+- verifies power-of-two bracket sizes, links, qualifiers and third-place sources
 - provides the fixed four-team standings fixture
 
 ## 00 - Contracts
@@ -318,50 +318,47 @@ Inside:
 
 File: `05-bracket.test.js`
 
-### Qualified-count normalization literal table
+### Power-of-two qualifier choices and strict validation
 
-Description: Checks minimum, maximum, truncation and invalid-value handling for
-qualified team counts.
+Description: Checks eligible counts and rejects unsupported qualifier values.
 
 Inside:
 
-- covers numeric, string, fractional, zero and oversized values
-- includes events with fewer teams than requested qualifiers
-- compares every result with a handwritten table
+- checks allowed choices for small, exact and non-power-of-two team counts
+- accepts integer numeric strings only when they represent an allowed choice
+- rejects odd, fractional, zero, oversized and non-power-of-two values
 
-### Handwritten seed pairs for Q2, Q3, Q5, Q6, Q8, Q12 and Q20
+### Handwritten seed pairs for Q2, Q4, Q8 and Q16
 
-Description: Verifies seeded pairings, including compact Q6 BYE handling.
+Description: Verifies seeded first-round pairings for supported bracket sizes.
 
 Inside:
 
 - compares first-round seed numbers with literal expected pair lists
-- checks both exact power-of-two and partially filled brackets
-- confirms six qualifiers become three real quarterfinal matches
-- covers the realistic 20-team bracket used by the full flow
+- checks every supported bracket slot has two teams
+- includes a 16-team seed arrangement
 
-### Six qualifiers play three quarterfinals and advance coherently
+### Rejecting non-power-of-two qualifiers
 
-Description: Reproduces the reported six-qualifier case and follows it to a champion.
-
-Inside:
-
-- generates phase 1 for eight teams, completes all scores and starts a six-team knockout
-- verifies each qualifier appears once across three playable quarterfinals
-- confirms one explicit semifinal bye, no impossible third-place match and a valid final winner
-
-### Round names and structure sweep Q2 through Q33
-
-Description: Checks bracket structure over qualifier counts, third-place modes
-and terrain availability.
+Description: Checks invalid qualifier configuration blocks phase 1 generation.
 
 Inside:
 
-- compares round names for one, two, three and five rounds
-- sweeps every qualifier count from 2 through 33
+- uses eight registered teams with six configured qualifiers
+- confirms no phase 1 schedule or knockout is generated
+
+### Round names and structure sweep for Q2 through Q32
+
+Description: Checks bracket structure across power-of-two counts, third-place
+modes and terrain availability.
+
+Inside:
+
+- checks round names from the final through Round of 32
+- checks counts 2, 4, 8, 16 and 32
 - checks bracket size, match IDs, source and next-match links
-- checks qualifier and BYE counts with zero or three terrains
-- checks third-place creation only when enough semifinals exist
+- checks full first-round participation with zero or three terrains
+- rejects intervening non-power-of-two counts
 
 ### Random seeding is deterministic and preserves qualifier set
 
@@ -374,16 +371,15 @@ Inside:
 - compares deterministic bracket output
 - checks every qualified team occurs exactly once in the first round
 
-### Recompute no-op, BYEs, propagation and idempotence
+### Recompute no-op, legacy BYEs, propagation and idempotence
 
-Description: Checks automatic bracket recomputation for empty slots and
-completed feeder matches.
+Description: Checks recomputation, including legacy BYEs in imported brackets.
 
 Inside:
 
 - checks ungenerated and no-round brackets safely do nothing
 - covers home-only, away-only and fully empty matches
-- checks BYEs complete with the expected score and advance winners
+- checks old one-team BYE slots complete with the expected score and advance winners
 - runs recomputation twice and compares unchanged results
 
 ### Q4 third-place losers, champion and downstream chain isolation
@@ -422,9 +418,9 @@ Description: Checks every configuration field at valid and invalid boundaries.
 
 Inside:
 
-- covers point values, matches per team, qualifier count and durations
+- covers point values, matches per team, power-of-two qualifier count and durations
 - accepts intended numeric strings and zero point values
-- rejects fractions, nonnumbers and values below required limits
+- rejects fractions, nonnumbers, non-power-of-two values and counts above the roster
 - checks seeding and third-place coercion
 - compares exact error messages
 
@@ -435,6 +431,7 @@ Description: Checks phase 1 generation, score validation and correction effects.
 Inside:
 
 - rejects insufficient teams and odd match-slot setups
+- rejects an invalid saved qualifier count before generating phase 1
 - rejects invalid scores, matches and team selections without state changes
 - changes first-phase participants and verifies standings use them
 - confirms scoring or reopening a phase match removes generated knockout data
@@ -539,7 +536,17 @@ Inside:
 - saves phase and knockout scores using rendered inputs
 - checks setup, phase, knockout and champion button gating
 - checks locked team deletion reports an alert
-- verifies six qualifiers render three playable quarterfinal cards and one semifinal bye card
+
+### Power-of-two qualifier select and stale-value warning
+
+Description: Checks roster-aware choices and recovery when a roster change invalidates the saved count.
+
+Inside:
+
+- offers only powers of two no greater than the registered team count
+- preserves an invalid saved value and warns after removing a team
+- blocks phase 1 generation until a valid count is saved
+- rejects a non-power-of-two imported or directly assigned value
 
 ### Escaping hostile names and completed or scheduled control locks
 
@@ -683,7 +690,9 @@ Inside:
 - hides third place until both teams are available
 - renders live round progression and current-round emphasis
 - checks bracket title and horizontal scroll synchronization
-- verifies the compact six-qualifier bracket's source-linked positions and semifinal bye
+- verifies a full eight-team bracket has linked positions and no BYEs
+- displays a warning rather than failing on an imported invalid qualifier count
+- confirms a saved six-qualifier BYE bracket remains readable without state writes
 
 Limitation: The fake DOM checks generated content and events, not pixel layout,
 responsive behavior, CSS appearance or real display performance.
@@ -699,7 +708,7 @@ and checks its complete schedule contract.
 
 Inside:
 
-- configures three matches per team and 20 qualifiers
+- configures three matches per team and 16 qualifiers
 - checks 75 matches across rounds of 20, 20, 20 and 15
 - checks exact participation, no team collisions and unique terrains per round
 - checks this realistic fixture has no repeated opponent pair
@@ -715,11 +724,11 @@ Inside:
 - scores all 75 phase matches with round and match pauses
 - compares midpoint and final standings with the independent oracle
 - verifies a real points tie occurs
-- generates a 20-team knockout with five rounds and 12 BYEs
+- generates a 16-team knockout with four full rounds and no BYEs
 - checks seed sums, semifinal and final pairings, champion and third place
 - reopens a quarterfinal, applies a seed-8 upset and checks only dependent results clear
 - imports a quarterfinal backup in a fresh sandbox and reproduces the outcome
-- corrects a phase result that changes the top 20 and regenerates the bracket
+- corrects a phase result that changes the top 16 and regenerates the bracket
 - checks operator and summary pages show the champion while summary writes nothing
 - checks Back to phase 1, Reset phases and Reset all preservation rules
 
@@ -732,8 +741,8 @@ Inside:
 
 - compares same-seed schedules and final exports byte for byte
 - checks another seed changes the phase schedule
-- checks random seeding still includes every top-20 team exactly once
-- checks random seeding still creates 12 BYEs
+- checks random seeding still includes every top-16 team exactly once
+- checks every random first-round pairing has two teams
 - completes the random bracket and confirms rank 1 wins under the chosen scoring rule
 
 ## Global limitations

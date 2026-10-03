@@ -27,7 +27,8 @@ Both files work offline, no install and no server needed
 - **Register teams and terrains** (playing fields), remove them before the
   tournament starts
 - **Set the rules**: points for win/draw/loss, number of matches per team in the
-  group stage, number of qualified teams, seeding (ranked or random),
+  group stage, power-of-two knockout qualifiers supported by the registered
+  teams, seeding (ranked or random),
   optional third place match
 - Set the **match duration** and the pause/break duration (just for information of operator, no logic of automatic stops)
 - **Auto-generate the group stage schedule**, matches spread across terrains and
@@ -105,9 +106,10 @@ The files run in order: 00 contracts, 01 state, 02 timer, 03 rules,
 filename.
 
 Coverage includes persistence/import/export, validation and reset guards,
-standings and tie-breaks, schedule constraints, seeded brackets and BYEs,
+standings and tie-breaks, schedule constraints, seeded power-of-two brackets
+without new BYEs,
 score corrections, timer pauses, page events, print content and read-only
-live summary behavior. The full flow exercises 50 teams and a 20-team
+live summary behavior. The full flow exercises 50 teams and a 16-team
 knockout, including a corrected quarterfinal and replay from a backup.
 Expected results come from handwritten contracts and score tables,
 independent standings and invariant checkers, and known seeded outcomes;

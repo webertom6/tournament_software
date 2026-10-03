@@ -19,6 +19,11 @@ Top or double-up-chevron goes back to the top
 
 # Config setup
 Only modifiable in the setup phase
+Knockout qualifiers must be a power of two (2, 4, 8, 16, ...) and cannot
+exceed the registered team count. For example, 10 registered teams allow 2,
+4 or 8 qualifiers; 10 qualifiers is not supported. If removing a team makes
+the saved count invalid, choose a valid value before saving the config or
+generating phase 1.
 
 # Timer
 Trigger the round timer to trigger all match timers

@@ -27,13 +27,13 @@ test("operator-page: empty/malformed boot, one 1000ms interval, subscription rer
     }
 });
 test("operator-page: forms, config minutes conversion and validation alerts", async () => {
-    const s = createSandbox({ page: "admin" });
+    const s = createSandbox({ page: "admin" }); setup(s, 4, 2);
     s.el("team-name").value = "  Form \t Team ";
     await s.el("form-add-team").dispatch("submit");
-    assert.equal(s.state().teams[0].name, "Form Team"); assert.equal(s.el("team-name").value, "");
+    assert.equal(s.state().teams.at(-1).name, "Form Team"); assert.equal(s.el("team-name").value, "");
     s.el("terrain-name").value = "Form Field";
     await s.el("form-add-terrain").dispatch("submit");
-    assert.equal(s.state().terrains[0].name, "Form Field");
+    assert.equal(s.state().terrains.at(-1).name, "Form Field");
     s.el("cfg-match-duration").value = "7"; s.el("cfg-pause-duration").value = "2";
     s.el("cfg-seeding").value = "random"; s.el("cfg-third-place").checked = true;
     await s.el("form-config").dispatch("submit");
@@ -47,6 +47,7 @@ test("operator-page: forms, config minutes conversion and validation alerts", as
     assert.equal(s.alerts.at(-1), "Team name already exists");
     s.el("terrain-name").value = ""; await s.el("form-add-terrain").dispatch("submit");
     assert.equal(s.alerts.at(-1), "Terrain name is required");
+    s.A.resetAll();
     await s.el("btn-generate-phase1").click();
     assert.equal(s.alerts.at(-1), "Need at least 2 teams");
     await s.el("btn-start-knockout").click();
@@ -137,19 +138,37 @@ test("operator-page: escaping hostile names and completed/scheduled control lock
     assert.ok(field(s, "ko-home-team", first.id));
     assert.equal(field(s, "ko-home-team", first.id).querySelectorAll("option")[0].textContent, "BYE / none");
 });
-test("operator-page: six qualifiers show three playable quarterfinals and one semifinal bye", () => {
+test("operator-page: qualifier select offers powers of two and flags stale values", async () => {
     const s = createSandbox({ page: "admin" });
-    setup(s, 8, 2, { qualifiedCount: 6, thirdPlaceMatch: true });
-    s.A.generatePhase1();
-    completePhase1(s);
-    s.A.startKnockout();
+    setup(s, 8, 2, { qualifiedCount: 8 });
+    const selector = s.el("cfg-qualified");
+    const message = s.el("qualified-count-message");
+    assert.deepEqual(selector.querySelectorAll("option").map((option) => option.value), ["2", "4", "8"]);
+    assert.equal(selector.value, "8");
+    assert.equal(message.hidden, true);
+    assert.equal(selector.getAttribute("aria-describedby"), null);
 
-    const [quarterfinals, semifinals] = s.state().knockout.rounds;
-    assert.equal(quarterfinals.matches.length, 3);
-    assert.ok(quarterfinals.matches.every((match) => field(s, "ko-home-team", match.id)));
-    assert.equal(semifinals.matches.filter((match) => match.isBye).length, 1);
-    assert.equal(s.el("section-knockout").querySelectorAll(".match-card--bye").length, 1);
-    assert.equal(s.state().knockout.thirdPlace, null);
+    s.A.removeTeam(s.state().teams[0].id);
+    assert.equal(s.state().config.qualifiedCount, 8);
+    assert.equal(selector.value, "8");
+    assert.equal(selector.querySelectorAll("option")[0].disabled, true);
+    assert.equal(message.hidden, false);
+    assert.match(message.textContent, /invalid for 7 teams/);
+    assert.equal(selector.getAttribute("aria-describedby"), message.id);
+    assert.equal(s.el("btn-generate-phase1").disabled, true);
+    selector.value = "4";
+    await s.el("form-config").dispatch("submit");
+    assert.equal(s.state().config.qualifiedCount, 4);
+    assert.equal(message.hidden, true);
+    assert.equal(selector.getAttribute("aria-describedby"), null);
+    assert.equal(s.el("btn-generate-phase1").disabled, false);
+
+    setup(s, 10, 2, { qualifiedCount: 10 });
+    assert.equal(s.el("cfg-qualified").value, "10");
+    assert.match(message.textContent, /Select a power of two/);
+    assert.equal(s.el("btn-generate-phase1").disabled, true);
+    await s.el("form-config").dispatch("submit");
+    assert.match(s.alerts.at(-1), /power of two/);
 });
 test("operator-page: operator/summary/print standings headers, qualified cells and GA decimals", async () => {
     const s = createSandbox({ page: "admin" }); handFixture(s); s.S.update(() => {});

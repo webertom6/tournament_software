@@ -498,6 +498,11 @@
         return count + " " + singular + (count === 1 ? "" : "s");
     }
 
+    function getQualifiedCountForDisplay(state) {
+        const count = Number(state.config.qualifiedCount);
+        return window.TournamentBracket.getAllowedQualifiedCounts(state.teams.length).includes(count) ? count : 0;
+    }
+
     function getExportModel(kind, state) {
         const generatedAt = new Date().toLocaleString();
         const meta = pluralize(state.teams.length, "team") + " - " + pluralize(state.terrains.length, "terrain") + " - Generated " + generatedAt;
@@ -509,7 +514,7 @@
                 title: "Standings",
                 meta: meta,
                 standings: standings,
-                qualifiedCount: window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount),
+                qualifiedCount: getQualifiedCountForDisplay(state),
                 bestValues: window.TournamentRules.getStandingsBestValues(standings)
             };
         }
@@ -783,10 +788,12 @@
             return;
         }
 
-        const normalizedQualified = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
+        const normalizedQualified = getQualifiedCountForDisplay(state);
         const bestValues = window.TournamentRules.getStandingsBestValues(standings);
         target.innerHTML =
-            '<p class="muted">Qualified for knockout: top ' + normalizedQualified + " teams</p>" +
+            '<p class="muted">' + (normalizedQualified ?
+                "Qualified for knockout: top " + normalizedQualified + " teams" :
+                "Knockout qualification is invalid; choose a power of two within the registered team count") + "</p>" +
             '<table class="standings-table">' +
             "<thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GT</th><th>GC</th><th>GA</th><th>GD</th><th>Last</th><th>Best</th><th>Pts</th></tr></thead>" +
             "<tbody>" +
@@ -962,14 +969,49 @@
         const target = document.getElementById("config-overview");
         const config = state.config;
         const seedingLabel = config.seedingPolicy === "random" ? "Randomized" : "Ranking order";
+        const qualifiedCount = getQualifiedCountForDisplay(state);
         target.innerHTML = '<div class="overview-grid">' +
             '<div><span class="text-label">Win / draw / loss</span><strong>' + config.POINT_VICTORY_PHASE1 + " / " + config.POINT_DRAW_PHASE1 + " / " + config.POINT_LOSS_PHASE1 + '</strong></div>' +
             '<div><span class="text-label">Group matches per team</span><strong>' + config.phase1MatchesPerTeam + '</strong></div>' +
-            '<div><span class="text-label">Qualified for knockout</span><strong>' + config.qualifiedCount + '</strong></div>' +
+            '<div><span class="text-label">Qualified for knockout</span><strong>' + config.qualifiedCount + (qualifiedCount ? "" : " (invalid)") + '</strong></div>' +
             '<div><span class="text-label">Seeding</span><strong>' + esc(seedingLabel) + '</strong></div>' +
             '<div><span class="text-label">Third place match</span><strong>' + (config.thirdPlaceMatch ? "Yes" : "No") + '</strong></div>' +
             '<div><span class="text-label">Match / pause duration</span><strong>' + Math.round(config.matchDurationSeconds / 60) + " min / " + Math.round(config.pauseDurationSeconds / 60) + ' min</strong></div>' +
             '</div>';
+    }
+
+    function syncQualifiedCount(state) {
+        const select = document.getElementById("cfg-qualified");
+        const message = document.getElementById("qualified-count-message");
+        const count = Number(state.config.qualifiedCount);
+        const allowed = window.TournamentBracket.getAllowedQualifiedCounts(state.teams.length);
+        const valid = Number.isInteger(count) && allowed.includes(count);
+        let optionsHtml = "";
+
+        if (!valid) {
+            optionsHtml += '<option value="' + esc(String(state.config.qualifiedCount)) + '" selected disabled>' +
+                esc(String(state.config.qualifiedCount)) + " (invalid)</option>";
+        }
+        optionsHtml += allowed.map((value) => '<option value="' + value + '">' + value + "</option>").join("");
+        select.innerHTML = optionsHtml;
+        select.value = String(state.config.qualifiedCount);
+        select.setAttribute("aria-invalid", valid ? "false" : "true");
+
+        if (valid) {
+            message.textContent = "";
+            message.hidden = true;
+            select.removeAttribute("aria-describedby");
+        } else if (state.teams.length < 2) {
+            message.textContent = "Register at least 2 teams to choose a knockout qualifier count.";
+            message.hidden = false;
+            select.setAttribute("aria-describedby", message.id);
+        } else {
+            message.textContent = "Saved value " + state.config.qualifiedCount + " is invalid for " + state.teams.length +
+                " teams. Select a power of two from 2 to " + state.teams.length +
+                (state.phase1.generated ? " after resetting phases." : " before saving config or generating phase 1.");
+            message.hidden = false;
+            select.setAttribute("aria-describedby", message.id);
+        }
     }
 
     function syncConfigForm(state) {
@@ -977,7 +1019,7 @@
         document.getElementById("cfg-draw").value = state.config.POINT_DRAW_PHASE1;
         document.getElementById("cfg-loss").value = state.config.POINT_LOSS_PHASE1;
         document.getElementById("cfg-phase1-matches").value = state.config.phase1MatchesPerTeam;
-        document.getElementById("cfg-qualified").value = state.config.qualifiedCount;
+        syncQualifiedCount(state);
         document.getElementById("cfg-seeding").value = state.config.seedingPolicy;
         document.getElementById("cfg-third-place").checked = Boolean(state.config.thirdPlaceMatch);
         document.getElementById("cfg-match-duration").value = Math.round(state.config.matchDurationSeconds / 60);
@@ -1006,6 +1048,7 @@
 
     function applyStageGating(state) {
         const setupLocked = Boolean(state.phase1.generated);
+        const qualifiedCountValid = getQualifiedCountForDisplay(state) > 0;
         const phase1AllCompleted = state.phase1.matches.length > 0 &&
             state.phase1.matches.every((match) => match.status === "completed");
 
@@ -1019,8 +1062,9 @@
         });
         document.querySelector("#form-config button[type='submit']").disabled = setupLocked;
 
-        document.getElementById("btn-generate-phase1").disabled = setupLocked;
-        document.getElementById("btn-start-knockout").disabled = !state.phase1.generated || !phase1AllCompleted || state.knockout.generated;
+        document.getElementById("btn-generate-phase1").disabled = setupLocked || !qualifiedCountValid;
+        document.getElementById("btn-start-knockout").disabled = !state.phase1.generated || !phase1AllCompleted ||
+            state.knockout.generated || !qualifiedCountValid;
         document.getElementById("btn-back-to-phase1").disabled = !state.knockout.generated;
     }
 

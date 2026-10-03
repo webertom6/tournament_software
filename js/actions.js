@@ -110,9 +110,7 @@
             if (!Number.isFinite(parsed.phase1MatchesPerTeam) || parsed.phase1MatchesPerTeam < 1 || Math.floor(parsed.phase1MatchesPerTeam) !== parsed.phase1MatchesPerTeam) {
                 throw new Error("Phase 1 matches per team must be an integer >= 1");
             }
-            if (!Number.isFinite(parsed.qualifiedCount) || parsed.qualifiedCount < 2) {
-                throw new Error("Qualified count must be >= 2");
-            }
+            window.TournamentBracket.normalizeQualifiedCount(state.teams.length, parsed.qualifiedCount);
             if (!Number.isFinite(parsed.matchDurationSeconds) || parsed.matchDurationSeconds < 1) {
                 throw new Error("Match duration must be >= 1 second");
             }
@@ -132,6 +130,7 @@
             if (state.teams.length < 2) {
                 throw new Error("Need at least 2 teams");
             }
+            window.TournamentBracket.normalizeQualifiedCount(state.teams.length, state.config.qualifiedCount);
             const teamIds = state.teams.map((team) => team.id);
             const terrainIds = state.terrains.map((terrain) => terrain.id);
             state.phase1.matches = window.TournamentScheduler.buildPhase1Matches(
@@ -292,7 +291,7 @@
             if (standings.length < 2) {
                 throw new Error("Need standings for at least 2 teams");
             }
-            const qualifiedCount = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
+            const qualifiedCount = window.TournamentBracket.normalizeQualifiedCount(state.teams.length, state.config.qualifiedCount);
             const qualified = standings.slice(0, qualifiedCount).map((row) => row.teamId);
             const terrainIds = state.terrains.map((terrain) => terrain.id);
             const knockout = window.TournamentBracket.generateKnockoutStructure(qualified, state.config, window.TournamentState.uid, terrainIds);

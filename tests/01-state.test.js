@@ -106,6 +106,7 @@ test("state: sanitization finite numeric types, enums, coercions, arrays and unk
 test("state: legacy shape remains operable; reset default plus audit preserves preferences", () => {
     const s = createSandbox();
     s.S.importState(JSON.stringify({ teams: [{ id: "a", name: "A" }, { id: "b", name: "B" }], terrains: [] }));
+    s.A.updateConfig({ ...s.state().config, qualifiedCount: 2 });
     s.A.generatePhase1();
     for (const m of s.state().phase1.matches) s.A.applyPhase1Score(m.id, undefined, undefined, 1, 0);
     s.A.startKnockout();

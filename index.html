@@ -67,6 +67,7 @@
         <div class="card overview-card">
             <h2>Overview</h2>
             <div id="config-overview"></div>
+            <div id="qualified-count-message" class="muted" role="status" hidden></div>
             <div class="button-row">
                 <button id="btn-generate-phase1" type="button">Generate phase 1 schedule</button>
                 <button id="btn-start-knockout" type="button">Generate phase 2 knockout</button>
@@ -99,7 +100,7 @@
                     <form id="form-add-terrain">
                         <label for="terrain-name">Terrain name</label>
                         <div class="inline-form">
-                            <input id="terrain-name" name="terrain-name" type="text" maxlength="60" placeholder="Example: Terrain A" autocomplete="off" required>
+                            <input id="terrain-name" name="terrain-name" type="text" maxlength="60" placeholder="Example: A (prefix &quot;Terrain&quot; will be added automatically)" autocomplete="off" required>
                             <button type="submit">Add terrain</button>
                         </div>
                     </form>
@@ -128,7 +129,7 @@
                     </label>
                     <label>
                         Qualified teams for knockout
-                        <input id="cfg-qualified" type="number" step="1" min="2" placeholder="e.g. 4" required>
+                        <select id="cfg-qualified" required></select>
                     </label>
                     <label>
                         Seeding policy

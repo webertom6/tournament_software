@@ -261,12 +261,16 @@
             return;
         }
 
-        const qualifiedCount = window.TournamentBracket.normalizeQualifiedCount(standings.length, state.config.qualifiedCount);
+        const configuredCount = Number(state.config.qualifiedCount);
+        const qualifiedCounts = window.TournamentBracket.getAllowedQualifiedCounts(state.teams.length);
+        const qualifiedCount = qualifiedCounts.includes(configuredCount) ? configuredCount : 0;
         const bestValues = window.TournamentRules.getStandingsBestValues(standings);
         const columnCount = getStandingsColumnCount(standings.length);
         const columns = chunkStandings(standings, columnCount);
 
-        target.innerHTML = '<div class="standings-columns">' +
+        target.innerHTML = (qualifiedCount ? "" :
+            '<p class="summary-empty">Knockout qualification is invalid for the registered team count</p>') +
+            '<div class="standings-columns">' +
             columns.map((rows) => '<div class="table-wrap">' + renderStandingsTable(rows, qualifiedCount, bestValues) + '</div>').join("") +
             '</div>';
     }

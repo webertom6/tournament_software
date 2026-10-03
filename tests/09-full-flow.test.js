@@ -8,7 +8,7 @@ function realistic(seed = 1, policy = "ranking") {
     const s = createSandbox({ seed, now: 1700000000000 });
     setup(s, 50, 20, {
         POINT_VICTORY_PHASE1: 3, POINT_DRAW_PHASE1: 1, POINT_LOSS_PHASE1: 0,
-        phase1MatchesPerTeam: 3, qualifiedCount: 20, thirdPlaceMatch: true, seedingPolicy: policy,
+        phase1MatchesPerTeam: 3, qualifiedCount: 16, thirdPlaceMatch: true, seedingPolicy: policy,
         matchDurationSeconds: 600, pauseDurationSeconds: 120
     });
     s.A.generatePhase1();
@@ -44,7 +44,7 @@ function playPhase1(s) {
     assert.ok(rows.some((row, i) => i && row.points === rows[i - 1].points), "Fixture must exercise points ties");
     return rows;
 }
-function seedMap(rows) { return new Map(rows.slice(0, 20).map((row, i) => [row.teamId, i + 1])); }
+function seedMap(rows) { return new Map(rows.slice(0, 16).map((row, i) => [row.teamId, i + 1])); }
 function better(s, match, seeds) {
     assert.ok(match.homeTeamId && match.awayTeamId);
     scoreWinner(s, match, seeds.get(match.homeTeamId) < seeds.get(match.awayTeamId) ? match.homeTeamId : match.awayTeamId);
@@ -76,20 +76,20 @@ function assertOutcome(s, seeds, champion, runner, third, fourth) {
     assert.equal(seeds.get(s.R.getLoserTeamId(tp)), fourth);
 }
 function reopenUpset(s, seeds) {
-    const qf = s.state().knockout.rounds[2].matches.find((m) => ranks(m, seeds).join(",") === "1,8");
+    const qf = s.state().knockout.rounds[1].matches.find((m) => ranks(m, seeds).join(",") === "1,8");
     assert.ok(qf);
-    const otherQfs = s.state().knockout.rounds[2].matches.filter((m) => m !== qf).map((m) => JSON.stringify(m));
-    const siblingSemi = JSON.stringify(s.state().knockout.rounds[3].matches[1]);
+    const otherQfs = s.state().knockout.rounds[1].matches.filter((m) => m !== qf).map((m) => JSON.stringify(m));
+    const siblingSemi = JSON.stringify(s.state().knockout.rounds[2].matches[1]);
     s.A.reopenKnockoutMatch(qf.id);
     assert.equal(qf.status, "scheduled");
+    assert.equal(s.state().knockout.rounds[2].matches[0].status, "scheduled");
     assert.equal(s.state().knockout.rounds[3].matches[0].status, "scheduled");
-    assert.equal(s.state().knockout.rounds[4].matches[0].status, "scheduled");
     assert.equal(s.state().knockout.championTeamId, null);
-    assert.deepEqual(s.state().knockout.rounds[2].matches.filter((m) => m !== qf).map((m) => JSON.stringify(m)), otherQfs);
-    assert.equal(JSON.stringify(s.state().knockout.rounds[3].matches[1]), siblingSemi);
+    assert.deepEqual(s.state().knockout.rounds[1].matches.filter((m) => m !== qf).map((m) => JSON.stringify(m)), otherQfs);
+    assert.equal(JSON.stringify(s.state().knockout.rounds[2].matches[1]), siblingSemi);
     const rank8 = [...seeds].find(([, rank]) => rank === 8)[0];
     scoreWinner(s, qf, rank8);
-    playRounds(s, seeds, 3);
+    playRounds(s, seeds, 2);
     playThird(s, seeds);
     assertOutcome(s, seeds, 2, 4, 3, 8);
 }
@@ -111,19 +111,19 @@ test("full-flow: phase timers/oracle, seeded title, QF upset, export/import repl
     const phaseExport = s.S.exportState();
     s.A.startKnockout();
     const ko = s.state().knockout;
-    assert.deepEqual(plain(ko.rounds.map((round) => round.matches.length)), [16, 8, 4, 2, 1]);
-    assert.deepEqual(plain(ko.rounds.map((round) => round.name)), ["Round 1", "Round 2", "Quarterfinal", "Semifinal", "Final"]);
-    bracketInvariants(plain(ko), rows.slice(0, 20).map((row) => row.teamId), true, s.state().terrains.map((field) => field.id));
-    assert.equal(ko.rounds[0].matches.filter((m) => m.status === "completed").length, 12);
+    assert.deepEqual(plain(ko.rounds.map((round) => round.matches.length)), [8, 4, 2, 1]);
+    assert.deepEqual(plain(ko.rounds.map((round) => round.name)), ["Round of 16", "Quarterfinal", "Semifinal", "Final"]);
+    bracketInvariants(plain(ko), rows.slice(0, 16).map((row) => row.teamId), true, s.state().terrains.map((field) => field.id));
+    assert.equal(ko.rounds[0].matches.filter((m) => m.homeTeamId && m.awayTeamId).length, 8);
     for (const match of ko.rounds[0].matches) {
-        if (match.homeTeamId && match.awayTeamId) assert.equal(seeds.get(match.homeTeamId) + seeds.get(match.awayTeamId), 33);
+        assert.equal(seeds.get(match.homeTeamId) + seeds.get(match.awayTeamId), 17);
     }
     for (const round of ko.rounds) assert.equal(new Set(round.matches.map((m) => m.terrainId)).size, round.matches.length);
-    playRounds(s, seeds, 0, 2);
-    assert.deepEqual(plain(ko.rounds[3].matches.map((m) => ranks(m, seeds))), [[1, 4], [2, 3]]);
+    playRounds(s, seeds, 0, 1);
+    assert.deepEqual(plain(ko.rounds[2].matches.map((m) => ranks(m, seeds))), [[1, 4], [2, 3]]);
     const quarterExport = s.S.exportState();
-    playRounds(s, seeds, 3); playThird(s, seeds);
-    assert.deepEqual(ranks(ko.rounds[4].matches[0], seeds), [1, 2]);
+    playRounds(s, seeds, 2); playThird(s, seeds);
+    assert.deepEqual(ranks(ko.rounds[3].matches[0], seeds), [1, 2]);
     assertOutcome(s, seeds, 1, 2, 3, 4);
     reopenUpset(s, seeds);
     const replay = createSandbox({ now: s.now });
@@ -142,14 +142,14 @@ test("full-flow: phase timers/oracle, seeded title, QF upset, export/import repl
     summary.advance(1000); summary.runTimers(1000); summary.dispatchWindow("storage", { key: STATE_KEY });
     assert.equal(summary.storage.writes.length, 0);
     // Find a correction using only the independent standings oracle.
-    const oldTop = rows.slice(0, 20).map((row) => row.teamId).sort().join(",");
+    const oldTop = rows.slice(0, 16).map((row) => row.teamId).sort().join(",");
     let correction;
     for (const match of s.state().phase1.matches) {
         for (const homeGoals of [10000, 0]) {
             const candidate = plain(s.state());
             const changed = candidate.phase1.matches.find((m) => m.id === match.id);
             changed.homeGoals = homeGoals; changed.awayGoals = homeGoals ? 0 : 10000;
-            const top = referenceStandings(candidate).slice(0, 20).map((row) => row.teamId).sort().join(",");
+            const top = referenceStandings(candidate).slice(0, 16).map((row) => row.teamId).sort().join(",");
             if (top !== oldTop) { correction = { id: match.id, homeGoals, awayGoals: homeGoals ? 0 : 10000 }; break; }
         }
         if (correction) break;
@@ -161,7 +161,7 @@ test("full-flow: phase timers/oracle, seeded title, QF upset, export/import repl
     s.A.applyPhase1Score(correction.id, undefined, undefined, correction.homeGoals, correction.awayGoals);
     const revised = referenceStandings(s.state());
     assert.deepEqual(plain(s.R.buildStandings(s.state())), revised);
-    assert.notEqual(revised.slice(0, 20).map((row) => row.teamId).sort().join(","), oldTop);
+    assert.notEqual(revised.slice(0, 16).map((row) => row.teamId).sort().join(","), oldTop);
     s.A.startKnockout();
     const newSeeds = seedMap(revised);
     playRounds(s, newSeeds); playThird(s, newSeeds);
@@ -183,7 +183,7 @@ test("full-flow: phase timers/oracle, seeded title, QF upset, export/import repl
     assert.equal(s.storage.getItem(SUMMARY_KEY), '{"standingsHidden":true}');
     assert.equal(JSON.parse(phaseExport).phase1.matches.length, 75);
 });
-test("full-flow: same seeds byte-identical exports, different schedules; random top20+12 BYEs and rank1 champion", () => {
+test("full-flow: same seeds byte-identical exports, random top16 no-BYE bracket and rank1 champion", () => {
     const a = realistic(), b = realistic(), different = realistic(2);
     assert.equal(a.S.exportState(), b.S.exportState());
     assert.notEqual(JSON.stringify(a.state().phase1.matches), JSON.stringify(different.state().phase1.matches));
@@ -197,8 +197,8 @@ test("full-flow: same seeds byte-identical exports, different schedules; random 
     const rows = playPhase1(random), randomSeeds = seedMap(rows);
     random.A.startKnockout();
     const first = random.state().knockout.rounds[0].matches;
-    assert.equal(first.filter((m) => !m.homeTeamId || !m.awayTeamId).length, 12);
-    assert.deepEqual(plain(first).flatMap((m) => [m.homeTeamId, m.awayTeamId]).filter(Boolean).sort(), rows.slice(0, 20).map((row) => row.teamId).sort());
+    assert.ok(first.every((m) => m.homeTeamId && m.awayTeamId));
+    assert.deepEqual(plain(first).flatMap((m) => [m.homeTeamId, m.awayTeamId]).sort(), rows.slice(0, 16).map((row) => row.teamId).sort());
     assert.notDeepEqual(plain(first).flatMap((m) => [m.homeTeamId, m.awayTeamId]),
         plain(a.state().knockout.rounds[0].matches).flatMap((m) => [m.homeTeamId, m.awayTeamId]));
     playRounds(random, randomSeeds); playThird(random, randomSeeds);

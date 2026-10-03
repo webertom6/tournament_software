@@ -1,27 +1,29 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createSandbox, setup, completePhase1, plain, knockoutFixture, scoreWinner, STATE_KEY } = require("./harness");
+const { createSandbox, setup, plain, knockoutFixture, scoreWinner } = require("./harness");
 const { bracketInvariants } = require("./oracles");
 
-test("bracket: normalizeQualifiedCount literal table", () => {
+test("bracket: power-of-two qualifier choices and strict validation", () => {
     const s = createSandbox();
-    for (const [teams, requested, expected] of [[0, 4, 0], [1, 4, 1], [2, 4, 2], [10, 4, 4],
-        [10, 3.9, 3], [10, "5", 5], [10, 1, 2], [10, -5, 2], [10, 0, 2],
-        [10, null, 2], [10, undefined, 2], [10, "x", 2], [10, NaN, 2], [10, Infinity, 10], [10, 99, 10]]) {
-        assert.equal(s.B.normalizeQualifiedCount(teams, requested), expected);
+    for (const [teams, expected] of [[0, []], [1, []], [2, [2]], [3, [2]], [8, [2, 4, 8]], [10, [2, 4, 8]], [16, [2, 4, 8, 16]]]) {
+        assert.deepEqual(plain(s.B.getAllowedQualifiedCounts(teams)), expected);
+    }
+    for (const [teams, requested] of [[10, 2], [10, 4], [10, 8], [8, "4"]]) {
+        assert.equal(s.B.normalizeQualifiedCount(teams, requested), Number(requested));
+    }
+    for (const [teams, requested] of [[10, 0], [10, 1], [10, 3], [10, 5], [10, 6], [10, 10],
+        [10, 11], [10, 4.5], [10, "x"], [10, NaN], [10, Infinity], [1, 2]]) {
+        assert.throws(() => s.B.normalizeQualifiedCount(teams, requested), /power of two/);
     }
 });
-test("bracket: handwritten seed pairs Q2/3/5/6/8/12/20", () => {
+test("bracket: handwritten seed pairs Q2/4/8/16", () => {
     const s = createSandbox();
     const pairs = {
-        2: [[1, 2]], 3: [[1, null], [2, 3]],
-        5: [[1, null], [4, 5], [2, null], [3, null]],
-        6: [[1, 6], [2, 5], [3, 4]],
+        2: [[1, 2]],
+        4: [[1, 4], [2, 3]],
         8: [[1, 8], [4, 5], [2, 7], [3, 6]],
-        12: [[1, null], [8, 9], [4, null], [5, 12], [2, null], [7, 10], [3, null], [6, 11]],
-        20: [[1, null], [16, 17], [8, null], [9, null], [4, null], [13, 20], [5, null], [12, null],
-            [2, null], [15, 18], [7, null], [10, null], [3, null], [14, 19], [6, null], [11, null]]
+        16: [[1, 16], [8, 9], [4, 13], [5, 12], [2, 15], [7, 10], [3, 14], [6, 11]]
     };
     for (const [count, expected] of Object.entries(pairs)) {
         const ids = Array.from({ length: Number(count) }, (_, i) => i + 1);
@@ -29,58 +31,41 @@ test("bracket: handwritten seed pairs Q2/3/5/6/8/12/20", () => {
         assert.deepEqual(plain(ko.rounds[0].matches.map((match) => [match.homeTeamId, match.awayTeamId])), expected);
     }
 });
-test("bracket: six qualifiers play three quarterfinals and advance coherently", () => {
+test("bracket: rejects non-power-of-two qualifiers before starting phase 1", () => {
     const s = createSandbox();
     setup(s, 8, 2, { qualifiedCount: 6, thirdPlaceMatch: true });
-    s.A.generatePhase1();
-    completePhase1(s);
-    s.A.startKnockout();
-
-    const rounds = s.state().knockout.rounds;
-    assert.deepEqual(Array.from(rounds, (round) => round.matches.length), [3, 2, 1]);
-    const qualifiers = s.R.buildStandings(s.state()).slice(0, 6).map((row) => row.teamId);
-    const quarterfinals = rounds[0].matches;
-    const participants = quarterfinals.flatMap((match) => [match.homeTeamId, match.awayTeamId]);
-    assert.deepEqual([...participants].sort(), [...qualifiers].sort());
-    assert.ok(quarterfinals.every((match) => match.homeTeamId && match.awayTeamId && !match.isBye));
-    assert.equal(s.state().knockout.thirdPlace, null);
-
-    quarterfinals.forEach((match) => scoreWinner(s, match, match.homeTeamId));
-    const reloaded = createSandbox();
-    reloaded.S.importState(s.S.exportState());
-    const persistedRounds = reloaded.state().knockout.rounds;
-    const semifinals = persistedRounds[1].matches;
-    const byeSemi = semifinals.find((match) => match.isBye);
-    const playedSemi = semifinals.find((match) => !match.isBye);
-    assert.equal(byeSemi.status, "completed");
-    assert.equal(byeSemi.homeGoals + byeSemi.awayGoals, 1);
-    assert.ok(playedSemi.homeTeamId && playedSemi.awayTeamId);
-    scoreWinner(reloaded, playedSemi, playedSemi.homeTeamId);
-
-    const final = persistedRounds[2].matches[0];
-    assert.ok(final.homeTeamId && final.awayTeamId);
-    scoreWinner(reloaded, final, final.homeTeamId);
-    assert.equal(reloaded.state().knockout.championTeamId, final.homeTeamId);
+    assert.throws(() => s.A.generatePhase1(), /power of two/);
+    assert.equal(s.state().phase1.generated, false);
 });
 test("bracket: round name literals and structure sweep Q2..33, third on/off, fields0/3", () => {
     const s = createSandbox();
-    const names = { 1: ["Final"], 2: ["Semifinal", "Final"], 3: ["Quarterfinal", "Semifinal", "Final"],
-        5: ["Round 1", "Round 2", "Quarterfinal", "Semifinal", "Final"] };
-    for (let q = 2; q <= 33; q++) for (const third of [false, true]) for (const fields of [[], ["f1", "f2", "f3"]]) {
+    const names = {
+        1: ["Final"],
+        2: ["Semifinal", "Final"],
+        3: ["Quarterfinal", "Semifinal", "Final"],
+        4: ["Round of 16", "Quarterfinal", "Semifinal", "Final"],
+        5: ["Round of 32", "Round of 16", "Quarterfinal", "Semifinal", "Final"]
+    };
+    for (let q = 2; q <= 32; q *= 2) for (const third of [false, true]) for (const fields of [[], ["f1", "f2", "f3"]]) {
         const ids = Array.from({ length: q }, (_, i) => "t" + i);
         const ko = plain(s.B.generateKnockoutStructure(ids, { qualifiedCount: q, thirdPlaceMatch: third }, s.S.uid, fields));
         bracketInvariants(ko, ids, third, fields);
         if (names[ko.rounds.length]) assert.deepEqual(ko.rounds.map((round) => round.name), names[ko.rounds.length]);
     }
+    for (const q of [3, 5, 6, 7, 9, 10, 12, 14, 15, 17, 20]) {
+        const ids = Array.from({ length: q }, (_, i) => "t" + i);
+        assert.throws(() => s.B.generateKnockoutStructure(ids, { qualifiedCount: q }, s.S.uid, []), /power of two/);
+    }
 });
 test("bracket: random seeding deterministic and preserves qualifier set", () => {
     const generate = (seed, policy) => {
         const s = createSandbox({ seed });
-        return plain(s.B.generateKnockoutStructure(["a", "b", "c", "d", "e", "f"], { qualifiedCount: 5, seedingPolicy: policy }, s.S.uid, []));
+        return plain(s.B.generateKnockoutStructure(["a", "b", "c", "d", "e", "f", "g", "h"],
+            { qualifiedCount: 8, seedingPolicy: policy }, s.S.uid, []));
     };
     assert.deepEqual(generate(1, "random"), generate(1, "random"));
     assert.notDeepEqual(generate(1, "random"), generate(2, "random"));
-    bracketInvariants(generate(1, "random"), ["a", "b", "c", "d", "e"], false, []);
+    bracketInvariants(generate(1, "random"), ["a", "b", "c", "d", "e", "f", "g", "h"], false, []);
 });
 test("bracket: recompute no-op/no-round, home/away/empty BYEs and propagation idempotence", () => {
     const s = createSandbox();
@@ -91,14 +76,16 @@ test("bracket: recompute no-op/no-round, home/away/empty BYEs and propagation id
     s.state().knockout.generated = true;
     s.B.recomputeKnockout(s.state());
     assert.equal(s.state().knockout.championTeamId, null);
-    const ko = s.B.generateKnockoutStructure(["a", "b", "c", "d", "e"], { qualifiedCount: 5 }, s.S.uid, []);
+    const ko = s.B.generateKnockoutStructure(["a", "b", "c", "d", "e", "f", "g", "h"], { qualifiedCount: 8 }, s.S.uid, []);
     s.state().knockout = { generated: true, ...ko };
     const first = ko.rounds[0].matches;
-    first[2].awayTeamId = first[2].homeTeamId; first[2].homeTeamId = null;
+    first[0].homeTeamId = "a"; first[0].awayTeamId = null;
+    first[2].homeTeamId = "c"; first[2].awayTeamId = null;
     first[3].homeTeamId = null; first[3].awayTeamId = null;
+    first[0].isBye = true; first[2].isBye = true; first[3].isBye = true;
     s.B.recomputeKnockout(s.state());
     assert.deepEqual(plain(first.map((m) => [m.status, m.homeGoals, m.awayGoals])), [
-        ["completed", 1, 0], ["scheduled", null, null], ["completed", 0, 1], ["scheduled", null, null]
+        ["completed", 1, 0], ["scheduled", null, null], ["completed", 1, 0], ["scheduled", null, null]
     ]);
     assert.equal(ko.rounds[1].matches[0].homeTeamId, "a");
     assert.equal(ko.rounds[1].matches[0].awayTeamId, null);

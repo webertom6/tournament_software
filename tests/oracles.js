@@ -18,7 +18,7 @@ const EXPORTS = {
     TournamentTimer: ["computeRoundElapsedMs", "computeElapsedMs", "computeBreakRemainingMs", "formatDuration", "formatCountdown"],
     TournamentRules: ["getTeamNameById", "getWinnerTeamId", "getLoserTeamId", "buildStandings", "getStandingsBestValues"],
     TournamentScheduler: ["buildPhase1Matches"],
-    TournamentBracket: ["normalizeQualifiedCount", "generateKnockoutStructure", "recomputeKnockout", "clearDownstreamFromMatch"],
+    TournamentBracket: ["getAllowedQualifiedCounts", "normalizeQualifiedCount", "generateKnockoutStructure", "recomputeKnockout", "clearDownstreamFromMatch"],
     TournamentActions: ["addTeam", "removeTeam", "addTerrain", "removeTerrain", "updateConfig", "generatePhase1", "applyPhase1Score",
         "reopenPhase1Match", "resetPhases", "backToPhase1", "startKnockout", "applyKnockoutScore", "reopenKnockoutMatch",
         "startPhase1RoundTimer", "startKnockoutRoundTimer", "stopPhase1RoundTimer", "stopKnockoutRoundTimer",
@@ -96,23 +96,16 @@ function scheduleInvariants(matches, teamIds, terrainIds, perTeam, uniquePairs =
     return rounds;
 }
 function bracketInvariants(knockout, qualified, thirdPlace, terrains) {
-    let size = 2;
-    while (size < qualified.length) size *= 2;
+    const size = qualified.length;
+    assert.ok(Number.isInteger(Math.log2(size)), "Qualifier count must be a power of two");
     const rounds = knockout.rounds;
-    const compactByes = size - qualified.length === 2;
     assert.equal(rounds.length, Math.log2(size));
-    const expectedRoundSizes = [compactByes ? size / 2 - 1 : size / 2];
-    while (expectedRoundSizes.length < rounds.length) {
-        const previousSize = expectedRoundSizes.at(-1);
-        expectedRoundSizes.push(compactByes ? Math.ceil(previousSize / 2) : previousSize / 2);
-    }
-    assert.deepEqual(rounds.map((round) => round.matches.length), expectedRoundSizes);
+    assert.deepEqual(rounds.map((round) => round.matches.length), Array.from({ length: rounds.length }, (_, i) => size / 2 ** (i + 1)));
     const all = rounds.flatMap((round) => round.matches);
-    assert.equal(new Set(all.map((match) => match.id)).size, all.length);
+    assert.equal(new Set(all.map((match) => match.id)).size, size - 1);
     const participants = rounds[0].matches.flatMap((match) => [match.homeTeamId, match.awayTeamId]).filter(Boolean);
     assert.deepEqual([...participants].sort(), [...qualified].sort());
-    assert.equal(rounds[0].matches.flatMap((match) => [match.homeTeamId, match.awayTeamId]).filter((id) => id === null).length,
-        compactByes ? 0 : size - qualified.length);
+    assert.ok(rounds[0].matches.every((match) => match.homeTeamId && match.awayTeamId && !match.isBye));
     for (let r = 0; r < rounds.length; r++) {
         const round = rounds[r];
         assert.equal(round.roundIndex, r);
@@ -126,28 +119,17 @@ function bracketInvariants(knockout, qualified, thirdPlace, terrains) {
             assert.equal(match.phase, "knockout");
             assert.ok(terrains.length ? terrains.includes(match.terrainId) : match.terrainId === null);
             if (r + 1 < rounds.length) {
-                const nextRound = rounds[r + 1];
-                const next = nextRound.matches.find((candidate) =>
-                    candidate.homeSourceMatchId === match.id || candidate.awaySourceMatchId === match.id);
-                assert.ok(next);
+                const next = rounds[r + 1].matches[Math.floor(slot / 2)];
                 assert.equal(match.nextMatchId, next.id);
-                assert.equal(match.nextSlot, next.homeSourceMatchId === match.id ? "home" : "away");
+                assert.equal(match.nextSlot, slot % 2 ? "away" : "home");
             } else assert.equal(match.nextMatchId, null);
             if (r) {
-                const sources = [match.homeSourceMatchId, match.awaySourceMatchId].filter(Boolean);
-                assert.equal(sources.length, match.isBye ? 1 : 2);
-                assert.ok(sources.every((sourceId) => rounds[r - 1].matches.some((source) => source.id === sourceId)));
-                assert.equal(Boolean(match.isBye), sources.length === 1);
-            } else if (!compactByes) {
-                assert.equal(Boolean(match.isBye), Boolean(match.homeTeamId) !== Boolean(match.awayTeamId));
-            } else {
-                assert.equal(match.isBye, false);
+                assert.equal(match.homeSourceMatchId, rounds[r - 1].matches[slot * 2].id);
+                assert.equal(match.awaySourceMatchId, rounds[r - 1].matches[slot * 2 + 1].id);
             }
         });
     }
-    const semiRound = rounds.length >= 2 ? rounds.at(-2) : null;
-    const hasPlayableSemifinals = semiRound && semiRound.matches.length === 2 && semiRound.matches.every((match) => !match.isBye);
-    assert.equal(Boolean(knockout.thirdPlace), Boolean(thirdPlace && hasPlayableSemifinals));
+    assert.equal(Boolean(knockout.thirdPlace), thirdPlace && rounds.length >= 2);
     if (knockout.thirdPlace) {
         assert.equal(knockout.thirdPlace.homeSourceMatchId, rounds.at(-2).matches[0].id);
         assert.equal(knockout.thirdPlace.awaySourceMatchId, rounds.at(-2).matches[1].id);

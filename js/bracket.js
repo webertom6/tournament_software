@@ -1,12 +1,4 @@
 (function () {
-    function nextPowerOfTwo(value) {
-        let p = 1;
-        while (p < value) {
-            p *= 2;
-        }
-        return p;
-    }
-
     function seedPositions(size) {
         if (size === 1) {
             return [1];
@@ -31,12 +23,26 @@
         if (left === 3) {
             return "Quarterfinal";
         }
+        if (left >= 4) {
+            return "Round of " + Math.pow(2, left);
+        }
         return "Round " + (index + 1);
     }
 
+    function getAllowedQualifiedCounts(teamsCount) {
+        const counts = [];
+        for (let count = 2; count <= teamsCount; count *= 2) {
+            counts.push(count);
+        }
+        return counts;
+    }
+
     function normalizeQualifiedCount(teamsCount, requested) {
-        const count = Math.max(2, Math.floor(Number(requested) || 2));
-        return Math.min(count, teamsCount);
+        const count = Number(requested);
+        if (!Number.isInteger(count) || !getAllowedQualifiedCounts(teamsCount).includes(count)) {
+            throw new Error("Qualified count must be a power of two between 2 and the registered team count (" + teamsCount + ")");
+        }
+        return count;
     }
 
     function buildSeededTeams(qualifiedTeamIds, seedingPolicy) {
@@ -56,9 +62,7 @@
         const normalizedCount = normalizeQualifiedCount(qualifiedTeamIds.length, config.qualifiedCount);
         const selected = qualifiedTeamIds.slice(0, normalizedCount);
         const seededTeams = buildSeededTeams(selected, config.seedingPolicy);
-        const bracketSize = nextPowerOfTwo(Math.max(2, seededTeams.length));
-        // Pair every qualifier in round one when only two bracket slots are empty
-        const compactByes = bracketSize - seededTeams.length === 2;
+        const bracketSize = seededTeams.length;
         const positions = seedPositions(bracketSize);
         const slots = new Array(bracketSize).fill(null);
 
@@ -82,9 +86,7 @@
         };
 
         for (let roundIndex = 0; roundIndex < totalRounds; roundIndex += 1) {
-            const matchCount = compactByes ?
-                (roundIndex === 0 ? bracketSize / 2 - 1 : Math.ceil(rounds[roundIndex - 1].matches.length / 2)) :
-                bracketSize / Math.pow(2, roundIndex + 1);
+            const matchCount = bracketSize / Math.pow(2, roundIndex + 1);
             const round = {
                 id: uid("ko_round"),
                 roundIndex: roundIndex,
@@ -123,72 +125,30 @@
         }
 
         const firstRound = rounds[0];
-        const firstRoundPairings = [];
-        if (compactByes) {
-            for (let seedIndex = 0; seedIndex < seededTeams.length / 2; seedIndex += 1) {
-                firstRoundPairings.push([seededTeams[seedIndex], seededTeams[seededTeams.length - 1 - seedIndex]]);
-            }
-        } else {
-            for (let slotIndex = 0; slotIndex < slots.length; slotIndex += 2) {
-                firstRoundPairings.push([slots[slotIndex], slots[slotIndex + 1]]);
-            }
-        }
         for (let i = 0; i < firstRound.matches.length; i += 1) {
-            const [home, away] = firstRoundPairings[i];
+            const home = slots[i * 2];
+            const away = slots[i * 2 + 1];
             firstRound.matches[i].homeTeamId = home;
             firstRound.matches[i].awayTeamId = away;
-            firstRound.matches[i].isBye = Boolean(home) !== Boolean(away);
         }
 
-        if (compactByes) {
-            for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex += 1) {
-                const currentRound = rounds[roundIndex];
-                const nextRound = rounds[roundIndex + 1];
-                const hasByeSlot = currentRound.matches.length % 2 === 1;
-                let sourceIndex = 0;
-                let nextMatchIndex = 0;
-                if (hasByeSlot) {
-                    const byeMatch = nextRound.matches[nextMatchIndex];
-                    byeMatch.homeSourceMatchId = currentRound.matches[sourceIndex].id;
-                    byeMatch.isBye = true;
-                    currentRound.matches[sourceIndex].nextMatchId = byeMatch.id;
-                    currentRound.matches[sourceIndex].nextSlot = "home";
-                    sourceIndex += 1;
-                    nextMatchIndex += 1;
-                }
-                while (sourceIndex < currentRound.matches.length) {
-                    const nextMatch = nextRound.matches[nextMatchIndex];
-                    const homeSource = currentRound.matches[sourceIndex];
-                    const awaySource = currentRound.matches[sourceIndex + 1];
-                    nextMatch.homeSourceMatchId = homeSource.id;
-                    nextMatch.awaySourceMatchId = awaySource.id;
-                    homeSource.nextMatchId = nextMatch.id;
-                    homeSource.nextSlot = "home";
-                    awaySource.nextMatchId = nextMatch.id;
-                    awaySource.nextSlot = "away";
-                    sourceIndex += 2;
-                    nextMatchIndex += 1;
-                }
+        for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex += 1) {
+            const currentRound = rounds[roundIndex];
+            const nextRound = rounds[roundIndex + 1];
+            for (let i = 0; i < currentRound.matches.length; i += 1) {
+                const currentMatch = currentRound.matches[i];
+                const targetIndex = Math.floor(i / 2);
+                currentMatch.nextMatchId = nextRound.matches[targetIndex].id;
+                currentMatch.nextSlot = i % 2 === 0 ? "home" : "away";
             }
-        } else {
-            for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex += 1) {
-                const currentRound = rounds[roundIndex];
-                const nextRound = rounds[roundIndex + 1];
-                for (let i = 0; i < currentRound.matches.length; i += 1) {
-                    const currentMatch = currentRound.matches[i];
-                    const targetIndex = Math.floor(i / 2);
-                    currentMatch.nextMatchId = nextRound.matches[targetIndex].id;
-                    currentMatch.nextSlot = i % 2 === 0 ? "home" : "away";
-                }
-            }
+        }
 
-            for (let roundIndex = 1; roundIndex < rounds.length; roundIndex += 1) {
-                const prevRound = rounds[roundIndex - 1];
-                const currentRound = rounds[roundIndex];
-                for (let i = 0; i < currentRound.matches.length; i += 1) {
-                    currentRound.matches[i].homeSourceMatchId = prevRound.matches[i * 2].id;
-                    currentRound.matches[i].awaySourceMatchId = prevRound.matches[i * 2 + 1].id;
-                }
+        for (let roundIndex = 1; roundIndex < rounds.length; roundIndex += 1) {
+            const prevRound = rounds[roundIndex - 1];
+            const currentRound = rounds[roundIndex];
+            for (let i = 0; i < currentRound.matches.length; i += 1) {
+                currentRound.matches[i].homeSourceMatchId = prevRound.matches[i * 2].id;
+                currentRound.matches[i].awaySourceMatchId = prevRound.matches[i * 2 + 1].id;
             }
         }
 
@@ -368,6 +328,7 @@
     }
 
     window.TournamentBracket = {
+        getAllowedQualifiedCounts: getAllowedQualifiedCounts,
         normalizeQualifiedCount: normalizeQualifiedCount,
         generateKnockoutStructure: generateKnockoutStructure,
         recomputeKnockout: recomputeKnockout,

@@ -314,10 +314,11 @@ async function clickAction(sandbox, action, attrs = {}) {
     await target.click();
 }
 function setup(sandbox, count = 4, terrains = 2, config = {}) {
+    const qualifiedCount = count >= 2 ? Math.pow(2, Math.floor(Math.log2(count))) : 2;
     sandbox.S.update((state) => {
         state.teams = Array.from({ length: count }, (_, index) => ({ id: "t" + (index + 1), name: "Team " + String(index + 1).padStart(2, "0") }));
         state.terrains = Array.from({ length: terrains }, (_, index) => ({ id: "f" + (index + 1), name: "Field " + (index + 1) }));
-        Object.assign(state.config, { phase1MatchesPerTeam: 1, qualifiedCount: count }, config);
+        Object.assign(state.config, { phase1MatchesPerTeam: 1, qualifiedCount }, config);
     });
     return sandbox.state();
 }
