@@ -419,8 +419,7 @@
     position: relative;
 }
 
-/* each match/connector is placed at an exact % computed from the standard
-   bracket row-doubling formula, so pairs always line up with their next round */
+/* matches and connectors use the stored source links, including compact bye rounds */
 .bracket-match {
     position: absolute;
     left: 0;

@@ -861,6 +861,17 @@
                 }) +
                 '<div class="match-row-scroller">' +
                 round.matches.map((match) => {
+                    if (match.isBye) {
+                        const teamId = match.homeTeamId || match.awayTeamId;
+                        const teamName = teamId ? window.TournamentRules.getTeamNameById(state, teamId) : "Waiting for winner";
+                        const message = match.status === "completed" ? "Advances to next round" : "Waiting for previous round";
+                        return '' +
+                            '<div class="match-card match-card--bye">' +
+                            '<div class="match-head"><span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span></div>' +
+                            '<p><strong>' + esc(teamName) + '</strong></p>' +
+                            '<p class="muted">Bye - ' + esc(message) + '</p>' +
+                            '</div>';
+                    }
                     const isFirstRound = !match.homeSourceMatchId && !match.awaySourceMatchId;
                     const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
                     const away = match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD";

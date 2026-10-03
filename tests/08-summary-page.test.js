@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createSandbox, setup, knockoutFixture, scoreWinner, FakeStorage, STATE_KEY, SUMMARY_KEY } = require("./harness");
+const { createSandbox, setup, completePhase1, knockoutFixture, scoreWinner, FakeStorage, STATE_KEY, SUMMARY_KEY } = require("./harness");
 const { handFixture, HEADERS } = require("./oracles");
 
 test("summary-page: no data/malformed/setup/phase1/knockout/champion views never write", () => {
@@ -136,4 +136,21 @@ test("summary-page: third place only both known, live bracket progression and sc
     s.advance(1000); s.runTimers(1000);
     assert.equal(storage.writes.length, writes);
     assert.equal(s.el("bracket-scroll").scrollLeft, 480);
+});
+test("summary-page: compact six-qualifier bracket maps real feeders and bye slot", () => {
+    const fixture = createSandbox();
+    setup(fixture, 8, 2, { qualifiedCount: 6, thirdPlaceMatch: true });
+    fixture.A.generatePhase1();
+    completePhase1(fixture);
+    fixture.A.startKnockout();
+
+    const s = createSandbox({ page: "summary", initial: { [STATE_KEY]: fixture.S.exportState() } });
+    const bracket = s.el("summary-bracket");
+    assert.equal(bracket.querySelectorAll(".bracket-match").length, 6);
+    assert.equal(bracket.querySelectorAll(".bracket-connector").length, 3);
+    assert.equal(bracket.querySelectorAll(".bracket-connector-tick").length, 3);
+    assert.equal(bracket.querySelectorAll(".bracket-team").length, 11);
+    assert.match(bracket.innerHTML, /Bye - Waiting for previous round/);
+    assert.doesNotMatch(bracket.innerHTML, /bracket-third-place/);
+    assert.equal(s.storage.writes.length, 0);
 });

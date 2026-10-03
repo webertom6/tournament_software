@@ -1,6 +1,6 @@
 # Automated test reference
 
-The suite contains 53 tests and loads the production JavaScript files in
+The suite contains 56 tests and loads the production JavaScript files in
 isolated Node VM sandboxes using the same script order as the browser pages.
 
 Run every test from the repository root:
@@ -331,13 +331,24 @@ Inside:
 
 ### Handwritten seed pairs for Q2, Q3, Q5, Q6, Q8, Q12 and Q20
 
-Description: Verifies power-of-two seed placement and BYE allocation.
+Description: Verifies seeded pairings, including compact Q6 BYE handling.
 
 Inside:
 
 - compares first-round seed numbers with literal expected pair lists
 - checks both exact power-of-two and partially filled brackets
+- confirms six qualifiers become three real quarterfinal matches
 - covers the realistic 20-team bracket used by the full flow
+
+### Six qualifiers play three quarterfinals and advance coherently
+
+Description: Reproduces the reported six-qualifier case and follows it to a champion.
+
+Inside:
+
+- generates phase 1 for eight teams, completes all scores and starts a six-team knockout
+- verifies each qualifier appears once across three playable quarterfinals
+- confirms one explicit semifinal bye, no impossible third-place match and a valid final winner
 
 ### Round names and structure sweep Q2 through Q33
 
@@ -528,6 +539,7 @@ Inside:
 - saves phase and knockout scores using rendered inputs
 - checks setup, phase, knockout and champion button gating
 - checks locked team deletion reports an alert
+- verifies six qualifiers render three playable quarterfinal cards and one semifinal bye card
 
 ### Escaping hostile names and completed or scheduled control locks
 
@@ -671,6 +683,7 @@ Inside:
 - hides third place until both teams are available
 - renders live round progression and current-round emphasis
 - checks bracket title and horizontal scroll synchronization
+- verifies the compact six-qualifier bracket's source-linked positions and semifinal bye
 
 Limitation: The fake DOM checks generated content and events, not pixel layout,
 responsive behavior, CSS appearance or real display performance.

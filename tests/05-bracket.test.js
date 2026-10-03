@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createSandbox, plain, knockoutFixture, scoreWinner } = require("./harness");
+const { createSandbox, setup, completePhase1, plain, knockoutFixture, scoreWinner, STATE_KEY } = require("./harness");
 const { bracketInvariants } = require("./oracles");
 
 test("bracket: normalizeQualifiedCount literal table", () => {
@@ -17,7 +17,7 @@ test("bracket: handwritten seed pairs Q2/3/5/6/8/12/20", () => {
     const pairs = {
         2: [[1, 2]], 3: [[1, null], [2, 3]],
         5: [[1, null], [4, 5], [2, null], [3, null]],
-        6: [[1, null], [4, 5], [2, null], [3, 6]],
+        6: [[1, 6], [2, 5], [3, 4]],
         8: [[1, 8], [4, 5], [2, 7], [3, 6]],
         12: [[1, null], [8, 9], [4, null], [5, 12], [2, null], [7, 10], [3, null], [6, 11]],
         20: [[1, null], [16, 17], [8, null], [9, null], [4, null], [13, 20], [5, null], [12, null],
@@ -28,6 +28,39 @@ test("bracket: handwritten seed pairs Q2/3/5/6/8/12/20", () => {
         const ko = s.B.generateKnockoutStructure(ids, { qualifiedCount: Number(count), seedingPolicy: "ranking" }, s.S.uid);
         assert.deepEqual(plain(ko.rounds[0].matches.map((match) => [match.homeTeamId, match.awayTeamId])), expected);
     }
+});
+test("bracket: six qualifiers play three quarterfinals and advance coherently", () => {
+    const s = createSandbox();
+    setup(s, 8, 2, { qualifiedCount: 6, thirdPlaceMatch: true });
+    s.A.generatePhase1();
+    completePhase1(s);
+    s.A.startKnockout();
+
+    const rounds = s.state().knockout.rounds;
+    assert.deepEqual(Array.from(rounds, (round) => round.matches.length), [3, 2, 1]);
+    const qualifiers = s.R.buildStandings(s.state()).slice(0, 6).map((row) => row.teamId);
+    const quarterfinals = rounds[0].matches;
+    const participants = quarterfinals.flatMap((match) => [match.homeTeamId, match.awayTeamId]);
+    assert.deepEqual([...participants].sort(), [...qualifiers].sort());
+    assert.ok(quarterfinals.every((match) => match.homeTeamId && match.awayTeamId && !match.isBye));
+    assert.equal(s.state().knockout.thirdPlace, null);
+
+    quarterfinals.forEach((match) => scoreWinner(s, match, match.homeTeamId));
+    const reloaded = createSandbox();
+    reloaded.S.importState(s.S.exportState());
+    const persistedRounds = reloaded.state().knockout.rounds;
+    const semifinals = persistedRounds[1].matches;
+    const byeSemi = semifinals.find((match) => match.isBye);
+    const playedSemi = semifinals.find((match) => !match.isBye);
+    assert.equal(byeSemi.status, "completed");
+    assert.equal(byeSemi.homeGoals + byeSemi.awayGoals, 1);
+    assert.ok(playedSemi.homeTeamId && playedSemi.awayTeamId);
+    scoreWinner(reloaded, playedSemi, playedSemi.homeTeamId);
+
+    const final = persistedRounds[2].matches[0];
+    assert.ok(final.homeTeamId && final.awayTeamId);
+    scoreWinner(reloaded, final, final.homeTeamId);
+    assert.equal(reloaded.state().knockout.championTeamId, final.homeTeamId);
 });
 test("bracket: round name literals and structure sweep Q2..33, third on/off, fields0/3", () => {
     const s = createSandbox();

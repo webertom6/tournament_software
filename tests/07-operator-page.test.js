@@ -137,6 +137,20 @@ test("operator-page: escaping hostile names and completed/scheduled control lock
     assert.ok(field(s, "ko-home-team", first.id));
     assert.equal(field(s, "ko-home-team", first.id).querySelectorAll("option")[0].textContent, "BYE / none");
 });
+test("operator-page: six qualifiers show three playable quarterfinals and one semifinal bye", () => {
+    const s = createSandbox({ page: "admin" });
+    setup(s, 8, 2, { qualifiedCount: 6, thirdPlaceMatch: true });
+    s.A.generatePhase1();
+    completePhase1(s);
+    s.A.startKnockout();
+
+    const [quarterfinals, semifinals] = s.state().knockout.rounds;
+    assert.equal(quarterfinals.matches.length, 3);
+    assert.ok(quarterfinals.matches.every((match) => field(s, "ko-home-team", match.id)));
+    assert.equal(semifinals.matches.filter((match) => match.isBye).length, 1);
+    assert.equal(s.el("section-knockout").querySelectorAll(".match-card--bye").length, 1);
+    assert.equal(s.state().knockout.thirdPlace, null);
+});
 test("operator-page: operator/summary/print standings headers, qualified cells and GA decimals", async () => {
     const s = createSandbox({ page: "admin" }); handFixture(s); s.S.update(() => {});
     const table = s.el("phase1-standings");

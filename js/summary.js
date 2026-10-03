@@ -336,6 +336,13 @@
     let lastScrolledKnockoutRound = null;
 
     function renderBracketMatch(state, match) {
+        if (match.isBye) {
+            const teamId = match.homeTeamId || match.awayTeamId;
+            const team = teamId ? getTeamName(state, teamId) : "Waiting for winner";
+            const message = match.status === "completed" ? "Advances to next round" : "Waiting for previous round";
+            return '<p class="bracket-team" title="' + esc(team) + '">' + esc(team) + '</p>' +
+                '<p class="muted">Bye - ' + esc(message) + '</p>';
+        }
         const home = match.homeTeamId ? getTeamName(state, match.homeTeamId) : "TBD";
         const away = match.awayTeamId ? getTeamName(state, match.awayTeamId) : "TBD";
         const scoreLine = match.status === "completed" ?
@@ -408,15 +415,29 @@
         const columnWidth = getBracketColumnWidth(state);
         const TREE_GAP = 40; // px, matches .bracket-tree's 2.5rem gap
         const titleColumnWidth = columnWidth + TREE_GAP;
+        const roundCenters = [rounds[0].matches.map((match, index) => ((index + 0.5) / leafCount) * 100)];
 
-        // match k in round R is centered at (k + 0.5) * 2^R / leafCount, so a pair's
-        // midpoint always lands exactly on the next round's slot - standard bracket row-doubling math
+        for (let roundIndex = 1; roundIndex < rounds.length; roundIndex += 1) {
+            const previousRound = rounds[roundIndex - 1];
+            const previousCenters = roundCenters[roundIndex - 1];
+            const previousIndexes = new Map(previousRound.matches.map((match, index) => [match.id, index]));
+            roundCenters.push(rounds[roundIndex].matches.map((match, index) => {
+                const sourceIndexes = [match.homeSourceMatchId, match.awaySourceMatchId]
+                    .filter(Boolean)
+                    .map((sourceId) => previousIndexes.get(sourceId))
+                    .filter((sourceIndex) => sourceIndex !== undefined);
+                if (!sourceIndexes.length) {
+                    return ((index + 0.5) / rounds[roundIndex].matches.length) * 100;
+                }
+                return sourceIndexes.reduce((total, sourceIndex) => total + previousCenters[sourceIndex], 0) / sourceIndexes.length;
+            }));
+        }
+
         const roundColumns = rounds.map((round, roundIndex) => {
             const isCurrent = roundIndex === currentRoundIndex;
             const isLast = roundIndex === rounds.length - 1;
-            const spacing = Math.pow(2, roundIndex);
-
-            const centerOf = (k) => ((k + 0.5) * spacing / leafCount) * 100;
+            const centers = roundCenters[roundIndex];
+            const centerOf = (index) => centers[index];
 
             const matchesHtml = round.matches.map((match, k) => {
                 return '<div class="bracket-match" style="top:' + centerOf(k) + '%">' + renderBracketMatch(state, match) + '</div>';
@@ -424,14 +445,23 @@
 
             let connectorsHtml = "";
             if (!isLast) {
-                for (let pairIndex = 0; pairIndex * 2 < round.matches.length; pairIndex += 1) {
-                    const top = centerOf(pairIndex * 2);
-                    const bottom = centerOf(pairIndex * 2 + 1);
-                    const mid = (top + bottom) / 2;
+                const nextRound = rounds[roundIndex + 1];
+                const currentIndexes = new Map(round.matches.map((match, index) => [match.id, index]));
+                nextRound.matches.forEach((nextMatch, nextIndex) => {
+                    const sourceCenters = [nextMatch.homeSourceMatchId, nextMatch.awaySourceMatchId]
+                        .filter(Boolean)
+                        .map((sourceId) => currentIndexes.get(sourceId))
+                        .filter((sourceIndex) => sourceIndex !== undefined)
+                        .map(centerOf);
+                    if (!sourceCenters.length) {
+                        return;
+                    }
+                    const targetCenter = roundCenters[roundIndex + 1][nextIndex];
+                    const top = Math.min(targetCenter, ...sourceCenters);
+                    const bottom = Math.max(targetCenter, ...sourceCenters);
                     connectorsHtml += '<div class="bracket-connector" style="top:' + top + '%; height:' + (bottom - top) + '%"></div>';
-                    // mid always lands on the next round's match center, so the tick points straight into it
-                    connectorsHtml += '<div class="bracket-connector-tick" style="top:' + mid + '%"></div>';
-                }
+                    connectorsHtml += '<div class="bracket-connector-tick" style="top:' + targetCenter + '%"></div>';
+                });
             }
 
             return '<div class="bracket-round' + (isCurrent ? " bracket-round--current" : "") + '" data-round-index="' + roundIndex + '" style="width:' + columnWidth + 'px">' +
