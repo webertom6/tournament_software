@@ -224,6 +224,10 @@
             ' data-role="' + role + '" data-match-id="' + esc(matchId) + '" data-team-id="' + esc(currentTeamId || "") +
             '" data-other-team-id="' + esc(otherTeamId || "") + '" data-team-name="' + esc(name) +
             '" value="' + esc(name) + '"' + lockedAttr + '>' +
+            '<button type="button" class="team-picker-toggle" aria-label="Toggle ' + esc(role) +
+            ' options" aria-controls="' + esc(listId) + '" aria-expanded="false"' + lockedAttr + '>' +
+            '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">' +
+            '<path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>' +
             '<div id="' + esc(listId) + '" class="team-options" role="listbox" aria-label="Teams" hidden></div>' +
             '</div>';
     }
@@ -1039,6 +1043,7 @@
         const input = activeTeamPicker;
         input.value = input.getAttribute("data-team-name");
         input.setAttribute("aria-expanded", "false");
+        input.closest(".team-picker").querySelector(".team-picker-toggle").setAttribute("aria-expanded", "false");
         input.removeAttribute("aria-activedescendant");
         const list = input.closest(".team-picker").querySelector('[role="listbox"]');
         list.hidden = true;
@@ -1065,6 +1070,7 @@
             '<p class="team-no-results" role="status">No matching teams</p>';
         list.hidden = false;
         input.setAttribute("aria-expanded", "true");
+        input.closest(".team-picker").querySelector(".team-picker-toggle").setAttribute("aria-expanded", "true");
         input.removeAttribute("aria-activedescendant");
     }
 
@@ -1133,11 +1139,25 @@
             }
         });
         root.addEventListener("pointerdown", (event) => {
-            if (event.target.closest(".team-option")) {
+            if (event.target.closest(".team-option") || event.target.closest(".team-picker-toggle")) {
                 event.preventDefault();
             }
         });
         document.addEventListener("click", (event) => {
+            const toggle = event.target.closest(".team-picker-toggle");
+            if (toggle) {
+                if (!toggle.disabled) {
+                    const input = toggle.closest(".team-picker").querySelector('input[role="combobox"]');
+                    const wasOpen = input.getAttribute("aria-expanded") === "true";
+                    input.focus();
+                    if (wasOpen) {
+                        closeTeamPicker();
+                    } else {
+                        showTeamOptions(input, "");
+                    }
+                }
+                return;
+            }
             const option = event.target.closest(".team-option");
             if (option && activeTeamPicker && option.closest(".team-picker") === activeTeamPicker.closest(".team-picker")) {
                 commitTeamOption(option);

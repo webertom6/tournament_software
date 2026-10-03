@@ -16,6 +16,15 @@ test("operator-page: searchable team pickers commit by click/keyboard and preser
     assert.equal(input.tagName, "INPUT");
     assert.equal(input.value, s.R.getTeamNameById(s.state(), m.homeTeamId));
     assert.equal(input.getAttribute("aria-expanded"), "false");
+    const toggle = input.closest(".team-picker").querySelector(".team-picker-toggle");
+    assert.equal(toggle.disabled, false);
+    await toggle.click();
+    assert.equal(input.getAttribute("aria-expanded"), "true");
+    assert.equal(toggle.getAttribute("aria-expanded"), "true");
+    assert.equal(input.closest(".team-picker").querySelectorAll('[role="option"]').length, 49);
+    await toggle.click();
+    assert.equal(input.getAttribute("aria-expanded"), "false");
+    assert.equal(toggle.getAttribute("aria-expanded"), "false");
     assert.equal(input.closest(".team-picker").querySelector('[role="listbox"]').hidden, true);
     assert.equal(s.document.querySelector(".match-search-label"), null);
     field(s, "phase1-home", other.id).value = "13";
@@ -89,6 +98,10 @@ test("operator-page: knockout picker changes teams without scoring and typed lab
     assert.equal(m.status, "completed");
     input = field(s, "ko-away-team", m.id);
     assert.equal(input.disabled, true);
+    const lockedToggle = input.closest(".team-picker").querySelector(".team-picker-toggle");
+    assert.equal(lockedToggle.disabled, true);
+    await lockedToggle.click();
+    assert.equal(input.getAttribute("aria-expanded"), "false");
     await input.dispatch("input");
     assert.equal(input.getAttribute("aria-expanded"), "false");
     await clickAction(s, "ko-reopen", { "data-match-id": m.id });

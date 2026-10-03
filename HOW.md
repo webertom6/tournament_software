@@ -35,6 +35,7 @@ Phase 2 knockout cannot be generated until every phase 1 match has a saved score
 
 # Changes
 In phase 1 or the first knockout round, type in a team field to filter teams
+Click the arrow at the end of the field to open or close the full team list
 Choose an option by click, or arrows and Enter: the team saves immediately without completing the match
 Changing a team clears that match's old score; completed matches must be reopened first
 Escape or leaving the field cancels unselected text; clearing text does not remove a team

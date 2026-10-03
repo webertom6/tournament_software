@@ -530,6 +530,7 @@ Description: Exercises the combobox workflow on a 50-team, 20-terrain operator p
 Inside:
 
 - checks closed lists, readable input names and removal of tiny mirrored text
+- checks the arrow opens/closes the full list and is disabled on completed matches
 - filters case-insensitively while retaining the committed ID until selection
 - commits by Enter and click, checking score clearing, drafts and restored focus
 - checks arrows/wrapping, no results, Escape, blur, clearing and reload persistence
