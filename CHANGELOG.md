@@ -4,6 +4,67 @@
 
 # develop
 
+## changes since merge #5
+
+### knockout qualification policy and validation
+date : 03-10-2026
+
+- changes : knockout qualifiers must be powers of two from 2 up to the
+  registered team count; the config select offers only supported values,
+  preserves invalid saved values visibly, and shows warnings below the
+  overview; config saving and both phase-generation actions enforce the
+  same rule; new brackets have full rounds without BYEs, with Round of 16
+  and Round of 32 labels where applicable.
+- impact files : `index.html`, `bracket.js`, `actions.js`, `render.js`,
+  `summary.js`, regression tests, `README.md`, `HOW.md`.
+- fix : replaced the interim six-qualifier BYE workaround with one general
+  policy; unsupported counts are rejected instead of silently clamped or
+  padded; existing imported BYE brackets remain readable and are not rewritten.
+
+### searchable team pickers and independent participant changes
+date : 03-10-2026
+
+- changes : phase 1 and first-round knockout team fields are searchable
+  comboboxes with a black dropdown arrow; typing filters registered teams,
+  click or arrows and Enter saves the selection immediately, and Escape
+  or dismissal restores the assigned name; completed matches require
+  Reopen; changing a participant clears that match's old score without
+  completing it, preserves timers and unrelated score drafts, and uses
+  existing downstream invalidation paths.
+- impact files : `actions.js`, `render.js`, `style.css`,
+  `page-tournament.css`, `HOW.md`, `README.md`, `DESIGN.md`.
+- fix : removed the need to save and reopen a score merely to change a team;
+  readable input values replace the tiny mirrored text used for browser Find;
+  typed labels cannot replace committed team IDs.
+
+### participant-edit regression coverage
+date : 03-10-2026
+
+- changes : the suite now contains 64 tests, adding participant-only action
+  validation, score clearing, timer preservation, keyboard and mouse
+  selection, cancellation, duplicate imported labels, persistence,
+  unrelated score drafts, summary updates and a score-free edit followed
+  by a full 50-team / 20-terrain tournament.
+- impact files : `tests/06-actions.test.js`, `tests/07-operator-page.test.js`,
+  `tests/08-summary-page.test.js`, `tests/09-full-flow.test.js`,
+  `tests/harness.js`, `tests/oracles.js`, `tests/README.md`.
+- fix : automated checks now cover the new qualification and participant
+  editing behavior; browser Find and popup layout remain separate browser checks.
+
+### illustrated README and scheduling limitations
+date : 04-10-2026
+
+- changes : added a public-screen preview and six captioned screenshots
+  illustrating setup, group matches, standings and knockout progression;
+  paired tall images link to full-size views; clarified launch instructions
+  and documented that knockout rounds may reuse terrains when capacity
+  is insufficient.
+- impact files : `README.md`, `HOW.md`, `imgs/`.
+- fix : documented that manual team edits do not rebalance match counts or
+  prevent round collisions, and that knockout matches may need to be
+  staggered manually; noted that the operator match screenshot predates
+  searchable pickers.
+
 # fix/correct_client_implementation
 ## context
 Client-side (browser-only) tournament manager. This branch corrects match and
