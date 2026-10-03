@@ -24,6 +24,7 @@ exceed the registered team count. For example, 10 registered teams allow 2,
 4 or 8 qualifiers; 10 qualifiers is not supported. If removing a team makes
 the saved count invalid, choose a valid value before saving the config or
 generating phase 1.
+Disclaimer : the phase 1 is ensuring to have 1 match per terrain per round (logic), but for the Phase 2 it is only based on the number of qualified decided so if not enough, possible to play on same terrain during a KO round (adjust by pausing timer for unvailable matches)
 
 # Timer
 Trigger the round timer to trigger all match timers
