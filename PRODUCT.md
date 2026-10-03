@@ -22,8 +22,9 @@ Two distinct user groups in a live, single-event tournament context:
 A free, offline, browser-only tool to run a single team tournament from a
 laptop: register teams and terrains, auto-generate a round-robin group
 stage, track scores and per-round timers, then auto-generate a knockout
-bracket up to the champion. It was built for and used at one real event;
-the logic is solid, the visual design is the current focus of improvement.
+bracket up to the champion. It was built for and used at a real event, with
+an operator console for event management and a separate read-only public
+display.
 
 ## Positioning
 
@@ -56,12 +57,19 @@ screen (TV/projector/tablet) with no interaction:
   ranked-or-random seeding, optional third place match
 - Confirmed: match duration and pause/break duration are informational only
   for the operator - no automatic stop logic
-- Confirmed: standings ranked by points, then total score, then best score
-  (tie-break logic in `js/rules.js`)
+- Confirmed: standings use `GT` (goals total), `GC` (goals conceded),
+  `GA` (GT per match), and `GD`; ranking is by points, then GA, GC, and
+  team name. Last and Best are informational stats
 - Confirmed: state can be exported to a file and re-imported; "Reset all" and
   "Reset phases" (keeps teams/terrains/rules) are both supported
 - Confirmed: operator can remote-control the public screen (show/hide
   standings, start/stop auto-scroll) from the setup panel
+- Confirmed: operator can print standings or match sheets in A3, A4, or A5;
+  completed scores print, and pending scores are left blank for handwriting
+- Confirmed: fonts are embedded locally, and both pages work offline when
+  opened directly with `file://`
+- Confirmed: a dependency-free Node regression suite covers core modules,
+  both pages, and a deterministic 50-team / 20-terrain tournament
 - Confirmed: no authentication, no multi-tournament isolation - a single
   tournament state per browser's localStorage
 - No formal WCAG target (see Accessibility & Inclusion)
@@ -72,19 +80,20 @@ screen (TV/projector/tablet) with no interaction:
 Practical, community-built, no corporate-SaaS gloss - matches race_lap_software's
 stance. The current branch already borrows race_lap_software's flat/bordered
 visual style (per CHANGELOG.md: "applies a shared visual style (borrowed
-from race_lap_software)"), which this redesign completes and documents.
+from race_lap_software)").
 
-Anti-references: generic AI-slop SaaS templates, rounded-corner/soft-shadow
-dashboard aesthetics, anything requiring an account or internet connection.
+Anti-references: generic AI-templated SaaS dashboards, decorative gradients,
+soft-shadow card elevation, and anything requiring an account or internet
+connection. Small blue state halos are used to identify the current round.
 
 ## Evidence on Hand
 
 - README.md documents install/run steps ("download ZIP, open index.html")
   and the full feature list/workflow
-- No LICENSE file present yet
-- `logo_charneux.svg` exists in the sibling race_lap_software project
-  (`race_lap_software/static/logo_charneux.svg`) and is reused here as the
-  browser-tab icon; no other logo/brand asset on hand
+- `LICENSE` is present; local Barlow, Barlow Condensed, and Roboto Mono
+  font files and their OFL licenses are in `assets/fonts/`
+- `logo_charneux.svg` and the repository QR image are included under
+  `assets/`
 - No testimonials, case studies, or usage data on hand beyond "used at one
   real event" (per README); none should be invented
 
