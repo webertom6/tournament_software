@@ -4,6 +4,79 @@ const assert = require("node:assert/strict");
 const { createSandbox, plain, setup, completePhase1, knockoutFixture, scoreWinner, expectRejected, STATE_KEY } = require("./harness");
 const { DEFAULT, referenceStandings } = require("./oracles");
 
+test("actions: team-only phase 1 edits validate atomically, clear old scores and preserve clocks", () => {
+    const s = createSandbox();
+    setup(s, 50, 20, { phase1MatchesPerTeam: 3, qualifiedCount: 16 });
+    s.A.generatePhase1();
+    const m = s.state().phase1.matches[0];
+    const replacement = s.state().teams.find((team) => team.id !== m.homeTeamId && team.id !== m.awayTeamId).id;
+    expectRejected(s, () => s.A.updatePhase1Team("missing", "home", replacement), "Phase 1 match not found");
+    expectRejected(s, () => s.A.updatePhase1Team(m.id, "invalid", replacement), "Team side must be home or away");
+    for (const id of ["", "missing", null]) {
+        expectRejected(s, () => s.A.updatePhase1Team(m.id, "home", id), "Selected team not found");
+    }
+    expectRejected(s, () => s.A.updatePhase1Team(m.id, "home", m.awayTeamId), "Home and away teams must be different");
+    const before = s.S.exportState();
+    const writes = s.storage.writes.length;
+    s.A.updatePhase1Team(m.id, "home", m.homeTeamId);
+    assert.equal(s.S.exportState(), before);
+    assert.equal(s.storage.writes.length, writes);
+    s.A.startPhase1RoundTimer(0);
+    s.advance(7000);
+    s.A.pauseMatchTimer(m.id);
+    s.A.applyPhase1Score(m.id, undefined, undefined, 5, 2);
+    expectRejected(s, () => s.A.updatePhase1Team(m.id, "home", replacement), "Reopen the match to change teams");
+    s.A.reopenPhase1Match(m.id);
+    const old = plain(m);
+    const siblings = plain(s.state().phase1.matches.filter((match) => match.id !== m.id));
+    const rounds = plain(s.state().phase1.roundTimers);
+    let notifications = 0;
+    s.S.subscribe(() => notifications++);
+    s.A.updatePhase1Team(m.id, "home", replacement);
+    assert.deepEqual(plain(m), { ...old, homeTeamId: replacement, homeGoals: null, awayGoals: null, finalElapsedMs: null });
+    assert.deepEqual(plain(s.state().phase1.roundTimers), rounds);
+    assert.deepEqual(plain(s.state().phase1.matches.filter((match) => match.id !== m.id)), siblings);
+    assert.equal(notifications, 1);
+    assert.equal(JSON.parse(s.storage.getItem(STATE_KEY)).phase1.matches[0].homeTeamId, replacement);
+    assert.match(s.state().audit[0].message, /Changed phase 1 home team/);
+    s.A.updatePhase1Team(m.id, "away", old.homeTeamId);
+    assert.equal(m.awayTeamId, old.homeTeamId);
+    completePhase1(s); s.A.startKnockout();
+    const knockout = plain(s.state().knockout);
+    s.A.reopenPhase1Match(m.id);
+    s.S.update((state) => { state.knockout = knockout; });
+    s.A.updatePhase1Team(m.id, "away", old.awayTeamId);
+    assert.equal(s.state().knockout.generated, false);
+    assert.deepEqual(plain(s.state().knockout.rounds), []);
+});
+
+test("actions: team-only knockout edits are first-round only and invalidate dependents not siblings", () => {
+    const s = knockoutFixture({ count: 8 });
+    const rounds = s.state().knockout.rounds;
+    for (const round of rounds) {
+        for (const match of round.matches) scoreWinner(s, match, match.homeTeamId);
+    }
+    const m = rounds[0].matches[0];
+    const sibling = plain(rounds[0].matches[1]);
+    const replacement = s.state().teams.find((team) => team.id !== m.homeTeamId && team.id !== m.awayTeamId).id;
+    expectRejected(s, () => s.A.updateKnockoutTeam(m.id, "home", replacement), "Reopen the match to change teams");
+    s.A.reopenKnockoutMatch(m.id);
+    const downstream = rounds[1].matches[0];
+    expectRejected(s, () => s.A.updateKnockoutTeam(downstream.id, "home", replacement),
+        "Only first round matches can have their teams changed manually");
+    expectRejected(s, () => s.A.updateKnockoutTeam(m.id, "home", m.awayTeamId), "Home and away teams must be different");
+    expectRejected(s, () => s.A.updateKnockoutTeam(m.id, "home", "missing"), "Selected team not found");
+    s.A.updateKnockoutTeam(m.id, "home", replacement);
+    assert.equal(m.homeTeamId, replacement);
+    assert.equal(m.homeGoals, null); assert.equal(m.awayGoals, null);
+    assert.equal(m.status, "scheduled");
+    assert.equal(downstream.homeTeamId, null);
+    assert.equal(rounds.at(-1).matches[0].homeGoals, null);
+    assert.equal(s.state().knockout.championTeamId, null);
+    assert.deepEqual(plain(rounds[0].matches[1]), sibling);
+    assert.match(s.state().audit[0].message, /Changed knockout home team/);
+});
+
 test("actions: setup names, required/duplicate/unknown, lock and reset unlock", () => {
     const s = createSandbox();
     for (const [method, noun] of [["addTeam", "Team"], ["addTerrain", "Terrain"]]) {

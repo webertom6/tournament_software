@@ -39,6 +39,10 @@ Both files work offline, no install and no server needed
   single match if it gets interrupted, see an overtime indicator if a match
   runs past its duration
 - Reopen a completed match to correct a mistake
+- Search team pickers by typing in phase 1 and the first knockout round;
+  choosing an option saves the team immediately and clears that match's old
+  score, without completing it. Assigned names are available to browser Find
+  (Ctrl+F / F3); manual changes do not automatically rebalance the schedule
 - **Auto-generate the knockout bracket randomly or seeding policy** once every group stage match is
   completed
 - Run the knockout bracket round by round, with a third place match if

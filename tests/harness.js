@@ -153,6 +153,7 @@ class Element {
         return [...new Set(result)];
     }
     querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+    matches(selector) { return matches(this, selector); }
     closest(selector) {
         for (let element = this; element; element = element.parentElement) if (matches(element, selector)) return element;
         return null;
@@ -164,10 +165,17 @@ class Element {
     async dispatch(type, extra = {}) {
         const event = Object.assign({ target: this, preventDefault() {} }, extra);
         const pending = (this.listeners.get(type) || []).map((fn) => fn(event));
-        if (type === "click" && this.parentElement) pending.push(this.parentElement.dispatch(type, event));
+        if (["click", "input", "focusin", "focusout", "keydown", "pointerdown"].includes(type) && this.parentElement) {
+            pending.push(this.parentElement.dispatch(type, event));
+        }
         await Promise.all(pending);
     }
     click() { this.ownerDocument.clicks.push(this); return this.dispatch("click"); }
+    focus() {
+        this.ownerDocument.activeElement = this;
+        return this.dispatch("focusin");
+    }
+    select() { this.selectionStart = 0; this.selectionEnd = this.value.length; }
     scrollIntoView(options) { this.ownerDocument.scrolls.push([this, options]); }
     scrollTo(options) { this.scrollLeft = options.left || 0; }
     getBoundingClientRect() { return { left: Number(this.getAttribute("data-round-index") || 0) * 240, top: 0 }; }
@@ -207,6 +215,7 @@ function createDocument(html) {
     doc.querySelector = (selector) => root.querySelector(selector);
     doc.getElementById = (id) => root.querySelector("#" + id);
     doc.createElement = (tag) => new Element(tag, doc);
+    doc.addEventListener = (type, fn) => root.addEventListener(type, fn);
     doc.documentElement = doc.querySelector("html");
     doc.head = doc.querySelector("head");
     doc.body = doc.querySelector("body");

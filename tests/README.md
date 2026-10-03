@@ -1,6 +1,6 @@
 # Automated test reference
 
-The suite contains 58 tests and loads the production JavaScript files in
+The suite contains 64 tests and loads the production JavaScript files in
 isolated Node VM sandboxes using the same script order as the browser pages.
 
 Run every test from the repository root:
@@ -15,7 +15,7 @@ Run one suite by replacing the wildcard with its file name:
 node --test tests/02-timer.test.js
 ```
 
-A successful run exits with code 0 and ends with 58 passed tests and no failed,
+A successful run exits with code 0 and ends with 64 passed tests and no failed,
 cancelled, skipped or todo tests. A failure exits nonzero and reports the test
 name, assertion location, and expected and actual values.
 
@@ -400,6 +400,27 @@ production and is not asserted as correct behavior.
 
 File: `06-actions.test.js`
 
+### Team-only phase 1 edits validate atomically, clear old scores and preserve clocks
+
+Description: Checks score-free participant updates with 50 teams and 20 terrains.
+
+Inside:
+
+- rejects missing matches, invalid sides/IDs, opponents and completed matches
+- compares state, storage and notifications on rejection or same-team selection
+- reopens a scored/paused match and verifies only its team and scores change
+- checks round clocks, siblings, persistence, audit and knockout invalidation
+
+### Team-only knockout edits are first-round only and invalidate dependents not siblings
+
+Description: Checks participant-only knockout corrections and downstream integrity.
+
+Inside:
+
+- completes an eight-team bracket, then reopens an opening match
+- rejects locked matches, later-round edits, invalid IDs and identical opponents
+- verifies changed participants, blank scores, cleared champion and intact sibling
+
 ### Setup names, required or duplicate validation, lock and reset unlock
 
 Description: Checks team and terrain editing rules before and after generation.
@@ -501,6 +522,28 @@ file written by a real browser.
 ## 07 - Operator page
 
 File: `07-operator-page.test.js`
+
+### Searchable team pickers commit by click/keyboard and preserve unrelated drafts
+
+Description: Exercises the combobox workflow on a 50-team, 20-terrain operator page.
+
+Inside:
+
+- checks closed lists, readable input names and removal of tiny mirrored text
+- filters case-insensitively while retaining the committed ID until selection
+- commits by Enter and click, checking score clearing, drafts and restored focus
+- checks arrows/wrapping, no results, Escape, blur, clearing and reload persistence
+
+### Knockout picker changes teams without scoring and typed labels never become IDs
+
+Description: Verifies first-round knockout selection, committed IDs and locks.
+
+Inside:
+
+- clicks a filtered option and confirms the match remains scheduled
+- saves a score while arbitrary text is typed, retaining the committed team ID
+- checks completed controls stay closed and same-team selection is a no-op
+- distinguishes duplicate imported labels by team ID instead of guessing on Enter
 
 ### Empty or malformed boot, one 1000 ms interval and subscription rerender
 
@@ -625,6 +668,16 @@ Inside:
 
 File: `08-summary-page.test.js`
 
+### Team-only edits appear through storage without completing matches or writing
+
+Description: Checks the read-only summary reflects score-free participant changes.
+
+Inside:
+
+- shares storage with a 50-team, 20-terrain operator fixture
+- changes one participant, then dispatches the storage event
+- checks its card shows the new name without a score or extra storage writes
+
 ### All stage views never write tournament storage
 
 Description: Confirms the public page is read-only in every tournament stage.
@@ -701,6 +754,16 @@ responsive behavior, CSS appearance or real display performance.
 
 File: `09-full-flow.test.js`
 
+### Score-free participant edit persists, restores schedule and completes a 50-team event
+
+Description: Checks participant editing and reload before running a full tournament.
+
+Inside:
+
+- edits a scheduled match without scoring and reloads its persisted team ID
+- restores the original participant and checks independent schedule invariants
+- plays timed group rounds, then the 16-team knockout through a champion
+
 ### Realistic 50-team schedule invariants and locked editing
 
 Description: Generates a production-sized phase with 50 teams and 20 terrains
@@ -747,6 +810,10 @@ Inside:
 
 ## Global limitations
 
+- Browser Find highlighting, collapsed-section reveal, popup layout and real
+  focus behavior require browser checks; the fake DOM cannot verify them
+- Team picker tests do not claim manual edits preserve round collisions or
+  configured appearances; eligibility filtering and swaps are not implemented
 - The VM and minimal DOM exercise application logic, rendered HTML and event
   wiring but not real browser layout, CSS rendering or device compatibility
 - Download and print tests verify prepared content and browser API calls, not
@@ -774,7 +841,7 @@ During creation, the suite was also checked by:
 - running every test file alone
 - production-source coverage measurement
 - syntax and ASCII checks
-- verifying all 53 production exports are referenced
+- verifying all 53 then-existing production exports are referenced
 - applying 27 temporary mutations in an external scratch copy and confirming
   every mutation caused at least one test failure
 

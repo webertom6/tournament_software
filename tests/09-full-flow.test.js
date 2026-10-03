@@ -45,6 +45,27 @@ function playPhase1(s) {
     return rows;
 }
 function seedMap(rows) { return new Map(rows.slice(0, 16).map((row, i) => [row.teamId, i + 1])); }
+test("full-flow: score-free participant edit persists, restores schedule and completes a 50-team event", () => {
+    const s = realistic();
+    const m = s.state().phase1.matches[0];
+    const home = m.homeTeamId;
+    const replacement = s.state().teams.find((team) => team.id !== home && team.id !== m.awayTeamId).id;
+    s.A.updatePhase1Team(m.id, "home", replacement);
+    assert.equal(m.status, "scheduled");
+    assert.equal(m.homeGoals, null);
+    const loaded = createSandbox({ initial: { [STATE_KEY]: s.S.exportState() } });
+    loaded.S.load();
+    assert.equal(loaded.state().phase1.matches[0].homeTeamId, replacement);
+    s.A.updatePhase1Team(m.id, "home", home);
+    scheduleInvariants(s.state().phase1.matches, s.state().teams.map((team) => team.id),
+        s.state().terrains.map((terrain) => terrain.id), 3);
+    playPhase1(s);
+    s.A.startKnockout();
+    for (const round of s.state().knockout.rounds) {
+        for (const match of round.matches) scoreWinner(s, match, match.homeTeamId);
+    }
+    assert.ok(s.state().knockout.championTeamId);
+});
 function better(s, match, seeds) {
     assert.ok(match.homeTeamId && match.awayTeamId);
     scoreWinner(s, match, seeds.get(match.homeTeamId) < seeds.get(match.awayTeamId) ? match.homeTeamId : match.awayTeamId);

@@ -204,31 +204,28 @@
         const isCompleted = match.status === "completed";
         const lockedAttr = isCompleted ? ' disabled' : '';
         const reopenAttr = isCompleted ? '' : ' disabled title="Only a completed match can be reopened"';
+        const teamsAttr = ' data-home-team-id="' + esc(match.homeTeamId || "") +
+            '" data-away-team-id="' + esc(match.awayTeamId || "") + '"';
         return '<div class="match-row">' +
-            '<input type="number" min="0" step="1" data-role="' + homeRole + '" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals"' + lockedAttr + '>' +
-            '<input type="number" min="0" step="1" data-role="' + awayRole + '" data-match-id="' + esc(match.id) + '" value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals"' + lockedAttr + '>' +
+            '<input type="number" min="0" step="1" data-role="' + homeRole + '" data-match-id="' + esc(match.id) + '"' + teamsAttr + ' value="' + (Number.isFinite(match.homeGoals) ? match.homeGoals : "") + '" placeholder="Home goals" aria-label="Home goals"' + lockedAttr + '>' +
+            '<input type="number" min="0" step="1" data-role="' + awayRole + '" data-match-id="' + esc(match.id) + '"' + teamsAttr + ' value="' + (Number.isFinite(match.awayGoals) ? match.awayGoals : "") + '" placeholder="Away goals" aria-label="Away goals"' + lockedAttr + '>' +
             '<button type="button" data-action="' + esc(saveAction) + '" data-match-id="' + esc(match.id) + '"' + lockedAttr + '>Save score</button>' +
             '<button type="button" class="reopen" data-action="' + esc(reopenAction) + '" data-match-id="' + esc(match.id) + '"' + reopenAttr + '>Reopen</button>' +
             '</div>';
     }
 
-    function buildTeamSelect(state, role, matchId, currentTeamId, otherTeamId, allowEmpty, isLocked) {
-        const options = [];
-        if (allowEmpty) {
-            options.push('<option value=""' + (!currentTeamId ? ' selected' : '') + '>BYE / none</option>');
-        }
-        state.teams.forEach((team) => {
-            if (team.id === otherTeamId) {
-                return;
-            }
-            const selected = team.id === currentTeamId ? ' selected' : '';
-            options.push('<option value="' + esc(team.id) + '"' + selected + '>' + esc(team.name) + '</option>');
-        });
-        // locked once a match is completed, so a team swap can't silently go unnoticed -
-        // reopening the match (which keeps the score, see reopenPhase1Match/reopenKnockoutMatch)
-        // unlocks it again
+    function buildTeamPicker(state, role, matchId, currentTeamId, otherTeamId, isLocked) {
+        const name = currentTeamId ? window.TournamentRules.getTeamNameById(state, currentTeamId) : "TBD";
+        const listId = "teams-" + role + "-" + encodeURIComponent(matchId);
         const lockedAttr = isLocked ? ' disabled title="Reopen the match to change teams"' : '';
-        return '<select data-role="' + role + '" data-match-id="' + esc(matchId) + '" aria-label="' + role + '"' + lockedAttr + '>' + options.join("") + '</select>';
+        return '<div class="team-picker">' +
+            '<input type="text" role="combobox" autocomplete="off" spellcheck="false" aria-autocomplete="list"' +
+            ' aria-expanded="false" aria-controls="' + esc(listId) + '" aria-label="' + esc(role) + '"' +
+            ' data-role="' + role + '" data-match-id="' + esc(matchId) + '" data-team-id="' + esc(currentTeamId || "") +
+            '" data-other-team-id="' + esc(otherTeamId || "") + '" data-team-name="' + esc(name) +
+            '" value="' + esc(name) + '"' + lockedAttr + '>' +
+            '<div id="' + esc(listId) + '" class="team-options" role="listbox" aria-label="Teams" hidden></div>' +
+            '</div>';
     }
 
     function renderMatchTeamsStatic(home, away) {
@@ -237,13 +234,6 @@
             '<span class="team-line" title="' + esc(home) + '">' + esc(home) + '</span>' +
             '<span class="team-line" title="' + esc(away) + '"><span class="vs-label">vs</span> ' + esc(away) + '</span>' +
             '</div>';
-    }
-
-    // <select>/<option> text isn't reachable by the browser's find-in-page (Ctrl+F);
-    // this mirrors only the currently assigned team names as small real text (not
-    // clipped-hidden) so a Ctrl+F match is actually visible, not just jumped-to
-    function buildSearchableTeamNames(home, away) {
-        return '<p class="match-search-label">' + esc(home) + ' vs ' + esc(away) + '</p>';
     }
 
     // round: {startedAt, stoppedAt, pausedAt, pausedTotalMs}; opts.pauseAction/resumeAction are
@@ -761,14 +751,10 @@
                         '<span class="status-pill ' + esc(match.status) + '">' + esc(match.status) + '</span>' +
                         '</div>' +
                         '<p class="muted">Terrain: ' + esc(getTerrainName(state, match.terrainId)) + '</p>' +
-                        buildSearchableTeamNames(
-                            match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD",
-                            match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD"
-                        ) +
                         '<div class="match-teams">' +
-                        buildTeamSelect(state, "phase1-home-team", match.id, match.homeTeamId, match.awayTeamId, false, match.status === "completed") +
+                        buildTeamPicker(state, "phase1-home-team", match.id, match.homeTeamId, match.awayTeamId, match.status === "completed") +
                         '<span class="vs-label">vs</span>' +
-                        buildTeamSelect(state, "phase1-away-team", match.id, match.awayTeamId, match.homeTeamId, false, match.status === "completed") +
+                        buildTeamPicker(state, "phase1-away-team", match.id, match.awayTeamId, match.homeTeamId, match.status === "completed") +
                         '</div>' +
                         renderMatchTimerBlock(roundTimerSafe, match, state.config.matchDurationSeconds, state.config.pauseDurationSeconds) +
                         buildScoreRow(match, "phase1-home", "phase1-away", "phase1-save", "phase1-reopen") +
@@ -883,11 +869,10 @@
                     const home = match.homeTeamId ? window.TournamentRules.getTeamNameById(state, match.homeTeamId) : "TBD";
                     const away = match.awayTeamId ? window.TournamentRules.getTeamNameById(state, match.awayTeamId) : "TBD";
                     const teamsHtml = isFirstRound ?
-                        buildSearchableTeamNames(home, away) +
                         '<div class="match-teams">' +
-                        buildTeamSelect(state, "ko-home-team", match.id, match.homeTeamId, match.awayTeamId, true, match.status === "completed") +
+                        buildTeamPicker(state, "ko-home-team", match.id, match.homeTeamId, match.awayTeamId, match.status === "completed") +
                         '<span class="vs-label">vs</span>' +
-                        buildTeamSelect(state, "ko-away-team", match.id, match.awayTeamId, match.homeTeamId, true, match.status === "completed") +
+                        buildTeamPicker(state, "ko-away-team", match.id, match.awayTeamId, match.homeTeamId, match.status === "completed") +
                         '</div>' :
                         renderMatchTeamsStatic(home, away);
                     return '' +
@@ -1032,18 +1017,178 @@
         console.error(error);
     }
 
-    function getSiblingScoreInput(role, matchId) {
-        return document.querySelector('input[data-role="' + role + '"][data-match-id="' + matchId + '"]');
+    function getMatchInput(role, matchId) {
+        return Array.from(document.querySelectorAll('input[data-role="' + role + '"]'))
+            .find((input) => input.getAttribute("data-match-id") === matchId);
     }
 
     function getSiblingTeamId(role, matchId) {
-        // undefined means "no dropdown rendered, keep whatever team is already stored"
-        // null means "dropdown rendered but set to BYE / none"
-        const select = document.querySelector('select[data-role="' + role + '"][data-match-id="' + matchId + '"]');
-        if (!select) {
+        const input = getMatchInput(role, matchId);
+        if (!input) {
             return undefined;
         }
-        return select.value || null;
+        return input.getAttribute("data-team-id") || null;
+    }
+
+    let activeTeamPicker = null;
+
+    function closeTeamPicker() {
+        if (!activeTeamPicker) {
+            return;
+        }
+        const input = activeTeamPicker;
+        input.value = input.getAttribute("data-team-name");
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
+        const list = input.closest(".team-picker").querySelector('[role="listbox"]');
+        list.hidden = true;
+        list.innerHTML = "";
+        activeTeamPicker = null;
+    }
+
+    function showTeamOptions(input, query) {
+        if (input.disabled) {
+            return;
+        }
+        if (activeTeamPicker !== input) {
+            closeTeamPicker();
+        }
+        activeTeamPicker = input;
+        const list = input.closest(".team-picker").querySelector('[role="listbox"]');
+        const normalized = query.trim().toLowerCase();
+        const teams = window.TournamentState.getState().teams.filter((team) =>
+            team.id !== input.getAttribute("data-other-team-id") &&
+            team.name.toLowerCase().includes(normalized));
+        list.innerHTML = teams.map((team, index) => '<div role="option" class="team-option" id="' +
+            esc(list.id + "-" + index) + '" data-team-id="' + esc(team.id) +
+            '" aria-selected="false">' + esc(team.name) + '</div>').join("") ||
+            '<p class="team-no-results" role="status">No matching teams</p>';
+        list.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        input.removeAttribute("aria-activedescendant");
+    }
+
+    function commitTeamOption(option) {
+        const input = activeTeamPicker;
+        if (!input || input.disabled) {
+            return;
+        }
+        const role = input.getAttribute("data-role");
+        const matchId = input.getAttribute("data-match-id");
+        const teamId = option.getAttribute("data-team-id");
+        // state updates redraw cards; restore drafts only where participants stayed the same
+        const drafts = Array.from(document.querySelectorAll('.match-row input[type="number"]')).map((field) => ({
+            role: field.getAttribute("data-role"),
+            matchId: field.getAttribute("data-match-id"),
+            home: field.getAttribute("data-home-team-id"),
+            away: field.getAttribute("data-away-team-id"),
+            disabled: field.disabled,
+            value: field.value
+        }));
+        closeTeamPicker();
+        try {
+            const side = role.includes("-home-") ? "home" : "away";
+            if (role.startsWith("phase1-")) {
+                window.TournamentActions.updatePhase1Team(matchId, side, teamId);
+            } else {
+                window.TournamentActions.updateKnockoutTeam(matchId, side, teamId);
+            }
+            drafts.forEach((draft) => {
+                const field = getMatchInput(draft.role, draft.matchId);
+                if (field && field.disabled === draft.disabled &&
+                    field.getAttribute("data-home-team-id") === draft.home &&
+                    field.getAttribute("data-away-team-id") === draft.away) {
+                    field.value = draft.value;
+                }
+            });
+            const nextInput = getMatchInput(role, matchId);
+            if (nextInput) {
+                nextInput.focus();
+                closeTeamPicker();
+            }
+        } catch (error) {
+            handleError(error);
+        }
+    }
+
+    function bindTeamPickers() {
+        const root = document.getElementById("app-root");
+        const pickerInput = (target) => target.matches('input[role="combobox"]') ? target : null;
+        root.addEventListener("focusin", (event) => {
+            const input = pickerInput(event.target);
+            if (input) {
+                showTeamOptions(input, "");
+                input.select();
+            }
+        });
+        root.addEventListener("input", (event) => {
+            const input = pickerInput(event.target);
+            if (input) {
+                showTeamOptions(input, input.value);
+            }
+        });
+        root.addEventListener("focusout", (event) => {
+            if (activeTeamPicker === event.target) {
+                closeTeamPicker();
+            }
+        });
+        root.addEventListener("pointerdown", (event) => {
+            if (event.target.closest(".team-option")) {
+                event.preventDefault();
+            }
+        });
+        document.addEventListener("click", (event) => {
+            const option = event.target.closest(".team-option");
+            if (option && activeTeamPicker && option.closest(".team-picker") === activeTeamPicker.closest(".team-picker")) {
+                commitTeamOption(option);
+            } else if (!event.target.closest(".team-picker")) {
+                closeTeamPicker();
+            } else {
+                const input = pickerInput(event.target);
+                if (input && input.getAttribute("aria-expanded") === "false") {
+                    showTeamOptions(input, "");
+                }
+            }
+        });
+        root.addEventListener("keydown", (event) => {
+            const input = pickerInput(event.target);
+            if (!input || input.disabled) {
+                return;
+            }
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeTeamPicker();
+                return;
+            }
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") {
+                return;
+            }
+            event.preventDefault();
+            if (input.getAttribute("aria-expanded") === "false") {
+                if (event.key === "Enter") {
+                    return;
+                }
+                showTeamOptions(input, "");
+            }
+            const options = Array.from(input.closest(".team-picker").querySelectorAll('[role="option"]'));
+            if (!options.length) {
+                return;
+            }
+            const current = options.findIndex((option) => option.id === input.getAttribute("aria-activedescendant"));
+            if (event.key === "Enter") {
+                if (current >= 0) {
+                    commitTeamOption(options[current]);
+                } else if (options.length === 1) {
+                    commitTeamOption(options[0]);
+                }
+                return;
+            }
+            const index = current < 0 ? (event.key === "ArrowDown" ? 0 : options.length - 1) :
+                (current + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length;
+            options.forEach((option, i) => option.setAttribute("aria-selected", String(i === index)));
+            input.setAttribute("aria-activedescendant", options[index].id);
+            options[index].scrollIntoView({ block: "nearest" });
+        });
     }
 
     function applyStageGating(state) {
@@ -1071,6 +1216,7 @@
     function bindEvents() {
         updateSummaryControlButtons();
         bindCollapsibleSections();
+        bindTeamPickers();
 
         document.getElementById("form-add-team").addEventListener("submit", (event) => {
             event.preventDefault();
@@ -1275,8 +1421,8 @@
 
                 if (action === "phase1-save") {
                     const matchId = target.getAttribute("data-match-id");
-                    const homeInput = getSiblingScoreInput("phase1-home", matchId);
-                    const awayInput = getSiblingScoreInput("phase1-away", matchId);
+                    const homeInput = getMatchInput("phase1-home", matchId);
+                    const awayInput = getMatchInput("phase1-away", matchId);
                     const homeTeamId = getSiblingTeamId("phase1-home-team", matchId);
                     const awayTeamId = getSiblingTeamId("phase1-away-team", matchId);
                     window.TournamentActions.applyPhase1Score(matchId, homeTeamId, awayTeamId, homeInput ? homeInput.value : "", awayInput ? awayInput.value : "");
@@ -1290,8 +1436,8 @@
 
                 if (action === "ko-save") {
                     const matchId = target.getAttribute("data-match-id");
-                    const homeInput = getSiblingScoreInput("ko-home", matchId);
-                    const awayInput = getSiblingScoreInput("ko-away", matchId);
+                    const homeInput = getMatchInput("ko-home", matchId);
+                    const awayInput = getMatchInput("ko-away", matchId);
                     const homeTeamId = getSiblingTeamId("ko-home-team", matchId);
                     const awayTeamId = getSiblingTeamId("ko-away-team", matchId);
                     window.TournamentActions.applyKnockoutScore(matchId, homeTeamId, awayTeamId, homeInput ? homeInput.value : "", awayInput ? awayInput.value : "");
@@ -1357,6 +1503,7 @@
     }
 
     function renderApp(state) {
+        closeTeamPicker();
         syncConfigForm(state);
         renderProgressBar(state);
         renderOverview(state);

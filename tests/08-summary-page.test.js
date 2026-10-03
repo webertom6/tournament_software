@@ -4,6 +4,24 @@ const assert = require("node:assert/strict");
 const { createSandbox, setup, completePhase1, knockoutFixture, scoreWinner, FakeStorage, STATE_KEY, SUMMARY_KEY } = require("./harness");
 const { handFixture, HEADERS } = require("./oracles");
 
+test("summary-page: team-only edits appear through storage without completing matches or writing", () => {
+    const operator = createSandbox();
+    setup(operator, 50, 20, { phase1MatchesPerTeam: 3, qualifiedCount: 16 });
+    operator.A.generatePhase1();
+    const summary = createSandbox({ page: "summary", storage: operator.storage });
+    const m = operator.state().phase1.matches[0];
+    const replacement = operator.state().teams.find((team) => team.id !== m.homeTeamId && team.id !== m.awayTeamId);
+    operator.S.update((state) => { state.teams.find((team) => team.id === replacement.id).name = "Unique updated participant"; });
+    operator.A.updatePhase1Team(m.id, "home", replacement.id);
+    const writes = operator.storage.writes.length;
+    summary.dispatchWindow("storage", { key: STATE_KEY });
+    const card = summary.el("view-phase1").querySelectorAll(".summary-match")[0];
+    assert.match(card.textContent, /Unique updated participant/);
+    assert.doesNotMatch(card.textContent, /Score:/);
+    assert.equal(m.status, "scheduled");
+    assert.equal(operator.storage.writes.length, writes);
+});
+
 test("summary-page: no data/malformed/setup/phase1/knockout/champion views never write", () => {
     const fixture = knockoutFixture();
     const stages = [null, "{", JSON.stringify({ teams: [], terrains: [], config: {} })];

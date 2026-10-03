@@ -206,6 +206,13 @@ chips remain compact rectangular labels.
 Inputs use a white background, 1px grid-line border, square corners, and a
 minimum height of 42px. Stage-locked values are disabled and visibly muted.
 
+Phase 1 and first-round knockout team fields are searchable comboboxes. Typing
+filters an on-demand list; clicking an option or using arrows and Enter saves
+the participant immediately without completing the match. Escape or dismissal
+restores the assigned name. Completed matches require Reopen; changing a team
+clears its old score. Keep selected names readable and searchable with browser
+Find, rather than duplicating them in tiny text.
+
 ### Status Chips
 Compact rectangular labels communicate upcoming, current, and completed
 states. Keep their wording explicit; color reinforces rather than replaces it.

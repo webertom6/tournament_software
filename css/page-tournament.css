@@ -434,7 +434,7 @@ details[open] > summary .chevron {
     margin-bottom: 0.5rem;
 }
 
-.match-teams select {
+.match-teams .team-picker {
     flex: 1 1 140px;
     min-width: 0;
 }

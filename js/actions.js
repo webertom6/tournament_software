@@ -196,6 +196,56 @@
         return findPhase1Match(state, matchId) || findKnockoutMatch(state, matchId);
     }
 
+    function updateMatchTeam(matchId, side, teamId, knockout) {
+        const state = window.TournamentState.getState();
+        const match = knockout ? findKnockoutMatch(state, matchId) : findPhase1Match(state, matchId);
+        if (!match) {
+            throw new Error(knockout ? "Knockout match not found" : "Phase 1 match not found");
+        }
+        if (side !== "home" && side !== "away") {
+            throw new Error("Team side must be home or away");
+        }
+        if (match.status === "completed") {
+            throw new Error("Reopen the match to change teams");
+        }
+        if (knockout && (!state.knockout.generated || !state.knockout.rounds.length ||
+            !state.knockout.rounds[0].matches.some((first) => first.id === matchId))) {
+            throw new Error("Only first round matches can have their teams changed manually");
+        }
+        if (!teamId || !findTeam(state, teamId)) {
+            throw new Error("Selected team not found");
+        }
+        const key = side === "home" ? "homeTeamId" : "awayTeamId";
+        const otherKey = side === "home" ? "awayTeamId" : "homeTeamId";
+        if (teamId === match[otherKey]) {
+            throw new Error("Home and away teams must be different");
+        }
+        if (teamId === match[key]) {
+            return;
+        }
+
+        window.TournamentState.update((current) => {
+            match[key] = teamId;
+            match.homeGoals = null;
+            match.awayGoals = null;
+            match.finalElapsedMs = null;
+            if (knockout) {
+                window.TournamentBracket.clearDownstreamFromMatch(current, matchId);
+            } else if (current.knockout.generated) {
+                clearKnockoutState(current);
+            }
+        }, "Changed " + (knockout ? "knockout" : "phase 1") + " " + side +
+            " team in match " + matchId + " to " + findTeam(state, teamId).name + " and cleared its score");
+    }
+
+    function updatePhase1Team(matchId, side, teamId) {
+        updateMatchTeam(matchId, side, teamId, false);
+    }
+
+    function updateKnockoutTeam(matchId, side, teamId) {
+        updateMatchTeam(matchId, side, teamId, true);
+    }
+
     function applyPhase1Score(matchId, homeTeamIdRaw, awayTeamIdRaw, homeGoalsRaw, awayGoalsRaw) {
         const homeGoals = parseGoal(homeGoalsRaw, "Home goals");
         const awayGoals = parseGoal(awayGoalsRaw, "Away goals");
@@ -589,11 +639,13 @@
         updateConfig: updateConfig,
         generatePhase1: generatePhase1,
         applyPhase1Score: applyPhase1Score,
+        updatePhase1Team: updatePhase1Team,
         reopenPhase1Match: reopenPhase1Match,
         resetPhases: resetPhases,
         backToPhase1: backToPhase1,
         startKnockout: startKnockout,
         applyKnockoutScore: applyKnockoutScore,
+        updateKnockoutTeam: updateKnockoutTeam,
         reopenKnockoutMatch: reopenKnockoutMatch,
         startPhase1RoundTimer: startPhase1RoundTimer,
         startKnockoutRoundTimer: startKnockoutRoundTimer,

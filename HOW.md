@@ -34,8 +34,12 @@ In progress changes only when the previous round has all scores saved
 Phase 2 knockout cannot be generated until every phase 1 match has a saved score
 
 # Changes
-To change a team in a match: change the dropdown, save the score, then reopen the match
-For a completed match: reopen it, change the dropdown, then save the score
+In phase 1 or the first knockout round, type in a team field to filter teams
+Choose an option by click, or arrows and Enter: the team saves immediately without completing the match
+Changing a team clears that match's old score; completed matches must be reopened first
+Escape or leaving the field cancels unselected text; clearing text does not remove a team
+Browser Find (Ctrl+F, then F3) can locate assigned names in these fields
+Manual edits do not rebalance the schedule or filter teams by their configured match count
 
 # Reset
 ## reset all
