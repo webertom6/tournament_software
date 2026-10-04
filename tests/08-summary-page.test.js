@@ -146,8 +146,8 @@ test("summary-page: standingsHidden, 16ms 40px/s scrolling, boundaries and clear
     assert.equal(storage.writes.length, writes + 1);
     s.advance(1000); s.runTimers(16); assert.equal(s.window.scrollY, 0);
 });
-test("summary-page: >30 split two tables, >80 three, escaping and standings parity", () => {
-    for (const [count, columns] of [[4, 1], [30, 1], [31, 2], [80, 2], [81, 3]]) {
+test("summary-page: standings column thresholds, escaping and standings parity", () => {
+    for (const [count, columns] of [[4, 1], [80, 1], [81, 3], [100, 3], [101, 3]]) {
         const fixture = createSandbox(); setup(fixture, count, 0);
         fixture.state().phase1.generated = true;
         fixture.state().teams[0].name = '<img src="x">&\'';

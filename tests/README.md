@@ -730,7 +730,7 @@ Description: Checks readable table splitting and safe output for large events.
 
 Inside:
 
-- checks the 30/31 and 80/81 team split boundaries
+- checks configured standings splitting and the 80/81 team three-column boundary
 - compares summary standings values with production standings
 - verifies hostile team names render escaped
 - verifies standings are not rebuilt on timer ticks and state/show updates

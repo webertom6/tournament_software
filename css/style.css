@@ -257,8 +257,16 @@ td {
     vertical-align: middle;
 }
 
-tbody tr:hover {
+table:not(.print-table) tbody tr:hover > td {
     background: #eef1f6;
+}
+
+table:not(.print-table) tbody tr:hover > td.standings-qualified {
+    background: color-mix(in srgb, var(--qualified-bg) 88%, var(--text));
+}
+
+table:not(.print-table) tbody tr:hover > td.stat-best {
+    background: color-mix(in srgb, var(--best-bg) 88%, var(--text));
 }
 
 /* numbers centered in their cells, team names stay left-aligned for scanning
