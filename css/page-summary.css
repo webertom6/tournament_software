@@ -345,10 +345,12 @@
 .standings-columns th {
     color: var(--text);
     font-weight: 700;
+    font-size: 1.3rem;
 }
 
 .standings-columns td {
     font-weight: 600;
+    font-size: inherit;
 }
 
 /* min-width:0 (not overflow:hidden) lets this grid item shrink to the track width instead
