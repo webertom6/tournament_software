@@ -94,6 +94,7 @@
     display: grid;
     gap: 1rem;
     padding-bottom: 48px;
+    min-width: 0;
 }
 
 .summary-footer {
@@ -136,8 +137,9 @@
 
 .summary-round-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
     gap: 0.8rem;
+    min-width: 0;
 }
 
 .summary-phase1-rounds {
@@ -149,6 +151,7 @@
     border: 1px solid var(--border);
     background: var(--surface);
     padding: 0.9rem 1rem 1.1rem;
+    min-width: 0;
 }
 
 .summary-round-block-head {
@@ -291,6 +294,11 @@
     grid-template-columns: 1fr;
     gap: 1rem;
     align-items: start;
+    min-width: 0;
+}
+
+.summary-standings-card {
+    min-width: 0;
 }
 
 .summary-matches-card {
@@ -321,10 +329,13 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.8rem;
+    min-width: 0;
 }
 
 .standings-columns .table-wrap {
     flex: 1 1 220px;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .standings-columns table {
@@ -496,6 +507,41 @@
 .bracket-third-place {
     margin-top: 1rem;
     max-width: 220px;
+}
+
+@media (max-width: 767px) {
+    .standings-columns {
+        flex-direction: column;
+    }
+
+    .standings-columns .table-wrap {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+
+    .summary-main {
+        padding-bottom: 8rem;
+    }
+
+    .summary-footer {
+        position: fixed;
+        height: auto;
+        flex-direction: column;
+        gap: 0.45rem;
+        padding: 0.75rem 1rem;
+        text-align: center;
+    }
+
+    .summary-footer-credit {
+        max-width: 100%;
+        font-size: clamp(0.625rem, 3vw, 0.8125rem);
+        overflow-wrap: anywhere;
+    }
+
+    .summary-footer-remaining {
+        margin-left: 0;
+        font-size: 0.875rem;
+    }
 }
 
 @media (max-width: 900px) {

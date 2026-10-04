@@ -88,6 +88,43 @@ test("summary-page: shared storage live events and unrelated key no-op", () => {
     summary.advance(1000); summary.runTimers(1000);
     assert.equal(storage.writes.length, writes + 3);
 });
+test("summary-page: standings refresh on state/show changes and preserve horizontal scroll", () => {
+    const fixture = createSandbox();
+    setup(fixture, 4, 0);
+    fixture.A.generatePhase1();
+    const storage = new FakeStorage({ [STATE_KEY]: fixture.S.exportState() });
+    const s = createSandbox({ page: "summary", storage });
+    const originalWrap = s.el("summary-standings").querySelector(".table-wrap");
+    originalWrap.scrollLeft = 145;
+
+    s.advance(1000); s.runTimers(1000);
+    assert.equal(s.el("summary-standings").querySelector(".table-wrap"), originalWrap);
+    assert.equal(originalWrap.scrollLeft, 145);
+
+    const updated = JSON.parse(fixture.S.exportState());
+    updated.teams[0].name = "Updated team name";
+    storage.setItem(STATE_KEY, JSON.stringify(updated));
+    s.dispatchWindow("storage", { key: STATE_KEY });
+    let tableWrap = s.el("summary-standings").querySelector(".table-wrap");
+    assert.notEqual(tableWrap, originalWrap);
+    assert.equal(tableWrap.scrollLeft, 145);
+    assert.match(s.el("summary-standings").innerHTML, /Updated team name/);
+
+    storage.setItem(SUMMARY_KEY, '{"standingsHidden":true,"autoScrollActive":false}');
+    s.dispatchWindow("storage", { key: SUMMARY_KEY });
+    const hiddenWrap = s.el("summary-standings").querySelector(".table-wrap");
+    updated.teams[0].name = "Updated while hidden";
+    storage.setItem(STATE_KEY, JSON.stringify(updated));
+    s.dispatchWindow("storage", { key: STATE_KEY });
+    assert.equal(s.el("summary-standings").querySelector(".table-wrap"), hiddenWrap);
+
+    storage.setItem(SUMMARY_KEY, '{"standingsHidden":false,"autoScrollActive":false}');
+    s.dispatchWindow("storage", { key: SUMMARY_KEY });
+    tableWrap = s.el("summary-standings").querySelector(".table-wrap");
+    assert.notEqual(tableWrap, hiddenWrap);
+    assert.equal(tableWrap.scrollLeft, 145);
+    assert.match(s.el("summary-standings").innerHTML, /Updated while hidden/);
+});
 test("summary-page: standingsHidden, 16ms 40px/s scrolling, boundaries and clear when off", () => {
     const storage = new FakeStorage({ [SUMMARY_KEY]: '{"standingsHidden":true,"autoScrollActive":true}' });
     const s = createSandbox({ page: "summary", storage, now: 1000 });
@@ -110,7 +147,7 @@ test("summary-page: standingsHidden, 16ms 40px/s scrolling, boundaries and clear
     s.advance(1000); s.runTimers(16); assert.equal(s.window.scrollY, 0);
 });
 test("summary-page: >30 split two tables, >80 three, escaping and standings parity", () => {
-    for (const [count, columns] of [[4, 1], [31, 2], [81, 3]]) {
+    for (const [count, columns] of [[4, 1], [30, 1], [31, 2], [80, 2], [81, 3]]) {
         const fixture = createSandbox(); setup(fixture, count, 0);
         fixture.state().phase1.generated = true;
         fixture.state().teams[0].name = '<img src="x">&\'';
@@ -147,12 +184,26 @@ test("summary-page: third place only both known, live bracket progression and sc
     storage.setItem(STATE_KEY, fixture.S.exportState()); s.dispatchWindow("storage", { key: STATE_KEY });
     assert.match(s.el("summary-bracket").innerHTML, /bracket-third-place/);
     assert.equal(s.el("summary-clock-label").textContent, "Final");
-    const scroll = s.el("bracket-scroll");
+    let scroll = s.el("bracket-scroll");
+    assert.equal(scroll.scrollLeft, 480);
     scroll.scrollLeft = 100; scroll.dispatch("scroll");
+    assert.equal(s.el("bracket-titles-inner").style.transform, "translateX(-100px)");
+    const updated = JSON.parse(fixture.S.exportState());
+    updated.teams[0].name = "Updated bracket team";
+    storage.setItem(STATE_KEY, JSON.stringify(updated)); s.dispatchWindow("storage", { key: STATE_KEY });
+    scroll = s.el("bracket-scroll");
+    assert.equal(scroll.scrollLeft, 100);
     assert.equal(s.el("bracket-titles-inner").style.transform, "translateX(-100px)");
     const writes = storage.writes.length;
     s.advance(1000); s.runTimers(1000);
     assert.equal(storage.writes.length, writes);
+    assert.equal(s.el("bracket-scroll").scrollLeft, 100);
+
+    fixture.A.reopenKnockoutMatch(semis[1].id);
+    storage.setItem(STATE_KEY, fixture.S.exportState()); s.dispatchWindow("storage", { key: STATE_KEY });
+    assert.equal(s.el("bracket-scroll").scrollLeft, 240);
+    scoreWinner(fixture, semis[1], semis[1].awayTeamId);
+    storage.setItem(STATE_KEY, fixture.S.exportState()); s.dispatchWindow("storage", { key: STATE_KEY });
     assert.equal(s.el("bracket-scroll").scrollLeft, 480);
 });
 test("summary-page: power-of-two bracket maps real feeders without BYEs", () => {

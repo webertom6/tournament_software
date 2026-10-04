@@ -1,5 +1,6 @@
 (function () {
     const STORAGE_KEY = "tournament_software_state_v1";
+    const STANDINGS_SPLIT_THRESHOLD = 100;
 
     function esc(value) {
         return String(value || "")
@@ -200,7 +201,7 @@
         if (teamCount > 80) {
             return 3;
         }
-        if (teamCount > 30) {
+        if (teamCount > STANDINGS_SPLIT_THRESHOLD) {
             return 2;
         }
         return 1;
@@ -250,6 +251,10 @@
 
     function renderStandings(state) {
         const target = document.getElementById("summary-standings");
+        const previousScrollPositions = Array.from(
+            target.querySelectorAll(".standings-columns .table-wrap"),
+            (tableWrap) => tableWrap.scrollLeft
+        );
         if (!state || !state.phase1 || !state.phase1.generated) {
             target.innerHTML = '<p class="summary-empty">Standings not available yet</p>';
             return;
@@ -273,6 +278,9 @@
             '<div class="standings-columns">' +
             columns.map((rows) => '<div class="table-wrap">' + renderStandingsTable(rows, qualifiedCount, bestValues) + '</div>').join("") +
             '</div>';
+        target.querySelectorAll(".standings-columns .table-wrap").forEach((tableWrap, index) => {
+            tableWrap.scrollLeft = previousScrollPositions[index] || 0;
+        });
     }
 
     function renderPhase1(state) {
@@ -403,12 +411,14 @@
     function renderBracket(state) {
         const target = document.getElementById("summary-bracket");
         if (!state || !state.knockout || !state.knockout.generated) {
+            lastScrolledKnockoutRound = null;
             target.innerHTML = '<p class="summary-empty">Knockout phase is not generated yet</p>';
             return;
         }
 
         const rounds = state.knockout.rounds || [];
         if (!rounds.length) {
+            lastScrolledKnockoutRound = null;
             target.innerHTML = '<p class="summary-empty">No knockout rounds</p>';
             return;
         }
@@ -489,6 +499,8 @@
                 '</div>';
         }
 
+        const previousScroll = document.getElementById("bracket-scroll");
+        const previousScrollLeft = previousScroll ? previousScroll.scrollLeft : 0;
         target.innerHTML =
             '<div class="bracket-titles-sticky"><div class="bracket-titles-inner" id="bracket-titles-inner">' +
             titleColumns.join("") +
@@ -508,20 +520,15 @@
         lastScrolledKnockoutRound = currentRoundIndex;
         const columnEl = target.querySelector('.bracket-round[data-round-index="' + currentRoundIndex + '"]');
         if (columnEl) {
-            // the whole bracket is rebuilt on every 1s re-render (fresh scrollLeft=0 node each
-            // time), so the scroll position must be re-applied every tick, not just on round change
             const maxScrollLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
-            // offsetLeft is relative to the nearest POSITIONED ancestor, which here is nothing
-            // closer than <body> (neither .bracket-scroll nor .bracket-tree are positioned), so
-            // it's the wrong reference frame and way overshoots; measure via bounding rects
-            // relative to the scroll container itself instead
-            const columnOffset = columnEl.getBoundingClientRect().left - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
-            const desiredScrollLeft = Math.min(Math.max(0, columnOffset), maxScrollLeft);
             if (isNewCurrentRound) {
+                const columnOffset = columnEl.getBoundingClientRect().left - scrollEl.getBoundingClientRect().left + scrollEl.scrollLeft;
+                const desiredScrollLeft = Math.min(Math.max(0, columnOffset), maxScrollLeft);
                 scrollEl.scrollTo({ left: desiredScrollLeft, behavior: "smooth" });
             } else {
-                scrollEl.scrollLeft = desiredScrollLeft;
+                scrollEl.scrollLeft = Math.min(previousScrollLeft, maxScrollLeft);
             }
+            titlesInner.style.transform = "translateX(" + (-scrollEl.scrollLeft) + "px)";
         }
     }
 
@@ -601,33 +608,46 @@
         const prefs = getSummaryPrefs();
         document.getElementById("view-phase1").classList.toggle("standings-hidden", prefs.standingsHidden);
         setAutoScroll(prefs.autoScrollActive);
+        return prefs;
     }
 
-    function renderSummary() {
+    let lastStandingsHidden = null;
+
+    function renderSummary(refreshStandings = false) {
         const state = loadState();
         const stage = getStageKey(state);
         renderHeader(state);
         toggleViews(stage);
-        applySummaryPrefs();
+        const prefs = applySummaryPrefs();
         if (stage === "setup") {
             renderTeamsSetup(state);
         } else if (stage === "phase1") {
-            renderStandings(state);
+            if (refreshStandings && !prefs.standingsHidden) {
+                renderStandings(state);
+            }
             renderPhase1(state);
         } else if (stage === "knockout") {
             renderChampion(state);
             renderBracket(state);
         }
+        if (stage !== "knockout") {
+            lastScrolledKnockoutRound = null;
+        }
+        lastStandingsHidden = prefs.standingsHidden;
         const timestamp = new Date().toLocaleString();
         document.getElementById("summary-last-update").textContent = "Last refresh: " + timestamp;
     }
 
     window.addEventListener("storage", (event) => {
-        if (event.key === STORAGE_KEY || event.key === SUMMARY_PREFS_KEY) {
-            renderSummary();
+        if (event.key === STORAGE_KEY) {
+            renderSummary(true);
+        } else if (event.key === SUMMARY_PREFS_KEY) {
+            const prefs = getSummaryPrefs();
+            const standingsShown = lastStandingsHidden && !prefs.standingsHidden;
+            renderSummary(standingsShown);
         }
     });
 
     setInterval(renderSummary, 1000);
-    renderSummary();
+    renderSummary(true);
 })();

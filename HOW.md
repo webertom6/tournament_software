@@ -4,6 +4,7 @@ index.html = operator screen, summary.html = separate read-only screen for playe
 # Operator controls
 Auto scroll : scroll auto on summary page if too many info
 Show standings : show the standings table or the matches
+On small screens, standings scroll inside their tables and the footer stacks; the knockout bracket recenters only when its active round changes
 Expand/Collapse all : expand or collapse all container on the page
 
 # Import/Export state

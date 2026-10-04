@@ -730,10 +730,11 @@ Description: Checks readable table splitting and safe output for large events.
 
 Inside:
 
-- checks more than 30 teams create two tables
-- checks more than 80 teams create three tables
+- checks the 30/31 and 80/81 team split boundaries
 - compares summary standings values with production standings
 - verifies hostile team names render escaped
+- verifies standings are not rebuilt on timer ticks and state/show updates
+  preserve horizontal scroll
 
 ### Third place visibility, live bracket progression and scrolling
 
@@ -743,7 +744,8 @@ Inside:
 
 - hides third place until both teams are available
 - renders live round progression and current-round emphasis
-- checks bracket title and horizontal scroll synchronization
+- checks active-round focus, manual scroll preservation, and title synchronization
+- verifies reopening and resaving a match refocuses the newly active round
 - verifies a full eight-team bracket has linked positions and no BYEs
 - displays a warning rather than failing on an imported invalid qualifier count
 - confirms a saved six-qualifier BYE bracket remains readable without state writes

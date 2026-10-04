@@ -155,8 +155,13 @@ adapt at 480px and 740px.
 The public page is deliberately wider: its header and content cap at 1800px
 with 24px gutters. Large stage and clock typography prioritizes viewing
 distance. The standings and bracket retain their own scroll regions when
-dense, and the bracket grows horizontally as rounds progress. The summary
-layout adapts below 900px and has a wide-display adjustment at 2560px.
+dense, and the bracket grows horizontally as rounds progress. Standings tables
+stack below 768px and keep horizontal scrolling inside each table; the default
+team-count split threshold is the `STANDINGS_SPLIT_THRESHOLD` constant in
+`js/summary.js`. The public footer stacks below 768px. The bracket preserves
+manual horizontal browsing and focuses a round only when the active round
+changes. The summary header adapts below 900px and has a wide-display adjustment
+at 2560px.
 
 Use a consistent 8/12/16px spacing rhythm where it fits the established
 components; preserve extra space around large public-display values.
